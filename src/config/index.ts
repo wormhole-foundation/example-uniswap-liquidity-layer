@@ -4,7 +4,7 @@ import loggerConfig from "./logger/index";
 import {ParsedOptions} from "./cli"
 const pkg = JSON.parse(readFileSync("./package.json", {encoding: "utf8"}));
 
-export const config: Partial<TsED.Configuration> = {
+export const config = {
   version: pkg.version,
   envs,
   logger: loggerConfig,

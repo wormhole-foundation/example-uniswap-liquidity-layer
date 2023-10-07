@@ -7,7 +7,7 @@ export const ALL_CHAINS = [
   optimism,
   base,
   arbitrum,
-]
+] as const
 
 export type CHAIN_NETWORK = (typeof ALL_CHAINS)[number]['network'];
 
@@ -38,6 +38,11 @@ const createProgram = () => {
     new Option('--tokenlist-url <string>', 'url to tokenlist')
       .default('https://tokenicons.nyc3.cdn.digitaloceanspaces.com/tokensList.json')
       .env('TOKENLIST_URL'),
+  )
+  .addOption(
+    new Option('--okuapi-url <string>', 'url to oku api')
+      .default('https://cush.apiary.software')
+      .env('OKUAPI_URL'),
   )
 
   const c3 = ALL_CHAINS.reduceRight((acc, n) => {

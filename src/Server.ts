@@ -11,7 +11,7 @@ import * as pages from "./controllers/pages/index";
 @Configuration({
   ...config,
   acceptMimes: ["application/json"],
-  httpPort: process.env.PORT || 8083,
+  httpPort: config.options.port,
   httpsPort: false, // CHANGE
   disableComponentsScan: true,
   mount: {
@@ -51,3 +51,4 @@ export class Server {
   @Configuration()
   protected settings: Configuration;
 }
+

@@ -13,7 +13,7 @@ export class MultiRpcService {
     ALL_CHAINS.forEach((n) => {
       this.addProvider(
         n.id,
-        config.options[`${camelcase(n.network)}RpcUrl`],
+        (config.options as any)[`${camelcase(n.network)}RpcUrl`],
       );
     });
   }
