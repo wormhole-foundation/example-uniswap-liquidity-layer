@@ -1,4 +1,5 @@
 import { Service } from "@tsed/di";
+import { BadRequest } from "@tsed/exceptions";
 import { config } from "src/config";
 import { ALL_CHAINS } from "src/config/cli";
 import { PublicClient, createPublicClient, http, webSocket } from "viem";
@@ -16,6 +17,15 @@ export class MultiRpcService {
         (config.options as any)[`${camelcase(n.network)}RpcUrl`],
       );
     });
+  }
+
+  getProvider(id: number):PublicClient {
+
+    const ans = this.providers.get(id)
+    if(ans) {
+      return ans
+    }
+    throw new BadRequest(`chain id ${id} not supported`)
   }
 
   addProvider(id: number, url?: string) {

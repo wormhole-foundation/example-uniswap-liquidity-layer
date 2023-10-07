@@ -3,3 +3,4 @@
  */
 
 export * from "./HelloWorldController";
+export * from "./OrderController";
