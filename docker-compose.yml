@@ -8,7 +8,6 @@ services:
         - http_proxy
         - https_proxy
         - no_proxy
-    image: thermae/server:latest
     ports:
       - "8081:8081"
 
