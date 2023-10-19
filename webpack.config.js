@@ -1,5 +1,6 @@
 const webpack = require('webpack')
 const path = require('path')
+const TerserPlugin = require("terser-webpack-plugin");
 
 const { NODE_ENV = 'development' } = process.env
 const isProduction = NODE_ENV !== 'development'
@@ -39,7 +40,6 @@ module.exports = {
       'node_modules'
     ]
   },
-
   module: {
     rules: [
       {
@@ -54,12 +54,20 @@ module.exports = {
       }
     ]
   },
-
   node: {
     global: false,
     __filename: false,
     __dirname: false
-  }
+  },
+  optimization: {
+    minimizer: [
+      new TerserPlugin({
+        terserOptions: {
+          keep_classnames: true,
+        },
+      }),
+    ],
+  },
 }
 
 

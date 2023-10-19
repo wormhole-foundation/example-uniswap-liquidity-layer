@@ -28,7 +28,7 @@ import "@tsed/objection";
   swagger: [
     {
       path: "/doc",
-      specVersion: "3.0.1"
+      specVersion: "3.0.1",
     }
   ],
   terminus: {

@@ -10524,7 +10524,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"terser-webpack-plugin@npm:^5.3.7":
+"terser-webpack-plugin@npm:^5.3.7, terser-webpack-plugin@npm:^5.3.9":
   version: 5.3.9
   resolution: "terser-webpack-plugin@npm:5.3.9"
   dependencies:
@@ -10654,6 +10654,7 @@ __metadata:
     prisma: ^5.4.1
     redis: ^4.6.10
     sqlite3: ^5.1.6
+    terser-webpack-plugin: ^5.3.9
     ts-node: ^10.9.1
     tsconfig-paths: ^4.2.0
     tslib: ^2.6.2
