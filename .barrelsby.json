@@ -5,6 +5,7 @@
     "./src/services",
     "./src/models",
     "./src/decorators",
+    "./src/constants",
     "./src/types"
   ],
   "exclude": [

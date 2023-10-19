@@ -1,16 +1,13 @@
-import { RedisClientType } from "@redis/client";
 import { Service} from "@tsed/di";
-import { Class } from "estree";
-import { createClient } from "redis";
-import { config } from "src/config";
 import { MultiRpcService } from "./RpcServices";
 import { BadRequest } from "@tsed/exceptions";
-import { OrderModel, OrderStatus } from "src/models";
-import { Hex, TransactionReceipt } from "viem";
+import { OrderStatus } from "src/models";
+import { Hex} from "viem";
 import { TxnData } from "src/types";
+import { RedisService } from "./RedisService";
 
 @Service()
-export class RedisService {
+export class OrderService {
 
   constructor(
     private readonly rpcService: MultiRpcService,
