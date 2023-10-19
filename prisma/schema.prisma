@@ -4,8 +4,25 @@
 generator client {
   provider = "prisma-client-js"
 }
+generator tsed {
+  provider = "tsed-prisma"
+}
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
+
+}
+
+enum OrderStatus {
+  INFLIGHT
+  PENDING
+  WORKING
+  CANCELLED
+  LEGGED
+  CONFIRMED
+}
+
+model Order {
+  id string @id @default(uuid())
 }
