@@ -4,6 +4,7 @@
     "@babel/typescript"
    ],
   "plugins": [
+    ["babel-plugin-tsconfig-paths"],
     "babel-plugin-transform-typescript-metadata",
     ["@babel/plugin-proposal-decorators", { "legacy": true }],
     ["@babel/plugin-proposal-class-properties", { "loose": true }],

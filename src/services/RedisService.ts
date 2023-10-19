@@ -1,4 +1,3 @@
-import { RedisClientType } from "@redis/client";
 import { Service} from "@tsed/di";
 import { Class } from "estree";
 import { createClient } from "redis";

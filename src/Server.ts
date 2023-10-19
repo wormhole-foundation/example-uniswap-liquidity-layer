@@ -5,8 +5,9 @@ import "@tsed/platform-koa"; // /!\ keep this import
 import "@tsed/ajv";
 import "@tsed/swagger";
 import "@tsed/terminus";
+import "@tsed/json-mapper";
 import {config} from "./config/index";
-import * as rest from "./controllers/rest/index";
+import * as api from "./controllers/api/index";
 import * as pages from "./controllers/pages/index";
 import "@tsed/objection";
 
@@ -17,8 +18,8 @@ import "@tsed/objection";
   httpsPort: false, // CHANGE
   disableComponentsScan: true,
   mount: {
-    "/rest": [
-      ...Object.values(rest)
+    "/api": [
+      ...Object.values(api)
     ],
     "/": [
       ...Object.values(pages)
@@ -53,6 +54,10 @@ import "@tsed/objection";
     "**/*.spec.ts"
   ],
   ajv:{},
+  jsonMapper: {
+    additionalProperties: false,
+    disableUnsecureConstructor: false,
+  }
 })
 export class Server {
   @Inject()

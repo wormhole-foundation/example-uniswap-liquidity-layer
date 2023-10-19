@@ -1,8 +1,11 @@
 {
   "directory": [
-    "./src/controllers/rest",
+    "./src/controllers/api",
     "./src/controllers/pages",
-    "./src/services"
+    "./src/services",
+    "./src/models",
+    "./src/decorators",
+    "./src/types"
   ],
   "exclude": [
     "__mock__",
