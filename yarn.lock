@@ -4718,6 +4718,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"bufferutil@npm:^4.0.8":
+  version: 4.0.8
+  resolution: "bufferutil@npm:4.0.8"
+  dependencies:
+    node-gyp: latest
+    node-gyp-build: ^4.3.0
+  checksum: 7e9a46f1867dca72fda350966eb468eca77f4d623407b0650913fadf73d5750d883147d6e5e21c56f9d3b0bdc35d5474e80a600b9f31ec781315b4d2469ef087
+  languageName: node
+  linkType: hard
+
 "bundle-name@npm:^3.0.0":
   version: 3.0.0
   resolution: "bundle-name@npm:3.0.0"
@@ -10619,6 +10629,7 @@ __metadata:
     babel-plugin-tsconfig-paths: ^1.0.3
     babel-watch: ^7.8.1
     barrelsby: ^2.8.1
+    bufferutil: ^4.0.8
     commander: ^11.0.0
     cross-env: ^7.0.3
     dotenv: ^16.3.1
@@ -10647,6 +10658,7 @@ __metadata:
     tsconfig-paths: ^4.2.0
     tslib: ^2.6.2
     typescript: ^5.2.2
+    utf-8-validate: ^6.0.3
     uuid: ^9.0.1
     viem: ^1.15.4
     webpack: ^5.88.2
@@ -11096,6 +11108,16 @@ __metadata:
   dependencies:
     punycode: ^2.1.0
   checksum: 7167432de6817fe8e9e0c9684f1d2de2bb688c94388f7569f7dbdb1587c9f4ca2a77962f134ec90be0cc4d004c939ff0d05acc9f34a0db39a3c797dada262633
+  languageName: node
+  linkType: hard
+
+"utf-8-validate@npm:^6.0.3":
+  version: 6.0.3
+  resolution: "utf-8-validate@npm:6.0.3"
+  dependencies:
+    node-gyp: latest
+    node-gyp-build: ^4.3.0
+  checksum: 5e21383c81ff7469c1912119ca69d07202d944c73ddd8a54b84dddcc546b939054e5101c78c294e494d206fe93bd43428adc635a0660816b3ec9c8ec89286ac4
   languageName: node
   linkType: hard
 

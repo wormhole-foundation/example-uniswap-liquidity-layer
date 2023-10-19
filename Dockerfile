@@ -34,7 +34,7 @@ FROM deps as build
 # Copy application code
 COPY --link . .
 
-RUN yarn build
+RUN yarn bundle
 
 # Final stage for app image
 FROM deps
@@ -46,4 +46,4 @@ COPY --from=build /app/dist/ /app
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 3333
 
-CMD [ "node","main.js" ]
+CMD [ "node","app.bundle.js" ]
