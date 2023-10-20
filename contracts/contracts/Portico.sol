@@ -4,7 +4,6 @@ pragma solidity ^0.8.9;
 //import "./openzeppelin/token/ERC20/IERC20.sol";
 
 import "./ITokenBridge.sol";
-import "./TokenBridge.sol";
 import "./IWormhole.sol";
 import "./IERC20.sol";
 
@@ -136,7 +135,7 @@ contract PorticoStart is PorticoBase {
 
     // now transfer the tokens cross chain, obtaining a sequence id.
     // TODO: what happens when the asset is not an xasset. will this just fail?
-    uint64 sequence = params.tokenBridge.transferTokens(
+    sequence = params.tokenBridge.transferTokens(
       address(params.xAssetAddress),
       uint256(amount),
       params.recipientChain,
@@ -171,13 +170,20 @@ contract PorticoStart is PorticoBase {
 }
 
 contract PorticoReceiver is PorticoBase {
+
+  ITokenBridge public immutable tokenBridge;
+
   mapping(bytes32 => bool) public nonces;
 
   event ProcessedMessage(bytes data);
 
+  constructor(ITokenBridge _tokenBridge){ 
+    tokenBridge = _tokenBridge;
+  }
+
   function receiveWormholeMessages(bytes[] memory signedVaas, bytes[] memory _unknown) public payable {
-    //todo init correct addr for IWormhole, this one is wrong
-    (IWormhole.VM memory parsed, bool valid, string memory reason) = IWormhole(0x3ee18B2214AFF97000D974cf647E7C347E8fa585).parseAndVerifyVM(signedVaas[0]);
+    //todo don't hard code this addr 0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B
+    (IWormhole.VM memory parsed, bool valid, string memory reason) = tokenBridge.wormhole().parseAndVerifyVM(signedVaas[0]);
 
     require(valid, reason);
 
