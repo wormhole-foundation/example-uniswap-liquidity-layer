@@ -97,10 +97,16 @@ contract PorticoStart is PorticoBase {
     // we check that this is the correct pool for the swap
     if (params.zeroForOne) {
       // if zero for one, then make sure that token 0 is native and token 1 is xAsset
-      require(address(params.tokenAddress) == params.pool.token0() && address(params.xAssetAddress) == params.pool.token1(), "wrong token addresses");
+      require(
+        address(params.tokenAddress) == params.pool.token0() && address(params.xAssetAddress) == params.pool.token1(),
+        "wrong token addresses"
+      );
     } else {
       // else its flipped
-      require(address(params.tokenAddress) == params.pool.token1() && address(params.xAssetAddress) == params.pool.token0(), "wrong token addresses");
+      require(
+        address(params.tokenAddress) == params.pool.token1() && address(params.xAssetAddress) == params.pool.token0(),
+        "wrong token addresses"
+      );
     }
 
     // TODO: need sanity checks for token balances?
@@ -170,14 +176,13 @@ contract PorticoStart is PorticoBase {
 }
 
 contract PorticoReceiver is PorticoBase {
-
   ITokenBridge public immutable tokenBridge;
 
   mapping(bytes32 => bool) public nonces;
 
   event ProcessedMessage(bytes data);
 
-  constructor(ITokenBridge _tokenBridge){ 
+  constructor(ITokenBridge _tokenBridge) {
     tokenBridge = _tokenBridge;
   }
 
@@ -227,10 +232,16 @@ contract PorticoReceiver is PorticoBase {
     // check that this is the correct pool for the swap
     if (zeroForOne) {
       // if zero for one, then make sure that token 0 is xAsset and token 1 is the token
-      require(address(params.tokenAddress) == params.pool.token1() && address(params.xAssetAddress) == params.pool.token0(), "wrong token addresses");
+      require(
+        address(params.tokenAddress) == params.pool.token1() && address(params.xAssetAddress) == params.pool.token0(),
+        "wrong token addresses"
+      );
     } else {
       // else its flipped
-      require(address(params.tokenAddress) == params.pool.token0() && address(params.xAssetAddress) == params.pool.token1(), "wrong token addresses");
+      require(
+        address(params.tokenAddress) == params.pool.token0() && address(params.xAssetAddress) == params.pool.token1(),
+        "wrong token addresses"
+      );
     }
 
     // TODO: need sanity checks for token balances?
@@ -257,6 +268,6 @@ contract PorticoReceiver is PorticoBase {
 }
 
 // Portico
-contract Portico is /**PorticoEvents, */ PorticoStart, PorticoReceiver {
-  constructor() {}
+/**PorticoEvents, */ contract Portico is PorticoStart, PorticoReceiver {
+  constructor(ITokenBridge _tokenBridge) {}
 }
