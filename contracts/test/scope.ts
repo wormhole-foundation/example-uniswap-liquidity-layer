@@ -1,7 +1,7 @@
 import { IERC20, ITokenBridge, Portico, PorticoReceiver, PorticoStart } from "../typechain-types"
 import { BN } from "../util/number"
 import { BigNumber, BytesLike } from "ethers";
-import {e, o} from "../util/addresser"
+import { e, o } from "../util/addresser"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 export class TestScope {
@@ -18,10 +18,10 @@ export class TestScope {
     Start!: PorticoStart
 
     TokenBridge!: ITokenBridge
-    
+
     e = e
     o = o
-    
+
 
     Frank!: SignerWithAddress
     Andy!: SignerWithAddress
@@ -49,9 +49,30 @@ export type TradeParameters = {
     arbiterFee: BigNumber,
     bridgeNonce: number,
     messageNonce: number,
-    consistencyLevel: number, 
+    consistencyLevel: number,
     zeroForOne: boolean,
     amountSpecified: BigNumber
+}
+
+export type DecodedVAA = {
+    // doubles as the message recipient
+    bridgeRecipient: string,
+    emitterAddress: string,
+    // instructions for the trade
+    pool: string,
+    shouldUnwrapNative: boolean,
+    tokenAddress: string,
+    xAssetAddress: string,
+    xAssetAmount: BigNumber,
+    tokenBridge: string,
+    // TODO: check that this combination of fields (chains + nonces) is enough to serve as a secure nonce
+    originChain: BigNumber,
+    recipientChain: BigNumber,
+    recipientAddress: string,
+    porticoVersion: BigNumber,
+    messageNonce: BigNumber,
+    bridgeNonce: BigNumber,
+    bridgeSequence: BigNumber,
 }
 
 

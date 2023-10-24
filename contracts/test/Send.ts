@@ -1,5 +1,5 @@
 
-import { s, TradeParameters } from "./scope"
+import { DecodedVAA, s, TradeParameters } from "./scope"
 import { currentBlock, resetCurrent } from "../util/block"
 import { DeployContract } from "../util/deploy"
 import { ethers, network } from "hardhat";
@@ -47,6 +47,40 @@ describe("Send", function () {
     await s.WETH.connect(s.Bob).approve(s.Start.address, s.WETH_AMOUNT)
     console.log("SENDING")
     await s.Start.connect(s.Bob).start(params)
+
+
+
+  })
+
+})
+
+describe("Receive", () => {
+
+  it("Recieve xChain tx", async () => {
+
+    //todo determine what these should actually be set to
+    //boiler plate data
+    const params: DecodedVAA = {
+      bridgeRecipient: s.Receiver.address,
+      emitterAddress: s.Receiver.address,
+      pool: s.e.usdcWethPool,
+      shouldUnwrapNative: false,
+      tokenAddress: s.WETH.address,
+      xAssetAddress: s.USDC.address,
+      xAssetAmount: BN("1765700005"),//todo store this
+      tokenBridge: s.tokenBridgeAddr,
+      originChain: BN(1),
+      recipientChain: BN(1),
+      recipientAddress: s.Carol.address,
+      porticoVersion: BN(1),
+      messageNonce: BN(1),
+      bridgeNonce: BN(1),
+      bridgeSequence: BN(1)
+    }
+
+
+    
+
 
 
 

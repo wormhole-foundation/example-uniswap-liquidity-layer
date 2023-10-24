@@ -149,32 +149,18 @@ contract PorticoStart is PorticoBase {
         address(this), //recipient
         block.timestamp + 10, //deadline
         uint256(params.amountSpecified), //amountIn
-        0, //amountOutMin
-        0 //sqrtPriceLimitX96 (slippage)
+        0, //amountOutMin //todo might be easier to calc slippage off chain and then pass amountOutMin to enfoce it
+        0 //sqrtPriceLimitX96 (slippage) //todo, determine if we prefer to calc slippage with this or amountOutMin
+        //if sqrtPriceLimitX96 == 0, then the min/max SQRT RATIO is used
       )
     );
     console.log("SWAP DONE");
 
-    return uint128(amountOut);
-
-    /**
-    (int256 amount0, int256 amount1) = params.pool.swap(
-      address(this), // the recipient is this address, beacuse it needs to then send the xAsset
-      params.zeroForOne,
-      -int256(params.amountSpecified),
-      // TODO: calculate this number somehow.
-      1975598269232646599021403868960619, //1461446703485210103287273052203988822378723970342 - 1, //tickmath.MAX_SQRT_RATIO
-      abi.encode("0x")
-    );
-    console.log("SWAP DONE");
     // TODO: do we need sanity checks for token balances (feeOnTransfer tokens?)
     // TODO: we technically dont need to do this. maybe worth the gas saving to be mean to the network :)
     //params.tokenAddress.approve(params.pool, 0);
 
-    int256 amount = params.zeroForOne ? -amount1 : -amount0;
-    require(amount > 0, "bad amount");
-    return uint128(uint256(amount));
-     */
+    return uint128(amountOut);
   }
 
   function calculateSlippage(V3Pool pool) internal view returns (uint160 sqrtPriceLimitX96) {
@@ -199,8 +185,6 @@ contract PorticoStart is PorticoBase {
     console.log("Got amount: ", uint256(amount));
 
     console.log(address(params.tokenBridge));
-
-
 
     // now transfer the tokens cross chain, obtaining a sequence id.
 
@@ -314,9 +298,31 @@ contract PorticoReceiver is PorticoBase {
       );
     }
 
+    /**
+      we are swapping xAsset for token? 
+     */
+
+    params.xAssetAddress.approve(address(ROUTERV3), params.xAssetAmount);
+
+    uint256 amountOut = ROUTERV3.exactInputSingle(
+      ISwapRouter.ExactInputSingleParams(
+        address(params.xAssetAddress),
+        address(params.tokenAddress),
+        3000, //todo get from xchain pool
+        address(this), //todo send to reciever?
+        block.timestamp + 10,
+        params.xAssetAmount,
+        0, //amountOutMin todo specify this? or calc sqrtPriceLimitX96
+        0 //sqrtPriceLimitX96
+      )
+    );
+
+    return uint128(amountOut);
+
     // TODO: need sanity checks for token balances?
     //require(params.xAssetAddress.approve(params.pool, uint256(params.amountSpecified)), "approve fail");//todo no amount specified on DecodedVAA
 
+    /**
     (int256 amount0, int256 amount1) = params.pool.swap(
       address(this), // the recipient is this address, beacuse it needs to then send the token to the user
       zeroForOne,
@@ -334,6 +340,7 @@ contract PorticoReceiver is PorticoBase {
     int256 amount = zeroForOne ? -amount1 : -amount0;
     require(amount > 0, "bad amount");
     return uint128(uint256(amount));
+     */
   }
 }
 
