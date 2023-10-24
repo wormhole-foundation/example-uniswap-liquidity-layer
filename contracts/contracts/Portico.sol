@@ -5,7 +5,9 @@ import "./ITokenBridge.sol";
 import "./IWormhole.sol";
 import "./IERC20.sol";
 
+//uniswap
 import "./uniswap/TickMath.sol";
+import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 
 //testing
 import "hardhat/console.sol";
@@ -38,6 +40,8 @@ interface V3Pool {
 }
 
 contract PorticoBase {
+  ISwapRouter public constant ROUTERV3 = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
+
   struct DecodedVAA {
     // doubles as the message recipient
     address bridgeRecipient;
@@ -124,7 +128,7 @@ contract PorticoStart is PorticoBase {
     // TODO: need sanity checks for token balances?
     require(params.tokenAddress.approve(address(params.pool), uint256(params.amountSpecified)), "approve fail");
 
-    console.log("SWAPPING");
+    console.log("SWAPPING", address(ROUTERV3));
 
     console.log("zf1: ", params.zeroForOne);
     console.log("amt: ", uint256(params.amountSpecified));
@@ -135,12 +139,30 @@ contract PorticoStart is PorticoBase {
 
     uint160 slippage = calculateSlippage(params.pool);
     console.log("Calced Slippage: ", uint256(slippage));
+
+
+    params.tokenAddress.approve(address(ROUTERV3), uint256(params.amountSpecified));
+    ROUTERV3.exactInputSingle(
+      ISwapRouter.ExactInputSingleParams(
+        address(params.tokenAddress), //tokenIn
+        address(params.xAssetAddress), //tokenOut
+        3000, //fee todo get from input pool
+        address(this), //recipient
+        block.timestamp + 10, //deadline
+        uint256(params.amountSpecified), //amountIn
+        0, //amountOutMin
+        0 //sqrtPriceLimitX96 (slippage)
+      )
+    );
+    console.log("SWAP DONE");
+
+    /**
     (int256 amount0, int256 amount1) = params.pool.swap(
       address(this), // the recipient is this address, beacuse it needs to then send the xAsset
       params.zeroForOne,
       -int256(params.amountSpecified),
       // TODO: calculate this number somehow.
-      1975598269232646599021403868960619,//1461446703485210103287273052203988822378723970342 - 1, //tickmath.MAX_SQRT_RATIO
+      1975598269232646599021403868960619, //1461446703485210103287273052203988822378723970342 - 1, //tickmath.MAX_SQRT_RATIO
       abi.encode("0x")
     );
     console.log("SWAP DONE");
@@ -151,6 +173,7 @@ contract PorticoStart is PorticoBase {
     int256 amount = params.zeroForOne ? -amount1 : -amount0;
     require(amount > 0, "bad amount");
     return uint128(uint256(amount));
+     */
   }
 
   function calculateSlippage(V3Pool pool) internal view returns (uint160 sqrtPriceLimitX96) {
@@ -160,7 +183,6 @@ contract PorticoStart is PorticoBase {
     sqrtPriceLimitX96 = TickMath.getSqrtRatioAtTick(tick);
 
     console.log("sqrtPriceX96: ", sqrtPriceX96);
-    
   }
 
   function start(TradeParameters memory params) public payable returns (uint64 sequence) {
