@@ -6,4 +6,8 @@ import "./IWormhole.sol";
 
 contract TokenBridge {
     
+    function isDeployed() external view returns (bool){
+        return true;
+    }
+
 }

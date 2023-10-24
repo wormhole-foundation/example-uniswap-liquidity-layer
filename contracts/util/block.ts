@@ -42,7 +42,7 @@ export const currentBlock = async () => {
 export const nextBlockTime = async (blockTime: number) => {
     if (blockTime == 0) {
         let currentTime = await currentBlock()
-        blockTime = currentTime.timestamp
+        blockTime = currentTime!.timestamp
     }
 
     await network.provider.send("evm_setNextBlockTimestamp", [blockTime + 1])

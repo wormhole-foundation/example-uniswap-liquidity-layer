@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: UNLICENSE
 pragma solidity ^0.8.9;
 
-//import "./openzeppelin/token/ERC20/IERC20.sol";
-
 import "./ITokenBridge.sol";
 import "./IWormhole.sol";
 import "./IERC20.sol";
+
+import "./uniswap/TickMath.sol";
+
+//testing
+import "hardhat/console.sol";
 
 interface V3Pool {
   function swap(
@@ -93,7 +96,16 @@ contract PorticoStart is PorticoBase {
     int256 amountSpecified;
   }
 
+  fallback() external payable {
+    console.log("Fallback function is executed!");
+    console.log("USDC bal: ", IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48).balanceOf(address(this)));
+    console.log("wETH bal: ", IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2).balanceOf(address(this)));
+    console.log("Balance: ", address(this).balance);
+  }
+
   function _start_v3swap(TradeParameters memory params) internal returns (uint128 amount) {
+    console.log("_start");
+
     // we check that this is the correct pool for the swap
     if (params.zeroForOne) {
       // if zero for one, then make sure that token 0 is native and token 1 is xAsset
@@ -112,14 +124,26 @@ contract PorticoStart is PorticoBase {
     // TODO: need sanity checks for token balances?
     require(params.tokenAddress.approve(address(params.pool), uint256(params.amountSpecified)), "approve fail");
 
+    console.log("SWAPPING");
+
+    console.log("zf1: ", params.zeroForOne);
+    console.log("amt: ", uint256(params.amountSpecified));
+    console.log("Pool: ", address(params.pool));
+    console.log("USDC bal: ", IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48).balanceOf(address(this)));
+    console.log("wETH bal: ", IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2).balanceOf(address(this)));
+    console.log("Balance: ", address(this).balance);
+
+    uint160 slippage = calculateSlippage(params.pool);
+    console.log("Calced Slippage: ", uint256(slippage));
     (int256 amount0, int256 amount1) = params.pool.swap(
       address(this), // the recipient is this address, beacuse it needs to then send the xAsset
       params.zeroForOne,
-      int256(params.amountSpecified),
+      -int256(params.amountSpecified),
       // TODO: calculate this number somehow.
-      1461446703485210103287273052203988822378723970342, //tickmath.MAX_SQRT_RATIO
+      1975598269232646599021403868960619,//1461446703485210103287273052203988822378723970342 - 1, //tickmath.MAX_SQRT_RATIO
       abi.encode("0x")
     );
+    console.log("SWAP DONE");
     // TODO: do we need sanity checks for token balances (feeOnTransfer tokens?)
     // TODO: we technically dont need to do this. maybe worth the gas saving to be mean to the network :)
     //params.tokenAddress.approve(params.pool, 0);
@@ -129,7 +153,18 @@ contract PorticoStart is PorticoBase {
     return uint128(uint256(amount));
   }
 
+  function calculateSlippage(V3Pool pool) internal view returns (uint160 sqrtPriceLimitX96) {
+    //get current tick via slot0
+    (uint160 sqrtPriceX96, int24 tick, , , , , ) = pool.slot0();
+
+    sqrtPriceLimitX96 = TickMath.getSqrtRatioAtTick(tick);
+
+    console.log("sqrtPriceX96: ", sqrtPriceX96);
+    
+  }
+
   function start(TradeParameters memory params) public payable returns (uint64 sequence) {
+    console.log("START");
     // TODO: add payable functionality
     // use the weth9 address in params.tokenBridge.WETH() to wrap weth if value is sent instead of performing the balance transfer
     // if(params.shouldWrapNative) {
@@ -176,14 +211,14 @@ contract PorticoStart is PorticoBase {
 }
 
 contract PorticoReceiver is PorticoBase {
-  ITokenBridge public immutable tokenBridge;
+  ITokenBridge public tokenBridge;
 
   mapping(bytes32 => bool) public nonces;
 
   event ProcessedMessage(bytes data);
 
-  constructor(ITokenBridge _tokenBridge) {
-    tokenBridge = _tokenBridge;
+  constructor() /**ITokenBridge _tokenBridge */ {
+    //tokenBridge = _tokenBridge;
   }
 
   function receiveWormholeMessages(bytes[] memory signedVaas, bytes[] memory _unknown) public payable {
@@ -269,5 +304,5 @@ contract PorticoReceiver is PorticoBase {
 
 // Portico
 /**PorticoEvents, */ contract Portico is PorticoStart, PorticoReceiver {
-  constructor(ITokenBridge _tokenBridge) {}
+  constructor() {}
 }
