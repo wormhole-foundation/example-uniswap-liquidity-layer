@@ -6,7 +6,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 export class TestScope {
     Bank = "0x8EB8a3b98659Cce290402893d0123abb75E3ab28"
-    tokenBridgeAddr = "0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B"
+    tokenBridgeAddr = "0x3ee18B2214AFF97000D974cf647E7C347E8fa585"//"0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B"
     USDC!: IERC20
     WETH!: IERC20
 

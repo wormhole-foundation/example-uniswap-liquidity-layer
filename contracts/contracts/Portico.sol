@@ -140,9 +140,8 @@ contract PorticoStart is PorticoBase {
     uint160 slippage = calculateSlippage(params.pool);
     console.log("Calced Slippage: ", uint256(slippage));
 
-
     params.tokenAddress.approve(address(ROUTERV3), uint256(params.amountSpecified));
-    ROUTERV3.exactInputSingle(
+    uint256 amountOut = ROUTERV3.exactInputSingle(
       ISwapRouter.ExactInputSingleParams(
         address(params.tokenAddress), //tokenIn
         address(params.xAssetAddress), //tokenOut
@@ -155,6 +154,8 @@ contract PorticoStart is PorticoBase {
       )
     );
     console.log("SWAP DONE");
+
+    return uint128(amountOut);
 
     /**
     (int256 amount0, int256 amount1) = params.pool.swap(
@@ -195,8 +196,16 @@ contract PorticoStart is PorticoBase {
     //}
 
     int256 amount = int256(uint256(_start_v3swap(params)));
+    console.log("Got amount: ", uint256(amount));
+
+    console.log(address(params.tokenBridge));
+
+
 
     // now transfer the tokens cross chain, obtaining a sequence id.
+
+    params.xAssetAddress.approve(address(params.tokenBridge), uint256(amount));
+
     // TODO: what happens when the asset is not an xasset. will this just fail?
     sequence = params.tokenBridge.transferTokens(
       address(params.xAssetAddress),
@@ -226,7 +235,11 @@ contract PorticoStart is PorticoBase {
       sequence
     );
 
+    console.log("Decoded VAA");
+
     bytes memory encodedData = abi.encode(decodedVAA);
+
+    console.log("Publishing");
     sequence = params.tokenBridge.wormhole().publishMessage(params.messageNonce, encodedData, params.consistencyLevel);
     return sequence;
   }
