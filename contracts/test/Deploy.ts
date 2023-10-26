@@ -1,6 +1,6 @@
 
 import { s } from "./scope"
-import { currentBlock, resetCurrent } from "../util/block"
+import { currentBlock, reset, resetCurrent } from "../util/block"
 import { DeployContract } from "../util/deploy"
 import { stealMoney } from "../util/money"
 import { ethers, network } from "hardhat";
@@ -10,7 +10,7 @@ import { expect } from "chai";
 describe("Deploy", function () {
 
   it("Setup", async () => {
-    await resetCurrent()
+    await reset(18429933)
     console.log("Testing @ block ", (await currentBlock())!.number)
 
     //connect to signers
@@ -31,18 +31,22 @@ describe("Deploy", function () {
   })
 
   it("Deploy the things", async () => {
-    s.Receiver = await DeployContract(
-      new PorticoReceiver__factory(s.Frank),
-      s.Frank
-    )
 
     s.Start = await DeployContract(
       new PorticoStart__factory(s.Frank),
-      s.Frank
+      s.Frank,
+      s.e.UniV3Router
     )
 
-    expect(s.Receiver.address).to.not.eq("0x0000000000000000000000000000000000000000", "Receiver Deployed")
+    s.Receiver = await DeployContract(
+      new PorticoReceiver__factory(s.Frank),
+      s.Frank,
+      s.e.UniV3Router,
+      s.tokenBridgeAddr
+    )
+
     expect(s.Start.address).to.not.eq("0x0000000000000000000000000000000000000000", "Start Deployed")
+    expect(s.Receiver.address).to.not.eq("0x0000000000000000000000000000000000000000", "Receiver Deployed")
 
   })
 

@@ -7,47 +7,21 @@ import "./IERC20.sol";
 
 //uniswap
 import "./uniswap/TickMath.sol";
-import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+import "./uniswap/ISwapRouter.sol";
+import "./uniswap/IV3Pool.sol";
 
 //testing
 import "hardhat/console.sol";
 
-interface V3Pool {
-  function swap(
-    address recipient,
-    bool zeroForOne,
-    int256 amountSpecified,
-    uint160 sqrtPriceLimitX96,
-    bytes calldata data
-  ) external returns (int256 amount0, int256 amount1);
-
-  function token0() external view returns (address);
-
-  function token1() external view returns (address);
-
-  function slot0()
-    external
-    view
-    returns (
-      uint160 sqrtPriceX96,
-      int24 tick,
-      uint16 observationIndex,
-      uint16 observationCardinality,
-      uint16 observationCardinalityNext,
-      uint8 feeProtocol,
-      bool unlocked
-    );
-}
-
 contract PorticoBase {
-  ISwapRouter public constant ROUTERV3 = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
+  ISwapRouter public immutable ROUTERV3;
 
   struct DecodedVAA {
     // doubles as the message recipient
     address bridgeRecipient;
     address emitterAddress;
     // instructions for the trade
-    V3Pool pool;
+    IV3Pool pool;
     bool shouldUnwrapNative;
     IERC20 tokenAddress;
     IERC20 xAssetAddress;
@@ -61,6 +35,11 @@ contract PorticoBase {
     uint32 messageNonce;
     uint32 bridgeNonce;
     uint64 bridgeSequence;
+    uint8 maxSlippage;
+  }
+
+  constructor(ISwapRouter _routerV3) {
+    ROUTERV3 = _routerV3;
   }
 
   function version() external pure returns (uint32) {
@@ -70,11 +49,21 @@ contract PorticoBase {
   function _msgSender() private view returns (address) {
     return msg.sender;
   }
+
+  ///@notice if tokenIn == token0 then slippage is in the negative, and vice versa
+  function calculateSlippage(IV3Pool pool, uint8 maxSlippage, address tokenIn) internal view returns (uint160 sqrtPriceLimitX96) {
+    //get current tick via slot0
+    (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
+
+    uint160 buffer = (maxSlippage * sqrtPriceX96) / 100;
+
+    tokenIn == pool.token0() ? sqrtPriceLimitX96 = sqrtPriceX96 - buffer : sqrtPriceLimitX96 = sqrtPriceX96 + buffer;
+  }
 }
 
 contract PorticoStart is PorticoBase {
   struct TradeParameters {
-    V3Pool pool;
+    IV3Pool pool;
     bool shouldWrapNative;
     bool shouldUnwrapNative;
     IERC20 tokenAddress;
@@ -84,7 +73,7 @@ contract PorticoStart is PorticoBase {
     // address of the recipient on the recipientChain
     address recipientAddress;
     // the pool to trade with on the other side
-    V3Pool recipientPool;
+    IV3Pool recipientPool;
     // TODO: is it secure to allow this to be user defined? i believe the answer is yes
     address emitterAddress;
     // for bridging
@@ -95,66 +84,30 @@ contract PorticoStart is PorticoBase {
     // for sending the message
     uint32 messageNonce;
     uint8 consistencyLevel;
-    // passed to swap
-    bool zeroForOne;
     int256 amountSpecified;
+    uint8 maxSlippage; //percentage, so 5% maxSlippage == 5
   }
 
-  fallback() external payable {
-    console.log("Fallback function is executed!");
-    console.log("USDC bal: ", IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48).balanceOf(address(this)));
-    console.log("wETH bal: ", IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2).balanceOf(address(this)));
-    console.log("Balance: ", address(this).balance);
-  }
+  constructor(ISwapRouter _localRouter) PorticoBase(_localRouter) {}
 
   function _start_v3swap(TradeParameters memory params) internal returns (uint128 amount) {
-    console.log("_start");
-
-    // we check that this is the correct pool for the swap
-    if (params.zeroForOne) {
-      // if zero for one, then make sure that token 0 is native and token 1 is xAsset
-      require(
-        address(params.tokenAddress) == params.pool.token0() && address(params.xAssetAddress) == params.pool.token1(),
-        "wrong token addresses"
-      );
-    } else {
-      // else its flipped
-      require(
-        address(params.tokenAddress) == params.pool.token1() && address(params.xAssetAddress) == params.pool.token0(),
-        "wrong token addresses"
-      );
-    }
-
     // TODO: need sanity checks for token balances?
     require(params.tokenAddress.approve(address(params.pool), uint256(params.amountSpecified)), "approve fail");
-
-    console.log("SWAPPING", address(ROUTERV3));
-
-    console.log("zf1: ", params.zeroForOne);
-    console.log("amt: ", uint256(params.amountSpecified));
-    console.log("Pool: ", address(params.pool));
-    console.log("USDC bal: ", IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48).balanceOf(address(this)));
-    console.log("wETH bal: ", IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2).balanceOf(address(this)));
-    console.log("Balance: ", address(this).balance);
-
-    uint160 slippage = calculateSlippage(params.pool);
-    console.log("Calced Slippage: ", uint256(slippage));
 
     params.tokenAddress.approve(address(ROUTERV3), uint256(params.amountSpecified));
     uint256 amountOut = ROUTERV3.exactInputSingle(
       ISwapRouter.ExactInputSingleParams(
         address(params.tokenAddress), //tokenIn
         address(params.xAssetAddress), //tokenOut
-        3000, //fee todo get from input pool
+        params.pool.fee(), //fee todo get from input pool
         address(this), //recipient
         block.timestamp + 10, //deadline
         uint256(params.amountSpecified), //amountIn
         0, //amountOutMin //todo might be easier to calc slippage off chain and then pass amountOutMin to enfoce it
-        0 //sqrtPriceLimitX96 (slippage) //todo, determine if we prefer to calc slippage with this or amountOutMin
+        calculateSlippage(params.pool, params.maxSlippage, address(params.tokenAddress)) //sqrtPriceLimitX96 (slippage) //todo, determine if we prefer to calc slippage with this or amountOutMin
         //if sqrtPriceLimitX96 == 0, then the min/max SQRT RATIO is used
       )
     );
-    console.log("SWAP DONE");
 
     // TODO: do we need sanity checks for token balances (feeOnTransfer tokens?)
     // TODO: we technically dont need to do this. maybe worth the gas saving to be mean to the network :)
@@ -163,17 +116,7 @@ contract PorticoStart is PorticoBase {
     return uint128(amountOut);
   }
 
-  function calculateSlippage(V3Pool pool) internal view returns (uint160 sqrtPriceLimitX96) {
-    //get current tick via slot0
-    (uint160 sqrtPriceX96, int24 tick, , , , , ) = pool.slot0();
-
-    sqrtPriceLimitX96 = TickMath.getSqrtRatioAtTick(tick);
-
-    console.log("sqrtPriceX96: ", sqrtPriceX96);
-  }
-
   function start(TradeParameters memory params) public payable returns (uint64 sequence) {
-    console.log("START");
     // TODO: add payable functionality
     // use the weth9 address in params.tokenBridge.WETH() to wrap weth if value is sent instead of performing the balance transfer
     // if(params.shouldWrapNative) {
@@ -181,19 +124,15 @@ contract PorticoStart is PorticoBase {
     require(params.tokenAddress.transferFrom(msg.sender, address(this), uint256(params.amountSpecified)), "transfer fail");
     //}
 
-    int256 amount = int256(uint256(_start_v3swap(params)));
-    console.log("Got amount: ", uint256(amount));
-
-    console.log(address(params.tokenBridge));
+    uint256 amount = uint256(_start_v3swap(params));
 
     // now transfer the tokens cross chain, obtaining a sequence id.
-
     params.xAssetAddress.approve(address(params.tokenBridge), uint256(amount));
 
     // TODO: what happens when the asset is not an xasset. will this just fail?
     sequence = params.tokenBridge.transferTokens(
       address(params.xAssetAddress),
-      uint256(amount),
+      amount,
       params.recipientChain,
       params.bridgeRecipient,
       params.arbiterFee,
@@ -208,7 +147,7 @@ contract PorticoStart is PorticoBase {
       params.shouldUnwrapNative,
       params.tokenAddress,
       params.xAssetAddress,
-      uint128(uint256(amount)),
+      uint128(amount),
       params.tokenBridge,
       uint16(block.chainid),
       params.recipientChain,
@@ -216,14 +155,12 @@ contract PorticoStart is PorticoBase {
       this.version(),
       params.messageNonce,
       params.bridgeNonce,
-      sequence
+      sequence,
+      params.maxSlippage
     );
-
-    console.log("Decoded VAA");
 
     bytes memory encodedData = abi.encode(decodedVAA);
 
-    console.log("Publishing");
     sequence = params.tokenBridge.wormhole().publishMessage(params.messageNonce, encodedData, params.consistencyLevel);
     return sequence;
   }
@@ -236,8 +173,8 @@ contract PorticoReceiver is PorticoBase {
 
   event ProcessedMessage(bytes data);
 
-  constructor() /**ITokenBridge _tokenBridge */ {
-    //tokenBridge = _tokenBridge;
+  constructor(ISwapRouter _localRouter, ITokenBridge _tokenBridge) PorticoBase(_localRouter) {
+    tokenBridge = _tokenBridge;
   }
 
   function receiveWormholeMessages(bytes[] memory signedVaas, bytes[] memory _unknown) public payable {
@@ -263,6 +200,11 @@ contract PorticoReceiver is PorticoBase {
     emit ProcessedMessage(parsed.payload);
   }
 
+  /// @notice function to allow testing of finishing swap
+  function testSwap(DecodedVAA memory params) public payable {
+    finish(params);
+  }
+
   function finish(DecodedVAA memory params) internal {
     // version must match
     require(this.version() == params.porticoVersion, "version mismatch");
@@ -281,26 +223,6 @@ contract PorticoReceiver is PorticoBase {
   }
 
   function _finish_v3swap(DecodedVAA memory params) internal returns (uint128 amount) {
-    // we want to trade the xAsset for the token
-    bool zeroForOne = params.pool.token0() == address(params.xAssetAddress);
-    // check that this is the correct pool for the swap
-    if (zeroForOne) {
-      // if zero for one, then make sure that token 0 is xAsset and token 1 is the token
-      require(
-        address(params.tokenAddress) == params.pool.token1() && address(params.xAssetAddress) == params.pool.token0(),
-        "wrong token addresses"
-      );
-    } else {
-      // else its flipped
-      require(
-        address(params.tokenAddress) == params.pool.token0() && address(params.xAssetAddress) == params.pool.token1(),
-        "wrong token addresses"
-      );
-    }
-
-    /**
-      we are swapping xAsset for token? 
-     */
 
     params.xAssetAddress.approve(address(ROUTERV3), params.xAssetAmount);
 
@@ -313,38 +235,10 @@ contract PorticoReceiver is PorticoBase {
         block.timestamp + 10,
         params.xAssetAmount,
         0, //amountOutMin todo specify this? or calc sqrtPriceLimitX96
-        0 //sqrtPriceLimitX96
+        calculateSlippage(params.pool, params.maxSlippage, address(params.xAssetAddress)) //sqrtPriceLimitX96 (slippage) //todo, determine if we prefer to calc slippage with this or amountOutMin
       )
     );
 
     return uint128(amountOut);
-
-    // TODO: need sanity checks for token balances?
-    //require(params.xAssetAddress.approve(params.pool, uint256(params.amountSpecified)), "approve fail");//todo no amount specified on DecodedVAA
-
-    /**
-    (int256 amount0, int256 amount1) = params.pool.swap(
-      address(this), // the recipient is this address, beacuse it needs to then send the token to the user
-      zeroForOne,
-      int256(uint256(params.xAssetAmount)),
-      // TODO: calculate this number somehow.
-      1461446703485210103287273052203988822378723970342, //tickMath.MAX_SQRT_RATIO todo
-      "0x"
-    );
-    // TODO: do we need sanity checks for token balances (feeOnTransfer tokens?)
-
-    // TODO: we technically dont need to do this. maybe worth the gas saving to be mean to the network :)
-    // require(params.tokenAddress.approve(params.pool, 0), "approve fail");
-
-    // get the correct amount
-    int256 amount = zeroForOne ? -amount1 : -amount0;
-    require(amount > 0, "bad amount");
-    return uint128(uint256(amount));
-     */
   }
-}
-
-// Portico
-/**PorticoEvents, */ contract Portico is PorticoStart, PorticoReceiver {
-  constructor() {}
 }

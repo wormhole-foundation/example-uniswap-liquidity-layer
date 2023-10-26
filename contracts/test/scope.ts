@@ -50,8 +50,8 @@ export type TradeParameters = {
     bridgeNonce: number,
     messageNonce: number,
     consistencyLevel: number,
-    zeroForOne: boolean,
-    amountSpecified: BigNumber
+    amountSpecified: BigNumber,
+    maxSlippage: number
 }
 
 export type DecodedVAA = {
@@ -73,6 +73,8 @@ export type DecodedVAA = {
     messageNonce: BigNumber,
     bridgeNonce: BigNumber,
     bridgeSequence: BigNumber,
+    maxSlippage: number
+
 }
 
 
