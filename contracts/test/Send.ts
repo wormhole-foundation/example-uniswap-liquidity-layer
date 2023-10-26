@@ -38,7 +38,7 @@ describe("Send", function () {
       messageNonce: 0,
       consistencyLevel: 0,
       amountSpecified: s.WETH_AMOUNT,
-      maxSlippage: 5
+      maxSlippage: s.slippage
     }
 
     //confirm starting balances
@@ -101,7 +101,7 @@ describe("Receive", () => {
       messageNonce: BN(1),
       bridgeNonce: BN(1),
       bridgeSequence: BN(1),
-      maxSlippage: 5
+      maxSlippage: s.slippage
     }
 
     const startReceiverUSDC = await s.USDC.balanceOf(s.Receiver.address)

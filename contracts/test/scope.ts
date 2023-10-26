@@ -12,6 +12,8 @@ export class TestScope {
 
     WETH_AMOUNT = BN("1e18")
 
+    slippage = 200 //BIPS = 200 => 2% slippage
+
 
     Portico!: Portico
     Receiver!: PorticoReceiver

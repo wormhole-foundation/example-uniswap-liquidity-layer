@@ -35,7 +35,7 @@ contract PorticoBase {
     uint32 messageNonce;
     uint32 bridgeNonce;
     uint64 bridgeSequence;
-    uint8 maxSlippage;
+    uint16 maxSlippage; //in BIPS - 100 = 1% slippage
   }
 
   constructor(ISwapRouter _routerV3) {
@@ -51,11 +51,12 @@ contract PorticoBase {
   }
 
   ///@notice if tokenIn == token0 then slippage is in the negative, and vice versa
-  function calculateSlippage(IV3Pool pool, uint8 maxSlippage, address tokenIn) internal view returns (uint160 sqrtPriceLimitX96) {
+  ///@param maxSlippage is in BIPS
+  function calculateSlippage(IV3Pool pool, uint16 maxSlippage, address tokenIn) internal view returns (uint160 sqrtPriceLimitX96) {
     //get current tick via slot0
     (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
 
-    uint160 buffer = (maxSlippage * sqrtPriceX96) / 100;
+    uint160 buffer = (maxSlippage * sqrtPriceX96) / 10000;
 
     tokenIn == pool.token0() ? sqrtPriceLimitX96 = sqrtPriceX96 - buffer : sqrtPriceLimitX96 = sqrtPriceX96 + buffer;
   }
@@ -85,7 +86,7 @@ contract PorticoStart is PorticoBase {
     uint32 messageNonce;
     uint8 consistencyLevel;
     int256 amountSpecified;
-    uint8 maxSlippage; //percentage, so 5% maxSlippage == 5
+    uint16 maxSlippage; //in BIPS - 100 = 1% slippage
   }
 
   constructor(ISwapRouter _localRouter) PorticoBase(_localRouter) {}
@@ -162,7 +163,6 @@ contract PorticoStart is PorticoBase {
     bytes memory encodedData = abi.encode(decodedVAA);
 
     sequence = params.tokenBridge.wormhole().publishMessage(params.messageNonce, encodedData, params.consistencyLevel);
-    return sequence;
   }
 }
 
@@ -175,6 +175,18 @@ contract PorticoReceiver is PorticoBase {
 
   constructor(ISwapRouter _localRouter, ITokenBridge _tokenBridge) PorticoBase(_localRouter) {
     tokenBridge = _tokenBridge;
+  }
+
+  //https://docs.wormhole.com/wormhole/quick-start/tutorials/hello-token#receiving-a-token
+  //https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/main/src/WormholeRelayerSDK.sol#L177
+  function receivePayload3(
+    bytes memory payload,
+    bytes[] memory additionalVaas,
+    bytes32 sourceAddress,
+    uint16 sourceChain,
+    bytes32 deliveryHash
+  ) public payable returns (DecodedVAA memory) {
+    //return abi.decode(tokenBridge.completeTransferWithPayload(encodedVm), (DecodedVAA));
   }
 
   function receiveWormholeMessages(bytes[] memory signedVaas, bytes[] memory _unknown) public payable {
@@ -223,7 +235,6 @@ contract PorticoReceiver is PorticoBase {
   }
 
   function _finish_v3swap(DecodedVAA memory params) internal returns (uint128 amount) {
-
     params.xAssetAddress.approve(address(ROUTERV3), params.xAssetAmount);
 
     uint256 amountOut = ROUTERV3.exactInputSingle(
