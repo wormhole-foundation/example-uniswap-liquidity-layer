@@ -23,10 +23,9 @@ describe("Send", function () {
 
     const params: TradeParameters = {
       pool: s.e.usdcWethPool,
+      zeroForOne: false,
       shouldWrapNative: false,
       shouldUnwrapNative: false,
-      tokenAddress: s.e.wethAddress,
-      xAssetAddress: s.e.usdcAddress,
       recipientChain: 1,
       recipientAddress: s.Carol.address,
       recipientPool: s.e.usdcWethPool,

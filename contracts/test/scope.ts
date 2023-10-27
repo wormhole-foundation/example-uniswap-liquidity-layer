@@ -38,10 +38,9 @@ export class TestScope {
 
 export type TradeParameters = {
     pool: string,
+    zeroForOne: boolean,
     shouldWrapNative: boolean,
     shouldUnwrapNative: boolean,
-    tokenAddress: string,
-    xAssetAddress: string,
     recipientChain: number,
     recipientAddress: string,
     recipientPool: string,

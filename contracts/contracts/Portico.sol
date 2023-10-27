@@ -61,7 +61,7 @@ contract PorticoBase {
     tokenIn == pool.token0() ? sqrtPriceLimitX96 = sqrtPriceX96 - buffer : sqrtPriceLimitX96 = sqrtPriceX96 + buffer;
   }
 
-  function deduceTokens(bool zf1, IV3Pool pool) internal returns (address tokenIn, address tokenOut) {
+  function deduceTokens(bool zf1, IV3Pool pool) internal view returns (address tokenIn, address tokenOut) {
     if (zf1) {
       tokenIn = pool.token0();
       tokenOut = pool.token1();
@@ -73,13 +73,12 @@ contract PorticoBase {
 }
 
 contract PorticoStart is PorticoBase {
+  //268,090 - to beat
   struct TradeParameters {
     IV3Pool pool;
     bool zeroForOne;
     bool shouldWrapNative;
     bool shouldUnwrapNative;
-    IERC20 tokenAddress;
-    IERC20 xAssetAddress;
     // the recipient chain id
     uint16 recipientChain;
     // address of the recipient on the recipientChain
@@ -103,12 +102,19 @@ contract PorticoStart is PorticoBase {
   constructor(ISwapRouter _localRouter) PorticoBase(_localRouter) {}
 
   function _start_v3swap(TradeParameters memory params) internal returns (uint256 amount, address tokenIn, address xAsset) {
-    // TODO: need sanity checks for token balances?
-    require(params.tokenAddress.approve(address(params.pool), uint256(params.amountSpecified)), "approve fail");
-
     (tokenIn, xAsset) = deduceTokens(params.zeroForOne, params.pool);
 
-    params.tokenAddress.approve(address(ROUTERV3), uint256(params.amountSpecified));
+    // TODO: add payable functionality
+    // use the weth9 address in params.tokenBridge.WETH() to wrap weth if value is sent instead of performing the balance transfer
+    // if(params.shouldWrapNative) {
+      //take native token
+      //wrap native token
+    //} else {
+    require(IERC20(tokenIn).transferFrom(msg.sender, address(this), uint256(params.amountSpecified)), "transfer fail");
+    //}
+
+    // TODO: need sanity checks for token balances?
+    require(IERC20(tokenIn).approve(address(ROUTERV3), uint256(params.amountSpecified)), "Approve fail");
     amount = ROUTERV3.exactInputSingle(
       ISwapRouter.ExactInputSingleParams(
         tokenIn, //tokenIn
@@ -118,7 +124,7 @@ contract PorticoStart is PorticoBase {
         block.timestamp + 10, //deadline
         uint256(params.amountSpecified), //amountIn
         0, //amountOutMin //todo might be easier to calc slippage off chain and then pass amountOutMin to enfoce it
-        calculateSlippage(params.pool, params.maxSlippage, address(params.tokenAddress)) //sqrtPriceLimitX96 (slippage) //todo, determine if we prefer to calc slippage with this or amountOutMin
+        calculateSlippage(params.pool, params.maxSlippage, tokenIn) //sqrtPriceLimitX96 (slippage) //todo, determine if we prefer to calc slippage with this or amountOutMin
         //if sqrtPriceLimitX96 == 0, then the min/max SQRT RATIO is used
       )
     );
@@ -128,22 +134,16 @@ contract PorticoStart is PorticoBase {
     //params.tokenAddress.approve(params.pool, 0);
   }
 
-  function start(TradeParameters memory params) public payable returns (uint64 sequence) {
-    // TODO: add payable functionality
-    // use the weth9 address in params.tokenBridge.WETH() to wrap weth if value is sent instead of performing the balance transfer
-    // if(params.shouldWrapNative) {
-    //} else {
-    require(params.tokenAddress.transferFrom(msg.sender, address(this), uint256(params.amountSpecified)), "transfer fail");
-    //}
 
+  function start(TradeParameters memory params) public payable returns (uint64 sequence) {
     (uint256 amount, address tokenIn, address xAsset) = _start_v3swap(params);
 
     // now transfer the tokens cross chain, obtaining a sequence id.
-    params.xAssetAddress.approve(address(params.tokenBridge), uint256(amount));
+    IERC20(xAsset).approve(address(params.tokenBridge), amount);
 
     // TODO: what happens when the asset is not an xasset. will this just fail?
     sequence = params.tokenBridge.transferTokens(
-      address(params.xAssetAddress),
+      xAsset,
       amount,
       params.recipientChain,
       params.bridgeRecipient,
@@ -157,8 +157,8 @@ contract PorticoStart is PorticoBase {
       params.emitterAddress,
       params.recipientPool,
       params.shouldUnwrapNative,
-      params.tokenAddress,
-      params.xAssetAddress,
+      IERC20(tokenIn),
+      IERC20(xAsset),
       uint128(amount),
       params.tokenBridge,
       uint16(block.chainid),
@@ -170,10 +170,7 @@ contract PorticoStart is PorticoBase {
       sequence,
       params.maxSlippage
     );
-
-    bytes memory encodedData = abi.encode(decodedVAA);
-
-    sequence = params.tokenBridge.wormhole().publishMessage(params.messageNonce, encodedData, params.consistencyLevel);
+    sequence = params.tokenBridge.wormhole().publishMessage(params.messageNonce, abi.encode(decodedVAA), params.consistencyLevel);
   }
 }
 
