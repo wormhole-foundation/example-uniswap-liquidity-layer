@@ -1,10 +1,10 @@
 
-import { s } from "./scope"
-import { currentBlock, reset, resetCurrent } from "../util/block"
-import { DeployContract } from "../util/deploy"
-import { stealMoney } from "../util/money"
+import { s } from "../scope"
+import { currentBlock, reset, resetCurrent } from "../../util/block"
+import { DeployContract } from "../../util/deploy"
+import { stealMoney } from "../../util/money"
 import { ethers, network } from "hardhat";
-import { IERC20__factory, PorticoReceiver__factory, PorticoStart__factory, TokenBridge__factory } from "../typechain-types";
+import { IERC20__factory, PorticoReceiver__factory, PorticoStart__factory, TokenBridge__factory } from "../../typechain-types";
 import { expect } from "chai";
 
 describe("Deploy", function () {

@@ -1,15 +1,15 @@
 
-import { DecodedVAA, s, TradeParameters } from "./scope"
-import { currentBlock, resetCurrent } from "../util/block"
-import { DeployContract } from "../util/deploy"
-import { showBody, showBodyCyan } from "../util/format"
+import { DecodedVAA, s, TradeParameters } from "../scope"
+import { currentBlock, resetCurrent } from "../../util/block"
+import { DeployContract } from "../../util/deploy"
+import { showBody, showBodyCyan } from "../../util/format"
 import { ethers, network } from "hardhat";
-import { PorticoReceiver__factory, PorticoStart__factory, TokenBridge__factory } from "../typechain-types";
+import { PorticoReceiver__factory, PorticoStart__factory, TokenBridge__factory } from "../../typechain-types";
 import { expect } from "chai";
-import { BN } from "../util/number";
-import { getGas, toNumber } from "../util/msc"
+import { BN } from "../../util/number";
+import { getGas, toNumber } from "../../util/msc"
 import { start } from "repl";
-import { stealMoney } from "../util/money";
+import { stealMoney } from "../../util/money";
 
 
 /**

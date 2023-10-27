@@ -56,26 +56,22 @@ export type TradeParameters = {
 }
 
 export type DecodedVAA = {
-    // doubles as the message recipient
     bridgeRecipient: string,
-    emitterAddress: string,
-    // instructions for the trade
-    pool: string,
+    porticoVersion: BigNumber,
+    messageNonce: BigNumber,
+    bridgeNonce: BigNumber,
+    recipientAddress: string,
+    originChain: BigNumber,
+    recipientChain: BigNumber,
+    bridgeSequence: BigNumber,
+    maxSlippage: number
     shouldUnwrapNative: boolean,
+    pool: string,
+    emitterAddress: string,
     tokenAddress: string,
     xAssetAddress: string,
     xAssetAmount: BigNumber,
     tokenBridge: string,
-    // TODO: check that this combination of fields (chains + nonces) is enough to serve as a secure nonce
-    originChain: BigNumber,
-    recipientChain: BigNumber,
-    recipientAddress: string,
-    porticoVersion: BigNumber,
-    messageNonce: BigNumber,
-    bridgeNonce: BigNumber,
-    bridgeSequence: BigNumber,
-    maxSlippage: number
-
 }
 
 

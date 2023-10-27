@@ -101,19 +101,10 @@ contract PorticoStart is PorticoBase {
 
   constructor(ISwapRouter _localRouter) PorticoBase(_localRouter) {}
 
-  event Received(address, uint);
-
-  receive() external payable {
-    console.log("RECEIVED", address(this).balance);
-    emit Received(msg.sender, msg.value);
-  }
-
   function _start_v3swap(TradeParameters memory params) internal returns (uint256 amount, address tokenIn, address xAsset) {
     (tokenIn, xAsset) = deduceTokens(params.zeroForOne, params.pool);
 
     //if tokenIn == address(ITokenBridge.WETH()
-
-    console.log("Starting swap");
     if (tokenIn == address(params.tokenBridge.WETH()) && params.shouldWrapNative) {
       params.tokenBridge.WETH().deposit{ value: uint256(params.amountSpecified) }();
       require(IERC20(tokenIn).balanceOf(address(this)) == uint256(params.amountSpecified));
@@ -142,8 +133,6 @@ contract PorticoStart is PorticoBase {
   }
 
   function start(TradeParameters memory params) public payable returns (uint64 sequence) {
-    console.log("START: ", msg.value);
-    console.log("ETH HAD: ", address(this).balance);
     (uint256 amount, address tokenIn, address xAsset) = _start_v3swap(params);
 
     // now transfer the tokens cross chain, obtaining a sequence id.
@@ -193,6 +182,10 @@ contract PorticoReceiver is PorticoBase {
     tokenBridge = _tokenBridge;
   }
 
+  receive() external payable {
+    console.log("RECEIVED", address(this).balance);
+  }
+
   //https://docs.wormhole.com/wormhole/quick-start/tutorials/hello-token#receiving-a-token
   //https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/main/src/WormholeRelayerSDK.sol#L177
   function receivePayload3(
@@ -230,6 +223,7 @@ contract PorticoReceiver is PorticoBase {
 
   /// @notice function to allow testing of finishing swap
   function testSwap(DecodedVAA memory params) public payable {
+    console.log("TEST SWAP");
     finish(params);
   }
 
@@ -238,16 +232,17 @@ contract PorticoReceiver is PorticoBase {
     require(this.version() == params.porticoVersion, "version mismatch");
 
     // TODO: check if the coins have actually been received from the bridge
-
     uint256 amount = _finish_v3swap(params);
-    //TODO: implement shouldUnwrapNative
-    //    should check if weth9
-    //    if is weth9, should wrap that and send that instead
-    //if(shouldUnwrapNative) {
-    //} else {
-    // send the token
-    require(params.tokenAddress.transfer(params.recipientAddress, amount), "transfer failed");
-    //}
+
+    if (params.shouldUnwrapNative && address(params.tokenAddress) == address(params.tokenBridge.WETH())) {
+      params.tokenBridge.WETH().withdraw(amount);
+      //send entire eth balance
+      (bool sent /*bytes memory data*/, ) = params.recipientAddress.call{ value: address(this).balance }("");
+      require(sent, "Failed to send Ether");
+    } else {
+      //todo send entire token balance? 
+      require(params.tokenAddress.transfer(params.recipientAddress, amount), "transfer failed");
+    }
   }
 
   function _finish_v3swap(DecodedVAA memory params) internal returns (uint128 amount) {
