@@ -60,11 +60,22 @@ contract PorticoBase {
 
     tokenIn == pool.token0() ? sqrtPriceLimitX96 = sqrtPriceX96 - buffer : sqrtPriceLimitX96 = sqrtPriceX96 + buffer;
   }
+
+  function deduceTokens(bool zf1, IV3Pool pool) internal returns (address tokenIn, address tokenOut) {
+    if (zf1) {
+      tokenIn = pool.token0();
+      tokenOut = pool.token1();
+    } else {
+      tokenIn = pool.token1();
+      tokenOut = pool.token0();
+    }
+  }
 }
 
 contract PorticoStart is PorticoBase {
   struct TradeParameters {
     IV3Pool pool;
+    bool zeroForOne;
     bool shouldWrapNative;
     bool shouldUnwrapNative;
     IERC20 tokenAddress;
@@ -91,16 +102,18 @@ contract PorticoStart is PorticoBase {
 
   constructor(ISwapRouter _localRouter) PorticoBase(_localRouter) {}
 
-  function _start_v3swap(TradeParameters memory params) internal returns (uint128 amount) {
+  function _start_v3swap(TradeParameters memory params) internal returns (uint256 amount, address tokenIn, address xAsset) {
     // TODO: need sanity checks for token balances?
     require(params.tokenAddress.approve(address(params.pool), uint256(params.amountSpecified)), "approve fail");
 
+    (tokenIn, xAsset) = deduceTokens(params.zeroForOne, params.pool);
+
     params.tokenAddress.approve(address(ROUTERV3), uint256(params.amountSpecified));
-    uint256 amountOut = ROUTERV3.exactInputSingle(
+    amount = ROUTERV3.exactInputSingle(
       ISwapRouter.ExactInputSingleParams(
-        address(params.tokenAddress), //tokenIn
-        address(params.xAssetAddress), //tokenOut
-        params.pool.fee(), //fee todo get from input pool
+        tokenIn, //tokenIn
+        xAsset, //tokenOut
+        params.pool.fee(), //fee
         address(this), //recipient
         block.timestamp + 10, //deadline
         uint256(params.amountSpecified), //amountIn
@@ -113,8 +126,6 @@ contract PorticoStart is PorticoBase {
     // TODO: do we need sanity checks for token balances (feeOnTransfer tokens?)
     // TODO: we technically dont need to do this. maybe worth the gas saving to be mean to the network :)
     //params.tokenAddress.approve(params.pool, 0);
-
-    return uint128(amountOut);
   }
 
   function start(TradeParameters memory params) public payable returns (uint64 sequence) {
@@ -125,7 +136,7 @@ contract PorticoStart is PorticoBase {
     require(params.tokenAddress.transferFrom(msg.sender, address(this), uint256(params.amountSpecified)), "transfer fail");
     //}
 
-    uint256 amount = uint256(_start_v3swap(params));
+    (uint256 amount, address tokenIn, address xAsset) = _start_v3swap(params);
 
     // now transfer the tokens cross chain, obtaining a sequence id.
     params.xAssetAddress.approve(address(params.tokenBridge), uint256(amount));
