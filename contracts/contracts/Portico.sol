@@ -4,6 +4,7 @@ pragma solidity ^0.8.9;
 import "./ITokenBridge.sol";
 import "./IWormhole.sol";
 import "./IERC20.sol";
+import "./IWETH.sol";
 
 //uniswap
 import "./uniswap/TickMath.sol";
@@ -16,26 +17,25 @@ import "hardhat/console.sol";
 contract PorticoBase {
   ISwapRouter public immutable ROUTERV3;
 
+  //268,041 158,788
   struct DecodedVAA {
-    // doubles as the message recipient
+    address recipientAddress;
+    uint32 porticoVersion;
+    uint32 messageNonce;
+    uint32 bridgeNonce;
     address bridgeRecipient;
-    address emitterAddress;
-    // instructions for the trade
-    IV3Pool pool;
+    uint16 originChain;
+    uint16 recipientChain;
+    uint64 bridgeSequence;
+    uint16 maxSlippage; //in BIPS - 100 = 1% slippage
     bool shouldUnwrapNative;
+    IV3Pool pool;
+    address emitterAddress;
     IERC20 tokenAddress;
     IERC20 xAssetAddress;
     uint128 xAssetAmount;
     ITokenBridge tokenBridge;
     // TODO: check that this combination of fields (chains + nonces) is enough to serve as a secure nonce
-    uint16 originChain;
-    uint16 recipientChain;
-    address recipientAddress;
-    uint32 porticoVersion;
-    uint32 messageNonce;
-    uint32 bridgeNonce;
-    uint64 bridgeSequence;
-    uint16 maxSlippage; //in BIPS - 100 = 1% slippage
   }
 
   constructor(ISwapRouter _routerV3) {
@@ -79,8 +79,11 @@ contract PorticoStart is PorticoBase {
     bool zeroForOne;
     bool shouldWrapNative;
     bool shouldUnwrapNative;
+    uint32 bridgeNonce;
+    uint8 consistencyLevel;
     // the recipient chain id
     uint16 recipientChain;
+    uint16 maxSlippage; //in BIPS - 100 = 1% slippage -----END WORD 1
     // address of the recipient on the recipientChain
     address recipientAddress;
     // the pool to trade with on the other side
@@ -91,28 +94,32 @@ contract PorticoStart is PorticoBase {
     ITokenBridge tokenBridge;
     bytes32 bridgeRecipient;
     uint256 arbiterFee;
-    uint32 bridgeNonce;
     // for sending the message
     uint32 messageNonce;
-    uint8 consistencyLevel;
     int256 amountSpecified;
-    uint16 maxSlippage; //in BIPS - 100 = 1% slippage
   }
 
   constructor(ISwapRouter _localRouter) PorticoBase(_localRouter) {}
 
+  event Received(address, uint);
+
+  receive() external payable {
+    console.log("RECEIVED", address(this).balance);
+    emit Received(msg.sender, msg.value);
+  }
+
   function _start_v3swap(TradeParameters memory params) internal returns (uint256 amount, address tokenIn, address xAsset) {
     (tokenIn, xAsset) = deduceTokens(params.zeroForOne, params.pool);
 
-    // TODO: add payable functionality
-    // use the weth9 address in params.tokenBridge.WETH() to wrap weth if value is sent instead of performing the balance transfer
-    // if(params.shouldWrapNative) {
-      //take native token
-      //wrap native token
-    //} else {
-    require(IERC20(tokenIn).transferFrom(msg.sender, address(this), uint256(params.amountSpecified)), "transfer fail");
-    //}
+    //if tokenIn == address(ITokenBridge.WETH()
 
+    console.log("Starting swap");
+    if (tokenIn == address(params.tokenBridge.WETH()) && params.shouldWrapNative) {
+      params.tokenBridge.WETH().deposit{ value: uint256(params.amountSpecified) }();
+      require(IERC20(tokenIn).balanceOf(address(this)) == uint256(params.amountSpecified));
+    } else {
+      require(IERC20(tokenIn).transferFrom(msg.sender, address(this), uint256(params.amountSpecified)), "transfer fail");
+    }
     // TODO: need sanity checks for token balances?
     require(IERC20(tokenIn).approve(address(ROUTERV3), uint256(params.amountSpecified)), "Approve fail");
     amount = ROUTERV3.exactInputSingle(
@@ -134,8 +141,9 @@ contract PorticoStart is PorticoBase {
     //params.tokenAddress.approve(params.pool, 0);
   }
 
-
   function start(TradeParameters memory params) public payable returns (uint64 sequence) {
+    console.log("START: ", msg.value);
+    console.log("ETH HAD: ", address(this).balance);
     (uint256 amount, address tokenIn, address xAsset) = _start_v3swap(params);
 
     // now transfer the tokens cross chain, obtaining a sequence id.
@@ -153,22 +161,22 @@ contract PorticoStart is PorticoBase {
 
     // now we need to produce a VAA
     DecodedVAA memory decodedVAA = DecodedVAA(
-      address(uint160(uint256(params.bridgeRecipient))),
-      params.emitterAddress,
-      params.recipientPool,
-      params.shouldUnwrapNative,
-      IERC20(tokenIn),
-      IERC20(xAsset),
-      uint128(amount),
-      params.tokenBridge,
-      uint16(block.chainid),
-      params.recipientChain,
       params.recipientAddress,
       this.version(),
       params.messageNonce,
       params.bridgeNonce,
+      address(uint160(uint256(params.bridgeRecipient))),
+      uint16(block.chainid),
+      params.recipientChain,
       sequence,
-      params.maxSlippage
+      params.maxSlippage,
+      params.shouldUnwrapNative,
+      params.recipientPool,
+      params.emitterAddress,
+      IERC20(tokenIn),
+      IERC20(xAsset),
+      uint128(amount),
+      params.tokenBridge
     );
     sequence = params.tokenBridge.wormhole().publishMessage(params.messageNonce, abi.encode(decodedVAA), params.consistencyLevel);
   }
