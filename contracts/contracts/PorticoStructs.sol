@@ -11,28 +11,28 @@ library PorticoFlagSetAccess {
   // bytes 0-1 is the recipient chain
   function recipientChain(PorticoFlagSet flagset) internal pure returns (uint16 ans) {
     assembly {
-      ans := add(byte(0, flagset), shr(8, byte(1, flagset)))
+      ans := add(byte(0, flagset), shl(8, byte(1, flagset)))
     }
   }
 
   // bytes 2-5 is the bridge nonce
   function bridgeNonce(PorticoFlagSet flagset) internal pure returns (uint32 ans) {
     assembly {
-      ans := add(add(add(byte(2, flagset), shr(8, byte(3, flagset))), shr(16, byte(4, flagset))), shr(24, byte(5, flagset)))
+      ans := add(add(add(byte(2, flagset), shl(8, byte(3, flagset))), shl(16, byte(4, flagset))), shl(24, byte(5, flagset)))
     }
   }
 
   // bytes 6,7,8 is the fee tier for start path
   function feeTierStart(PorticoFlagSet flagset) internal pure returns (uint24 ans) {
     assembly {
-      ans := add(add(byte(6, flagset), shr(8, byte(7, flagset))), shr(16, byte(8, flagset)))
+      ans := add(add(byte(6, flagset), shl(8, byte(7, flagset))), shl(16, byte(8, flagset)))
     }
   }
 
   // bytes 9,10,11 is the fee tier for finish path
   function feeTierFinish(PorticoFlagSet flagset) internal pure returns (uint24 ans) {
     assembly {
-      ans := add(add(byte(9, flagset), shr(8, byte(10, flagset))), shr(16, byte(11, flagset)))
+      ans := add(add(byte(9, flagset), shl(8, byte(10, flagset))), shl(16, byte(11, flagset)))
     }
   }
 
@@ -40,7 +40,7 @@ library PorticoFlagSetAccess {
   // in BPS - 100 = 1% slippage. negative values = get more than put in
   function maxSlippageStart(PorticoFlagSet flagset) internal pure returns (int16 ans) {
     assembly {
-      ans := add(byte(12, flagset), shr(8, byte(13, flagset)))
+      ans := add(byte(12, flagset), shl(8, byte(13, flagset)))
     }
   }
 
@@ -48,7 +48,7 @@ library PorticoFlagSetAccess {
   // in BPS - 100 = 1% slippage. negative values = get more than put in
   function maxSlippageFinish(PorticoFlagSet flagset) internal pure returns (int16 ans) {
     assembly {
-      ans := add(byte(14, flagset), shr(8, byte(15, flagset)))
+      ans := add(byte(14, flagset), shl(8, byte(15, flagset)))
     }
   }
 
