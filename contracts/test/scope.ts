@@ -36,3 +36,23 @@ export class TestScope {
 
 
 }
+
+export type TradeParameters = {
+    flags: BytesLike,
+    startTokenAddress: string,
+    xAssetAddress: string,
+    finalTokenAddress: string,
+    recipientAddress: string,
+    amountSpecified: BigNumber
+}
+
+export type DecodedVAA = {
+    flash: BytesLike,
+    xAssetAddress: string,
+    finalTokenAddress: string,
+    recipientAddress: string,
+    xAssetAmount: BigNumber
+}
+
+const ts = new TestScope();
+export const s = ts

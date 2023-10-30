@@ -5,7 +5,7 @@ import { BN } from "../../util/number";
 import { getGas, toNumber } from "../../util/msc"
 import { start } from "repl";
 import { stealMoney } from "../../util/money";
-
+import { TradeParameters, s } from "../scope"
 
 /**
  * In this example,

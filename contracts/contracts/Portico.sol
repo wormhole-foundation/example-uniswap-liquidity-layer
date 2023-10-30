@@ -15,9 +15,7 @@ import "./uniswap/IV3Pool.sol";
 //testing
 import "hardhat/console.sol";
 
-
 contract PorticoBase {
-
   using PorticoFlagSetAccess for PorticoFlagSet;
 
   ISwapRouter public immutable ROUTERV3;
@@ -49,10 +47,29 @@ contract PorticoBase {
     return address(uint160(uint256(whFormatAddress)));
   }
 
+  function testFlags(PorticoFlagSet flagset) external pure returns (bytes32 compressed) {
+    console.log("RecipientChain: ", flagset.recipientChain());
+    console.log("BridgeNonce   : ", flagset.bridgeNonce());
+    console.log("Fee tier start: ", flagset.feeTierStart());
+
+    uint16 rChain = 1;
+    uint32 bridgeNonce = 1;
+    uint24 startFee = 3000;
+    uint24 endFee = 3000;
+    int16 slipStart = 300;
+    int16 slipEnd = 300;
+    bool wrap = false;
+    bool unwrap = false;
+
+    bytes memory data = abi.encodePacked(rChain, bridgeNonce, startFee, endFee, slipStart, slipEnd, wrap, unwrap);
+
+    compressed = bytes32(data);
+  }
+
   ///@param maxSlippage is in BIPS
   function calculateSlippage(uint256 amount, int16 maxSlippage) internal pure returns (uint256 minAmount) {
     //get current tick via slot0
-    uint16 maxSlippageAbs = maxSlippage > 0 ? uint16(maxSlippage): uint16(-maxSlippage);
+    uint16 maxSlippageAbs = maxSlippage > 0 ? uint16(maxSlippage) : uint16(-maxSlippage);
     uint256 buffer = uint256((maxSlippageAbs * amount) / 10000);
     return maxSlippage > 0 ? amount - buffer : amount + buffer;
   }
@@ -60,8 +77,6 @@ contract PorticoBase {
 using PorticoFlagSetAccess for PorticoFlagSet;
 
 abstract contract PorticoStart is PorticoBase {
-
-
   function _start_v3swap(PorticoStructs.TradeParameters memory params) internal returns (uint256 amount) {
     if (address(params.startTokenAddress) == address(TOKENBRIDGE.WETH()) && params.flags.shouldWrapNative()) {
       TOKENBRIDGE.WETH().deposit{ value: uint256(params.amountSpecified) }();
@@ -89,9 +104,11 @@ abstract contract PorticoStart is PorticoBase {
     //params.tokenAddress.approve(params.pool, 0);
   }
 
-  function start(PorticoStructs.TradeParameters memory params) public payable returns (address emitterAddress, uint16 chainId, uint64 sequence) {
+  function start(
+    PorticoStructs.TradeParameters memory params
+  ) public payable returns (address emitterAddress, uint16 chainId, uint64 sequence) {
     uint256 amount = 0;
-    if(params.startTokenAddress == params.xAssetAddress) {
+    if (params.startTokenAddress == params.xAssetAddress) {
       // skip the v3 swap, and set amount to the amountSpeciified
       amount = uint256(params.amountSpecified);
     } else {
@@ -108,7 +125,7 @@ abstract contract PorticoStart is PorticoBase {
       amount
     );
     // TODO: what happens when the asset is not an xasset. will this just fail?
-    sequence = TOKENBRIDGE.transferTokensWithPayload{value:wormhole.messageFee()}(
+    sequence = TOKENBRIDGE.transferTokensWithPayload{ value: wormhole.messageFee() }(
       address(params.xAssetAddress),
       amount,
       params.flags.recipientChain(),
@@ -122,8 +139,6 @@ abstract contract PorticoStart is PorticoBase {
 }
 
 abstract contract PorticoFinish is PorticoBase {
-
-
   event ProcessedMessage(bytes data);
 
   //https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/main/src/WormholeRelayerSDK.sol#L177
@@ -147,23 +162,20 @@ abstract contract PorticoFinish is PorticoBase {
     for (uint256 i = 0; i < additionalVaas.length; ++i) {
       IWormhole.VM memory parsed = wormhole.parseVM(additionalVaas[i]);
       // make sure its coming from a proper bridge contract
-      require(
-        parsed.emitterAddress == TOKENBRIDGE.bridgeContracts(parsed.emitterChainId), "Not a Token Bridge VAA"
-      );
+      require(parsed.emitterAddress == TOKENBRIDGE.bridgeContracts(parsed.emitterChainId), "Not a Token Bridge VAA");
       // get the transfer payload
       ITokenBridge.TransferWithPayload memory transfer = TOKENBRIDGE.parseTransferWithPayload(parsed.payload);
 
       // ensure that the to address is this address
-      require(
-        transfer.to == padAddress(address(this)) && transfer.toChain == wormhole.chainId(),
-        "Token was not sent to this address"
-      );
+      require(transfer.to == padAddress(address(this)) && transfer.toChain == wormhole.chainId(), "Token was not sent to this address");
 
       // complete the transfer
       TOKENBRIDGE.completeTransferWithPayload(additionalVaas[i]);
 
       // get the address for the token on this addres
-      address thisChainTokenAddress = transfer.tokenChain == wormhole.chainId() ? unpadAddress(transfer.tokenAddress) : TOKENBRIDGE.wrappedAsset(transfer.tokenChain, transfer.tokenAddress);
+      address thisChainTokenAddress = transfer.tokenChain == wormhole.chainId()
+        ? unpadAddress(transfer.tokenAddress)
+        : TOKENBRIDGE.wrappedAsset(transfer.tokenChain, transfer.tokenAddress);
       uint8 decimals = IERC20(thisChainTokenAddress).decimals();
       uint256 denormalizedAmount = transfer.amount;
       if (decimals > 8) denormalizedAmount *= uint256(10) ** (decimals - 8);
@@ -217,9 +229,9 @@ abstract contract PorticoFinish is PorticoBase {
 
   function finish(PorticoStructs.DecodedVAA memory params) internal {
     uint256 amount = 0;
-    if(params.finalTokenAddress == params.xAssetAddress) {
+    if (params.finalTokenAddress == params.xAssetAddress) {
       amount = params.xAssetAmount;
-    }else {
+    } else {
       // TODO: check if the coins have actually been received from the bridge
       amount = _finish_v3swap(params);
     }
@@ -244,14 +256,13 @@ abstract contract PorticoFinish is PorticoBase {
         params.xAssetAmount, // amountin
         calculateSlippage(params.xAssetAmount, params.flags.maxSlippageStart()), //minamount out
         0
-    )
+      )
     );
 
     return uint128(amountOut);
   }
 }
 
-contract Portico is PorticoFinish,PorticoStart {
-  constructor(ISwapRouter _routerV3, ITokenBridge _bridge, address _relayer) PorticoBase(_routerV3, _bridge, _relayer) {
-  }
+contract Portico is PorticoFinish, PorticoStart {
+  constructor(ISwapRouter _routerV3, ITokenBridge _bridge, address _relayer) PorticoBase(_routerV3, _bridge, _relayer) {}
 }
