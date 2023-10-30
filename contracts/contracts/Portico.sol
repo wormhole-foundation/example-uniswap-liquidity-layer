@@ -47,7 +47,7 @@ contract PorticoBase {
     return address(uint160(uint256(whFormatAddress)));
   }
 
-  function testFlags(PorticoFlagSet flagset) external pure returns (bytes32 compressed) {
+  function testFlags(PorticoFlagSet flagset) external pure returns (bytes memory test) {
     console.log("RecipientChain: ", flagset.recipientChain());
     console.log("BridgeNonce   : ", flagset.bridgeNonce());
     console.log("Fee tier start: ", flagset.feeTierStart());
@@ -61,9 +61,14 @@ contract PorticoBase {
     bool wrap = false;
     bool unwrap = false;
 
-    bytes memory data = abi.encodePacked(rChain, bridgeNonce, startFee, endFee, slipStart, slipEnd, wrap, unwrap);
+    //bytes memory data = abi.encodePacked(rChain, bridgeNonce, startFee, endFee, slipStart, slipEnd, wrap, unwrap);
 
-    compressed = bytes32(data);
+    //compressed = bytes32(data);
+
+    //string memory result = string(abi.encodePacked(rChain));
+    return abi.encodePacked(uint24(3000));
+
+    //console.log(string memory (compressed));
   }
 
   ///@param maxSlippage is in BIPS

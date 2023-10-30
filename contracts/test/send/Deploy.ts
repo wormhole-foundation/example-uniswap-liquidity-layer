@@ -52,16 +52,38 @@ describe ("test flags", () => {
 
   it("Test flags", async () => {
 
+    /**
+    uint16 rChain = 1;
+    uint32 bridgeNonce = 1;
+    uint24 startFee = 3000;
+    uint24 endFee = 3000;
+    int16 slipStart = 300;
+    int16 slipEnd = 300;
+    bool wrap = false;
+    bool unwrap = false;
+
+    bytes memory data = abi.encodePacked(rChain, bridgeNonce, startFee, endFee, slipStart, slipEnd, wrap, unwrap);
+
+    compressed = bytes32(data)
+
+    This results in compressed = 0x000100000001000bb8000bb8012c012c00000000000000000000000000000000
+
+    which doesn't work currently, can't get data back based on the library
+
+    
+     */
+
     //0x0100000000000000000000000000000000000000000000000000000000000000
     //------------------------------------10------------------20------------------303132
     //----------------- 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 
     const flags01 = "0x0100010000000000000000000000000000000000000000000000000000000000"
     const flags02 = "0x000100000001000bb8000bb8012c012c00000000000000000000000000000000"
+    const flags03 = "0x010001000000000bb80000000000000000000000000000000000000000000000"
 
     //data packed into a normal struct is 
     //16 + 32 + 24 + 24 + 16 + 16 + 8 + 8 == 144
 
-    const data = await s.Portico.testFlags(flags02)
+    const data = await s.Portico.testFlags(flags03)
     console.log(data)
 
   })

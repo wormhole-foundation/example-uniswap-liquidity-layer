@@ -3,83 +3,80 @@ pragma solidity ^0.8.9;
 
 import "./IERC20.sol";
 
-
-
 type PorticoFlagSet is bytes32;
 
 library PorticoFlagSetAccess {
-    // the portico uses one word (32 bytes) to represent a large amount of variables
+  // the portico uses one word (32 bytes) to represent a large amount of variables
 
-    // bytes 0-1 is the recipient chain
-    function recipientChain(PorticoFlagSet flagset) internal pure returns (uint16 ans) {
-      assembly {
-        ans := add(
-          byte(0,flagset),
-          shr(8,byte(1,flagset))
-        )
-      }
+  // bytes 0-1 is the recipient chain
+  function recipientChain(PorticoFlagSet flagset) internal pure returns (uint16 ans) {
+    assembly {
+      ans := add(byte(0, flagset), shr(8, byte(1, flagset)))
     }
-    // bytes 2-5 is the bridge nonce
-    function bridgeNonce(PorticoFlagSet flagset) internal pure returns (uint32 ans) {
-      assembly {
-        ans := add(add(add(
-          byte(2,flagset),
-          shr(8,byte(3,flagset))),
-          shr(16,byte(4,flagset))),
-          shr(24,byte(5,flagset)))
-      }
+  }
+
+  // bytes 2-5 is the bridge nonce
+  function bridgeNonce(PorticoFlagSet flagset) internal pure returns (uint32 ans) {
+    assembly {
+      ans := add(add(add(byte(2, flagset), shr(8, byte(3, flagset))), shr(16, byte(4, flagset))), shr(24, byte(5, flagset)))
     }
-    // bytes 6,7,8 is the fee tier for start path
-    function feeTierStart(PorticoFlagSet flagset) internal pure returns (uint24 ans) {
-      assembly {
-        ans := add(add(
-          byte(6,flagset),
-          shr(8,byte(7,flagset))),
-          shr(16,byte(8,flagset)))
-      }
+  }
+
+  // bytes 6,7,8 is the fee tier for start path
+  function feeTierStart(PorticoFlagSet flagset) internal pure returns (uint24 ans) {
+    assembly {
+      ans := add(add(byte(6, flagset), shr(8, byte(7, flagset))), shr(16, byte(8, flagset)))
     }
-    // bytes 9,10,11 is the fee tier for finish path
-    function feeTierFinish(PorticoFlagSet flagset) internal pure returns (uint24 ans) {
-      assembly {
-        ans := add(add(
-          byte(9,flagset),
-          shr(8,byte(10,flagset))),
-          shr(16,byte(11,flagset)))
-      }
+  }
+
+  // bytes 9,10,11 is the fee tier for finish path
+  function feeTierFinish(PorticoFlagSet flagset) internal pure returns (uint24 ans) {
+    assembly {
+      ans := add(add(byte(9, flagset), shr(8, byte(10, flagset))), shr(16, byte(11, flagset)))
     }
-    // bytes 12,13 is the max slippage for the start path
-    // in BPS - 100 = 1% slippage. negative values = get more than put in
-    function maxSlippageStart(PorticoFlagSet flagset) internal pure returns (int16 ans) {
-      assembly {
-        ans := add(
-          byte(12,flagset),
-          shr(8,byte(13,flagset))
-        )
-      }
+  }
+
+  // bytes 12,13 is the max slippage for the start path
+  // in BPS - 100 = 1% slippage. negative values = get more than put in
+  function maxSlippageStart(PorticoFlagSet flagset) internal pure returns (int16 ans) {
+    assembly {
+      ans := add(byte(12, flagset), shr(8, byte(13, flagset)))
     }
-    // bytes 14,15 is the max slippage for the start path
-    // in BPS - 100 = 1% slippage. negative values = get more than put in
-    function maxSlippageFinish(PorticoFlagSet flagset) internal pure returns (int16 ans) {
-      assembly {
-        ans := add(
-          byte(14,flagset),
-          shr(8,byte(15,flagset))
-        )
-      }
+  }
+
+  // bytes 14,15 is the max slippage for the start path
+  // in BPS - 100 = 1% slippage. negative values = get more than put in
+  function maxSlippageFinish(PorticoFlagSet flagset) internal pure returns (int16 ans) {
+    assembly {
+      ans := add(byte(14, flagset), shr(8, byte(15, flagset)))
     }
-    // shouldWrapNative is the first bit of the byte 31
-    function shouldWrapNative(PorticoFlagSet flagset) internal pure returns (bool) {
-      bytes32 fs = PorticoFlagSet.unwrap(flagset);
-      return uint8(fs[31]) & (1 << 0) > 0;
-    }
-    // shouldUnwrapNative is the second bit of byte 31
-    function shouldUnwrapNative(PorticoFlagSet flagset) internal pure returns (bool) {
-      bytes32 fs = PorticoFlagSet.unwrap(flagset);
-      return uint8(fs[31]) & (1 << 1) > 0;
-    }
+  }
+
+  // shouldWrapNative is the first bit of the byte 31
+  function shouldWrapNative(PorticoFlagSet flagset) internal pure returns (bool) {
+    bytes32 fs = PorticoFlagSet.unwrap(flagset);
+    return uint8(fs[31]) & (1 << 0) > 0;
+  }
+
+  // shouldUnwrapNative is the second bit of byte 31
+  function shouldUnwrapNative(PorticoFlagSet flagset) internal pure returns (bool) {
+    bytes32 fs = PorticoFlagSet.unwrap(flagset);
+    return uint8(fs[31]) & (1 << 1) > 0;
+  }
 }
 
 library PorticoStructs {
+  //16 + 32 + 24 + 24 + 16 + 16 + 8 + 8 == 144
+  struct packedData {
+    uint16 recipientChain;
+    uint32 bridgeNonce;
+    uint24 startFee;
+    uint24 endFee;
+    int16 slipStart;
+    int16 slipEnd;
+    bool wrap;
+    bool unwrap;
+  }
 
   //268,090 - to beat
   struct TradeParameters {
@@ -103,4 +100,3 @@ library PorticoStructs {
     uint256 xAssetAmount;
   }
 }
-
