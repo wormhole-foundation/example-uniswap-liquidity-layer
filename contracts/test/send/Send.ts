@@ -1,10 +1,5 @@
 
-import { DecodedVAA, s, TradeParameters } from "../scope"
-import { currentBlock, resetCurrent } from "../../util/block"
-import { DeployContract } from "../../util/deploy"
 import { showBody, showBodyCyan } from "../../util/format"
-import { ethers, network } from "hardhat";
-import { PorticoReceiver__factory, PorticoStart__factory, TokenBridge__factory } from "../../typechain-types";
 import { expect } from "chai";
 import { BN } from "../../util/number";
 import { getGas, toNumber } from "../../util/msc"
@@ -22,7 +17,6 @@ describe("Send", function () {
   it("send transaction", async () => {
 
     const params: TradeParameters = {
-      pool: s.e.usdcWethPool,
       zeroForOne: false,
       shouldWrapNative: false,
       shouldUnwrapNative: false,
@@ -41,31 +35,31 @@ describe("Send", function () {
     }
 
     //confirm starting balances
-    const startStartWeth = await s.WETH.balanceOf(s.Start.address)
+    const startPorticoWeth = await s.WETH.balanceOf(s.Portico.address)
     const startBobWeth = await s.WETH.balanceOf(s.Bob.address)
-    const startStartUSDC = await s.USDC.balanceOf(s.Start.address)
+    const startPorticoUSDC = await s.USDC.balanceOf(s.Portico.address)
     const startBobUSDC = await s.USDC.balanceOf(s.Bob.address)
 
-    expect(startStartWeth).to.eq(0, "No weth at start")
-    expect(startBobWeth).to.eq(s.WETH_AMOUNT, "Starting wETH is correct")
-    expect(startStartUSDC).to.eq(0, "No USDC at start")
-    expect(startBobUSDC).to.eq(0, "Starting USDC is correct")
+    expect(startPorticoWeth).to.eq(0, "No weth at start")
+    expect(startBobWeth).to.eq(s.WETH_AMOUNT, "Porticoing wETH is correct")
+    expect(startPorticoUSDC).to.eq(0, "No USDC at start")
+    expect(startBobUSDC).to.eq(0, "Porticoing USDC is correct")
 
-    await s.WETH.connect(s.Bob).approve(s.Start.address, s.WETH_AMOUNT)
-    const result = await s.Start.connect(s.Bob).start(params)
+    await s.WETH.connect(s.Bob).approve(s.Portico.address, s.WETH_AMOUNT)
+    const result = await s.Portico.connect(s.Bob).start(params)
     const gas = await getGas(result)
     showBodyCyan("GAS TO START: ", gas)
 
     //check ending balances
-    const endStartWeth = await s.WETH.balanceOf(s.Start.address)
+    const endPorticoWeth = await s.WETH.balanceOf(s.Portico.address)
     const endBobWeth = await s.WETH.balanceOf(s.Bob.address)
-    const endStartUSDC = await s.USDC.balanceOf(s.Start.address)
+    const endPorticoUSDC = await s.USDC.balanceOf(s.Portico.address)
     const endBobUSDC = await s.USDC.balanceOf(s.Bob.address)
 
     //ending balances should be 0 because the xAsset is sent to the tokenbridge
-    expect(endStartWeth).to.eq(0, "No weth at start")
+    expect(endPorticoWeth).to.eq(0, "No weth at start")
     expect(endBobWeth).to.eq(0, "Ending wETH is correct")
-    expect(endStartUSDC).to.eq(0, "No USDC at start")
+    expect(endPorticoUSDC).to.eq(0, "No USDC at start")
     expect(endBobUSDC).to.eq(0, "Ending USDC is correct")
 
   })
@@ -76,8 +70,8 @@ describe("Receive", () => {
   //this is the amount of USDC received from the first swap as of the pinned block
   const usdcAmount = BN("1783362958")
 
-  it("Steal USDC to the Receiver to simulate tokenbridge sending it", async () => {
-    await stealMoney(s.Bank, s.Receiver.address, s.USDC.address, usdcAmount)
+  it("Steal USDC to the Portico to simulate tokenbridge sending it", async () => {
+    await stealMoney(s.Bank, s.Portico.address, s.USDC.address, usdcAmount)
   })
 
   it("Recieve xChain tx", async () => {
@@ -85,8 +79,8 @@ describe("Receive", () => {
     //todo determine what these should actually be set to
     //boiler plate data
     const params: DecodedVAA = {
-      bridgeRecipient: s.Receiver.address,
-      emitterAddress: s.Receiver.address,
+      bridgeRecipient: s.Portico.address,
+      emitterAddress: s.Portico.address,
       pool: s.e.usdcWethPool,
       shouldUnwrapNative: false,
       tokenAddress: s.WETH.address,
@@ -103,21 +97,21 @@ describe("Receive", () => {
       maxSlippage: s.slippage
     }
 
-    const startReceiverUSDC = await s.USDC.balanceOf(s.Receiver.address)
+    const startPorticoUSDC = await s.USDC.balanceOf(s.Portico.address)
     const startCarolUSDC = await s.USDC.balanceOf(s.Carol.address)
     const startCarolWETH = await s.WETH.balanceOf(s.Carol.address)
-    expect(startReceiverUSDC).to.eq(usdcAmount, "Receiver has USDC")
+    expect(startPorticoUSDC).to.eq(usdcAmount, "Portico has USDC")
     expect(startCarolUSDC).to.eq(0, "Carol has 0 USDC")
     expect(startCarolWETH).to.eq(0, "Carol has 0 WETH")
 
-    const gas = await getGas(await s.Receiver.testSwap(params))
+    const gas = await getGas(await s.Portico.testSwap(params))
     showBodyCyan("Gas to do reciving swap: ", gas)
 
-    const endReceiverUSDC = await s.USDC.balanceOf(s.Receiver.address)
+    const endPorticoUSDC = await s.USDC.balanceOf(s.Portico.address)
     const endCarolUSDC = await s.USDC.balanceOf(s.Carol.address)
     const endCarolWETH = await s.WETH.balanceOf(s.Carol.address)
 
-    expect(endReceiverUSDC).to.eq(0, "Receiver no longer has USDC")
+    expect(endPorticoUSDC).to.eq(0, "Portico no longer has USDC")
     expect(endCarolUSDC).to.eq(0, "Carol has 0 USDC")
     expect(endCarolWETH).to.be.gt(0, "Carol has received WETH")
 
