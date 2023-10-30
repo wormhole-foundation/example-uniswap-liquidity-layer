@@ -34,17 +34,11 @@ export class MultiRpcService {
   }
 
   private dialProvider(id: number, url?: string):PublicClient<any, any> {
-    if(url && url.startsWith("ws")) {
-      return createPublicClient({
-        chain: getChain(id),
-        transport: webSocket(url),
-      }) as PublicClient
-    } else {
-      return createPublicClient({
-        chain: getChain(id),
-        transport: http(url),
-      }) as PublicClient
-    }
+    let transport = url && url.startsWith("ws") ? webSocket(url) : http(url)
+    return createPublicClient({
+      chain: getChain(id),
+      transport,
+    }) as PublicClient
   }
 }
 

@@ -1,4 +1,4 @@
-import { IERC20, ITokenBridge, Portico, PorticoReceiver, PorticoStart } from "../typechain-types"
+import { IERC20, ITokenBridge, Portico, } from "../typechain-types"
 import { BN } from "../util/number"
 import { BigNumber, BytesLike } from "ethers";
 import { e, o } from "../util/addresser"
@@ -7,6 +7,9 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 export class TestScope {
     Bank = "0x8EB8a3b98659Cce290402893d0123abb75E3ab28"
     tokenBridgeAddr = "0x3ee18B2214AFF97000D974cf647E7C347E8fa585"//"0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B"
+    swapRouterAddr = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
+    relayerAddr = "0x27428DD2d3DD32A4D7f7C497eAaa23130d894911"
+
     USDC!: IERC20
     WETH!: IERC20
 
@@ -16,8 +19,6 @@ export class TestScope {
 
 
     Portico!: Portico
-    Receiver!: PorticoReceiver
-    Start!: PorticoStart
 
     TokenBridge!: ITokenBridge
 

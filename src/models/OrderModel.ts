@@ -23,6 +23,12 @@ export class OrderModel {
   status: OrderStatus
 
   @Property()
-  transactionReceipt?: TxnData
+  originTxnData?: TxnData
+
+  @Property()
+  bridgeStatus?: any
+
+  @Property()
+  receipientTxnData?: TxnData
 }
 

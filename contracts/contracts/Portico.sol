@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSE
 pragma solidity ^0.8.9;
 
+import "./PorticoStructs.sol";
 import "./ITokenBridge.sol";
 import "./IWormhole.sol";
 import "./IERC20.sol";
@@ -14,116 +15,72 @@ import "./uniswap/IV3Pool.sol";
 //testing
 import "hardhat/console.sol";
 
+
 contract PorticoBase {
+
+  using PorticoFlagSetAccess for PorticoFlagSet;
+
   ISwapRouter public immutable ROUTERV3;
+  ITokenBridge public immutable TOKENBRIDGE;
+  address public immutable WORMHOLE_RELAYER;
 
-  //268,041 158,788
-  struct DecodedVAA {
-    address recipientAddress;
-    uint32 porticoVersion;
-    uint32 messageNonce;
-    uint32 bridgeNonce;
-    address bridgeRecipient;
-    uint16 originChain;
-    uint16 recipientChain;
-    uint64 bridgeSequence;
-    uint16 maxSlippage; //in BIPS - 100 = 1% slippage
-    bool shouldUnwrapNative;
-    IV3Pool pool;
-    address emitterAddress;
-    IERC20 tokenAddress;
-    IERC20 xAssetAddress;
-    uint128 xAssetAmount;
-    ITokenBridge tokenBridge;
-    // TODO: check that this combination of fields (chains + nonces) is enough to serve as a secure nonce
-  }
+  IWormhole public immutable wormhole;
 
-  constructor(ISwapRouter _routerV3) {
+  constructor(ISwapRouter _routerV3, ITokenBridge _bridge, address _relayer) {
     ROUTERV3 = _routerV3;
+    WORMHOLE_RELAYER = _relayer;
+    TOKENBRIDGE = _bridge;
+    wormhole = _bridge.wormhole();
   }
 
   function version() external pure returns (uint32) {
     return 1;
   }
 
-  function _msgSender() private view returns (address) {
+  function _msgSender() internal view returns (address) {
     return msg.sender;
   }
 
-  ///@notice if tokenIn == token0 then slippage is in the negative, and vice versa
-  ///@param maxSlippage is in BIPS
-  function calculateSlippage(IV3Pool pool, uint16 maxSlippage, address tokenIn) internal view returns (uint160 sqrtPriceLimitX96) {
-    //get current tick via slot0
-    (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
-
-    uint160 buffer = (maxSlippage * sqrtPriceX96) / 10000;
-
-    tokenIn == pool.token0() ? sqrtPriceLimitX96 = sqrtPriceX96 - buffer : sqrtPriceLimitX96 = sqrtPriceX96 + buffer;
+  function padAddress(address addr) internal pure returns (bytes32) {
+    return bytes32(uint256(uint160(addr)));
   }
 
-  function deduceTokens(bool zf1, IV3Pool pool) internal view returns (address tokenIn, address tokenOut) {
-    if (zf1) {
-      tokenIn = pool.token0();
-      tokenOut = pool.token1();
-    } else {
-      tokenIn = pool.token1();
-      tokenOut = pool.token0();
-    }
+  function unpadAddress(bytes32 whFormatAddress) internal pure returns (address) {
+    return address(uint160(uint256(whFormatAddress)));
+  }
+
+  ///@param maxSlippage is in BIPS
+  function calculateSlippage(uint256 amount, int16 maxSlippage) internal pure returns (uint256 minAmount) {
+    //get current tick via slot0
+    uint16 maxSlippageAbs = maxSlippage > 0 ? uint16(maxSlippage): uint16(-maxSlippage);
+    uint256 buffer = uint256((maxSlippageAbs * amount) / 10000);
+    return maxSlippage > 0 ? amount - buffer : amount + buffer;
   }
 }
+using PorticoFlagSetAccess for PorticoFlagSet;
 
-contract PorticoStart is PorticoBase {
-  //268,090 - to beat
-  struct TradeParameters {
-    IV3Pool pool;
-    bool zeroForOne;
-    bool shouldWrapNative;
-    bool shouldUnwrapNative;
-    uint32 bridgeNonce;
-    uint8 consistencyLevel;
-    // the recipient chain id
-    uint16 recipientChain;
-    uint16 maxSlippage; //in BIPS - 100 = 1% slippage -----END WORD 1
-    // address of the recipient on the recipientChain
-    address recipientAddress;
-    // the pool to trade with on the other side
-    IV3Pool recipientPool;
-    // TODO: is it secure to allow this to be user defined? i believe the answer is yes
-    address emitterAddress;
-    // for bridging
-    ITokenBridge tokenBridge;
-    bytes32 bridgeRecipient;
-    uint256 arbiterFee;
-    // for sending the message
-    uint32 messageNonce;
-    int256 amountSpecified;
-  }
+abstract contract PorticoStart is PorticoBase {
 
-  constructor(ISwapRouter _localRouter) PorticoBase(_localRouter) {}
 
-  function _start_v3swap(TradeParameters memory params) internal returns (uint256 amount, address tokenIn, address xAsset) {
-    (tokenIn, xAsset) = deduceTokens(params.zeroForOne, params.pool);
-
-    //if tokenIn == address(ITokenBridge.WETH()
-    if (tokenIn == address(params.tokenBridge.WETH()) && params.shouldWrapNative) {
-      params.tokenBridge.WETH().deposit{ value: uint256(params.amountSpecified) }();
-      require(IERC20(tokenIn).balanceOf(address(this)) == uint256(params.amountSpecified));
+  function _start_v3swap(PorticoStructs.TradeParameters memory params) internal returns (uint256 amount) {
+    if (address(params.startTokenAddress) == address(TOKENBRIDGE.WETH()) && params.flags.shouldWrapNative()) {
+      TOKENBRIDGE.WETH().deposit{ value: uint256(params.amountSpecified) }();
+      require(params.startTokenAddress.balanceOf(address(this)) == uint256(params.amountSpecified));
     } else {
-      require(IERC20(tokenIn).transferFrom(msg.sender, address(this), uint256(params.amountSpecified)), "transfer fail");
+      require(params.startTokenAddress.transferFrom(msg.sender, address(this), uint256(params.amountSpecified)), "transfer fail");
     }
     // TODO: need sanity checks for token balances?
-    require(IERC20(tokenIn).approve(address(ROUTERV3), uint256(params.amountSpecified)), "Approve fail");
+    require(params.startTokenAddress.approve(address(ROUTERV3), uint256(params.amountSpecified)), "Approve fail");
     amount = ROUTERV3.exactInputSingle(
       ISwapRouter.ExactInputSingleParams(
-        tokenIn, //tokenIn
-        xAsset, //tokenOut
-        params.pool.fee(), //fee
+        address(params.startTokenAddress), // tokenIn
+        address(params.xAssetAddress), //tokenOut
+        params.flags.feeTierStart(), //fee
         address(this), //recipient
         block.timestamp + 10, //deadline
-        uint256(params.amountSpecified), //amountIn
-        0, //amountOutMin //todo might be easier to calc slippage off chain and then pass amountOutMin to enfoce it
-        calculateSlippage(params.pool, params.maxSlippage, tokenIn) //sqrtPriceLimitX96 (slippage) //todo, determine if we prefer to calc slippage with this or amountOutMin
-        //if sqrtPriceLimitX96 == 0, then the min/max SQRT RATIO is used
+        params.amountSpecified, //amountIn
+        calculateSlippage(params.amountSpecified, params.flags.maxSlippageStart()), //minAmountOut
+        0
       )
     );
 
@@ -132,135 +89,169 @@ contract PorticoStart is PorticoBase {
     //params.tokenAddress.approve(params.pool, 0);
   }
 
-  function start(TradeParameters memory params) public payable returns (uint64 sequence) {
-    (uint256 amount, address tokenIn, address xAsset) = _start_v3swap(params);
-
-    // now transfer the tokens cross chain, obtaining a sequence id.
-    IERC20(xAsset).approve(address(params.tokenBridge), amount);
-
-    // TODO: what happens when the asset is not an xasset. will this just fail?
-    sequence = params.tokenBridge.transferTokens(
-      xAsset,
-      amount,
-      params.recipientChain,
-      params.bridgeRecipient,
-      params.arbiterFee,
-      params.bridgeNonce
-    );
-
-    // now we need to produce a VAA
-    DecodedVAA memory decodedVAA = DecodedVAA(
+  function start(PorticoStructs.TradeParameters memory params) public payable returns (address emitterAddress, uint16 chainId, uint64 sequence) {
+    uint256 amount = 0;
+    if(params.startTokenAddress == params.xAssetAddress) {
+      // skip the v3 swap, and set amount to the amountSpeciified
+      amount = uint256(params.amountSpecified);
+    } else {
+      amount = _start_v3swap(params);
+    }
+    // allow the token bridge to do its token bridge things
+    IERC20(params.xAssetAddress).approve(address(TOKENBRIDGE), amount);
+    // now we need to produce the payload we are sending
+    PorticoStructs.DecodedVAA memory decodedVAA = PorticoStructs.DecodedVAA(
+      params.flags,
+      params.xAssetAddress,
+      params.finalTokenAddress,
       params.recipientAddress,
-      this.version(),
-      params.messageNonce,
-      params.bridgeNonce,
-      address(uint160(uint256(params.bridgeRecipient))),
-      uint16(block.chainid),
-      params.recipientChain,
-      sequence,
-      params.maxSlippage,
-      params.shouldUnwrapNative,
-      params.recipientPool,
-      params.emitterAddress,
-      IERC20(tokenIn),
-      IERC20(xAsset),
-      uint128(amount),
-      params.tokenBridge
+      amount
     );
-    sequence = params.tokenBridge.wormhole().publishMessage(params.messageNonce, abi.encode(decodedVAA), params.consistencyLevel);
+    // TODO: what happens when the asset is not an xasset. will this just fail?
+    sequence = TOKENBRIDGE.transferTokensWithPayload{value:wormhole.messageFee()}(
+      address(params.xAssetAddress),
+      amount,
+      params.flags.recipientChain(),
+      padAddress(params.recipientAddress),
+      params.flags.bridgeNonce(),
+      abi.encode(decodedVAA)
+    );
+    chainId = wormhole.chainId();
+    emitterAddress = address(TOKENBRIDGE);
   }
 }
 
-contract PorticoReceiver is PorticoBase {
-  ITokenBridge public tokenBridge;
+abstract contract PorticoFinish is PorticoBase {
 
-  mapping(bytes32 => bool) public nonces;
 
   event ProcessedMessage(bytes data);
 
-  constructor(ISwapRouter _localRouter, ITokenBridge _tokenBridge) PorticoBase(_localRouter) {
-    tokenBridge = _tokenBridge;
-  }
-
-  receive() external payable {
-    console.log("RECEIVED", address(this).balance);
-  }
-
-  //https://docs.wormhole.com/wormhole/quick-start/tutorials/hello-token#receiving-a-token
   //https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/main/src/WormholeRelayerSDK.sol#L177
-  function receivePayload3(
+  //https://docs.wormhole.com/wormhole/quick-start/tutorials/hello-token#receiving-a-token
+  struct TokenReceived {
+    bytes32 tokenHomeAddress;
+    uint16 tokenHomeChain;
+    address tokenAddress;
+    uint256 amount;
+  }
+
+  function receiveWormholeMessages(
     bytes memory payload,
     bytes[] memory additionalVaas,
     bytes32 sourceAddress,
     uint16 sourceChain,
     bytes32 deliveryHash
-  ) public payable returns (DecodedVAA memory) {
-    //return abi.decode(tokenBridge.completeTransferWithPayload(encodedVm), (DecodedVAA));
+  ) external payable {
+    TokenReceived[] memory receivedTokens = new TokenReceived[](additionalVaas.length);
+    IWormhole wormhole = wormhole;
+    for (uint256 i = 0; i < additionalVaas.length; ++i) {
+      IWormhole.VM memory parsed = wormhole.parseVM(additionalVaas[i]);
+      // make sure its coming from a proper bridge contract
+      require(
+        parsed.emitterAddress == TOKENBRIDGE.bridgeContracts(parsed.emitterChainId), "Not a Token Bridge VAA"
+      );
+      // get the transfer payload
+      ITokenBridge.TransferWithPayload memory transfer = TOKENBRIDGE.parseTransferWithPayload(parsed.payload);
+
+      // ensure that the to address is this address
+      require(
+        transfer.to == padAddress(address(this)) && transfer.toChain == wormhole.chainId(),
+        "Token was not sent to this address"
+      );
+
+      // complete the transfer
+      TOKENBRIDGE.completeTransferWithPayload(additionalVaas[i]);
+
+      // get the address for the token on this addres
+      address thisChainTokenAddress = transfer.tokenChain == wormhole.chainId() ? unpadAddress(transfer.tokenAddress) : TOKENBRIDGE.wrappedAsset(transfer.tokenChain, transfer.tokenAddress);
+      uint8 decimals = IERC20(thisChainTokenAddress).decimals();
+      uint256 denormalizedAmount = transfer.amount;
+      if (decimals > 8) denormalizedAmount *= uint256(10) ** (decimals - 8);
+
+      // receive the token
+      receivedTokens[i] = TokenReceived({
+        tokenHomeAddress: transfer.tokenAddress,
+        tokenHomeChain: transfer.tokenChain,
+        tokenAddress: thisChainTokenAddress,
+        amount: denormalizedAmount
+      });
+    }
+    // call into overriden method
+    receivePayloadAndTokens(payload, receivedTokens, sourceAddress, sourceChain, deliveryHash);
   }
 
-  function receiveWormholeMessages(bytes[] memory signedVaas, bytes[] memory _unknown) public payable {
-    //todo don't hard code this addr 0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B
-    (IWormhole.VM memory parsed, bool valid, string memory reason) = tokenBridge.wormhole().parseAndVerifyVM(signedVaas[0]);
+  function receivePayloadAndTokens(
+    bytes memory payload,
+    TokenReceived[] memory receivedTokens,
+    bytes32 sourceAddress,
+    uint16 sourceChain,
+    bytes32 deliveryHash
+  ) internal {
+    // make sure the sender is the relayer
+    require(_msgSender() == WORMHOLE_RELAYER);
+    // make sure there is only one transfer received
+    require(receivedTokens.length == 1, "only 1 transfer allowed");
+    // require(sourceAddress == address(0)) - we don't actually care about the source address.
+    // what matters more is what coin did we recv, and does it match up with the data?
+    // grab the coin
+    TokenReceived memory recv = receivedTokens[0];
+    // decode the message
+    PorticoStructs.DecodedVAA memory message = abi.decode(payload, (PorticoStructs.DecodedVAA));
 
-    require(valid, reason);
+    // we must have received the xAsset address
+    require(recv.tokenAddress == address(message.xAssetAddress));
+    // we must have received the amount expected
+    require(recv.amount == message.xAssetAmount);
 
-    require(!nonces[parsed.hash]);
-    DecodedVAA memory message = abi.decode(parsed.payload, (DecodedVAA));
-    // make sure we are the recipient!
-    require(message.bridgeRecipient == address(this));
-    // make sure that the message is coming from the emitter that we trusted on the other side of this trade
-    require(message.emitterAddress == address(uint160(uint256(parsed.emitterAddress))), "wrong emitter address");
-    require(message.recipientChain == block.chainid, "wrong chain id");
-    // as a reentrancy guard, put it above the processing
-    nonces[parsed.hash] = true;
     // now process
     finish(message);
-
     // simply emit the raw data bytes. it should be trivial to parse.
     // TODO: consider what fields to index here
-    emit ProcessedMessage(parsed.payload);
+    emit ProcessedMessage(payload);
   }
 
   /// @notice function to allow testing of finishing swap
-  function testSwap(DecodedVAA memory params) public payable {
-    console.log("TEST SWAP");
+  function testSwap(PorticoStructs.DecodedVAA memory params) public payable {
     finish(params);
   }
 
-  function finish(DecodedVAA memory params) internal {
-    // version must match
-    require(this.version() == params.porticoVersion, "version mismatch");
-
-    // TODO: check if the coins have actually been received from the bridge
-    uint256 amount = _finish_v3swap(params);
-
-    if (params.shouldUnwrapNative && address(params.tokenAddress) == address(params.tokenBridge.WETH())) {
-      params.tokenBridge.WETH().withdraw(amount);
-      //send entire eth balance
-      (bool sent /*bytes memory data*/, ) = params.recipientAddress.call{ value: address(this).balance }("");
+  function finish(PorticoStructs.DecodedVAA memory params) internal {
+    uint256 amount = 0;
+    if(params.finalTokenAddress == params.xAssetAddress) {
+      amount = params.xAssetAmount;
+    }else {
+      // TODO: check if the coins have actually been received from the bridge
+      amount = _finish_v3swap(params);
+    }
+    if (params.flags.shouldUnwrapNative() && address(params.finalTokenAddress) == address(TOKENBRIDGE.WETH())) {
+      TOKENBRIDGE.WETH().withdraw(amount);
+      (bool sent /*bytes memory data*/, ) = params.recipientAddress.call{ value: amount }("");
       require(sent, "Failed to send Ether");
     } else {
-      //todo send entire token balance? 
-      require(params.tokenAddress.transfer(params.recipientAddress, amount), "transfer failed");
+      require(params.finalTokenAddress.transfer(params.recipientAddress, amount), "transfer failed");
     }
   }
 
-  function _finish_v3swap(DecodedVAA memory params) internal returns (uint128 amount) {
+  function _finish_v3swap(PorticoStructs.DecodedVAA memory params) internal returns (uint128 amount) {
     params.xAssetAddress.approve(address(ROUTERV3), params.xAssetAmount);
-
     uint256 amountOut = ROUTERV3.exactInputSingle(
       ISwapRouter.ExactInputSingleParams(
         address(params.xAssetAddress),
-        address(params.tokenAddress),
-        3000, //todo get from xchain pool
+        address(params.finalTokenAddress),
+        params.flags.feeTierFinish(), // fee tier
         address(this), //todo send to reciever?
         block.timestamp + 10,
-        params.xAssetAmount,
-        0, //amountOutMin todo specify this? or calc sqrtPriceLimitX96
-        calculateSlippage(params.pool, params.maxSlippage, address(params.xAssetAddress)) //sqrtPriceLimitX96 (slippage) //todo, determine if we prefer to calc slippage with this or amountOutMin
-      )
+        params.xAssetAmount, // amountin
+        calculateSlippage(params.xAssetAmount, params.flags.maxSlippageStart()), //minamount out
+        0
+    )
     );
 
     return uint128(amountOut);
+  }
+}
+
+contract Portico is PorticoFinish,PorticoStart {
+  constructor(ISwapRouter _routerV3, ITokenBridge _bridge, address _relayer) PorticoBase(_routerV3, _bridge, _relayer) {
   }
 }

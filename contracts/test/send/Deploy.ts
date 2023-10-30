@@ -1,10 +1,9 @@
-
 import { s } from "../scope"
 import { currentBlock, reset, resetCurrent } from "../../util/block"
 import { DeployContract } from "../../util/deploy"
 import { stealMoney } from "../../util/money"
-import { ethers, network } from "hardhat";
-import { IERC20__factory, PorticoReceiver__factory, PorticoStart__factory, TokenBridge__factory } from "../../typechain-types";
+import { ethers } from "hardhat";
+import { IERC20__factory, Portico__factory, TokenBridge__factory } from "../../typechain-types";
 import { expect } from "chai";
 
 describe("Deploy", function () {
@@ -15,7 +14,7 @@ describe("Deploy", function () {
 
     //connect to signers
     let accounts = await ethers.getSigners();
-    s.Frank = accounts[0];//Frank is acting as the treasury address 
+    s.Frank = accounts[0];//Frank is acting as the treasury address
     s.Eric = accounts[5];
     s.Andy = accounts[6];
     s.Bob = accounts[7]; //Bob has wETH and wants to borrow MATTIC
@@ -32,21 +31,13 @@ describe("Deploy", function () {
 
   it("Deploy the things", async () => {
 
-    s.Start = await DeployContract(
-      new PorticoStart__factory(s.Frank),
+    s.Portico= await DeployContract(
+      new Portico__factory(s.Frank),
       s.Frank,
-      s.e.UniV3Router
+      s.swapRouterAddr, s.tokenBridgeAddr, s.relayerAddr
     )
 
-    s.Receiver = await DeployContract(
-      new PorticoReceiver__factory(s.Frank),
-      s.Frank,
-      s.e.UniV3Router,
-      s.tokenBridgeAddr
-    )
-
-    expect(s.Start.address).to.not.eq("0x0000000000000000000000000000000000000000", "Start Deployed")
-    expect(s.Receiver.address).to.not.eq("0x0000000000000000000000000000000000000000", "Receiver Deployed")
+    expect(s.Portico.address).to.not.eq("0x0000000000000000000000000000000000000000", "Start Deployed")
 
   })
 
