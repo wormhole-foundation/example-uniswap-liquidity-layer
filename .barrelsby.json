@@ -5,7 +5,7 @@
     "./src/services",
     "./src/models",
     "./src/decorators",
-    "./src/constants",
+    "./src/web3",
     "./src/types"
   ],
   "exclude": [

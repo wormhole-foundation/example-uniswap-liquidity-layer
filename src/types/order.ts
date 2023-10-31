@@ -3,14 +3,19 @@ import { Address, Hex } from "viem";
 
 export class CreateOrderRequest {
 
+  @Integer()
+  @Required()
+  @Example(1)
+  startingChainId: number
+
   @Pattern(/0x[a-f0-9]{40}/)
   @Any("string")
   @Required()
   startingToken: Address
 
   @Required()
-  @Example(1.0)
-  startingTokenHumanAmount: number
+  @Example('10000000000')
+  startingTokenAmount: string
 
   @Pattern(/0x[a-f0-9]{40}/)
   @Any("string")
@@ -28,8 +33,25 @@ export class CreateOrderRequest {
   destinationChainId: number
 
   @Integer()
+  @Required()
+  @Example(1)
+  bridgeNonce: number
+
+  @Integer()
+  @Default(100)
+  feeTierStart: number = 100
+
+  @Integer()
+  @Default(100)
+  feeTierEnd: number = 100
+
+  @Integer()
   @Default(10)
-  slippage: number = 10
+  slippageStart: number = 10
+
+  @Integer()
+  @Default(10)
+  slippageEnd: number = 10
 
   @Property()
   @Default(false)
@@ -39,6 +61,10 @@ export class CreateOrderRequest {
   @Default(false)
   shouldUnwrapNative? : boolean = false
 
+
+  @Pattern(/0x[a-f0-9]{40}/)
+  @Any("string")
+  porticoAddress? : Address
 }
 
 export class CreateOrderResponse {
