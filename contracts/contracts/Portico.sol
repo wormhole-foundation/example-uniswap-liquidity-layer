@@ -47,8 +47,19 @@ contract PorticoBase {
     return address(uint160(uint256(whFormatAddress)));
   }
 
+  ///@notice if tokenIn == token0 then slippage is in the negative, and vice versa
   ///@param maxSlippage is in BIPS
-  function calculateSlippage(uint256 amount, int16 maxSlippage) internal pure returns (uint256 minAmount) {
+  function calculateSlippage(IV3Pool pool, uint16 maxSlippage, address tokenIn) internal view returns (uint160 sqrtPriceLimitX96) {
+    //get current tick via slot0
+    (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
+
+    uint160 buffer = (maxSlippage * sqrtPriceX96) / 10000;
+
+    tokenIn == pool.token0() ? sqrtPriceLimitX96 = sqrtPriceX96 - buffer : sqrtPriceLimitX96 = sqrtPriceX96 + buffer;
+  }
+
+  ///@param maxSlippage is in BIPS
+  function calculateMinPrice(uint256 amount, int16 maxSlippage) internal pure returns (uint256 minAmount) {
 
     console.log("Calculate Slippage, ", amount);
 
@@ -91,8 +102,8 @@ abstract contract PorticoStart is PorticoBase {
         address(this), //recipient
         block.timestamp + 10, //deadline
         params.amountSpecified, //amountIn
-        calculateSlippage(params.amountSpecified, params.flags.maxSlippageStart()), //minAmountOut
-        0
+        0,//calculateMinPrice(params.amountSpecified, params.flags.maxSlippageStart()), //minAmountOut
+        0//calculateSlippage()
       )
     );
 
@@ -251,7 +262,7 @@ abstract contract PorticoFinish is PorticoBase {
         address(this), //todo send to reciever?
         block.timestamp + 10,
         params.xAssetAmount, // amountin
-        calculateSlippage(params.xAssetAmount, params.flags.maxSlippageStart()), //minamount out
+        calculateMinPrice(params.xAssetAmount, params.flags.maxSlippageStart()), //minamount out
         0
       )
     );
