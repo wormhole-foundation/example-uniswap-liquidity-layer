@@ -5,6 +5,7 @@ import { stealMoney } from "../../util/money"
 import { ethers } from "hardhat";
 import { IERC20__factory, Portico__factory, TokenBridge__factory } from "../../typechain-types";
 import { expect } from "chai";
+import { encodeFlagSet } from "../../util/msc";
 
 describe("Deploy", function () {
 
@@ -46,44 +47,10 @@ describe("Deploy", function () {
     await stealMoney(s.Bank, s.Bob.address, s.e.wethAddress, s.WETH_AMOUNT)
 
   })
-})
 
-describe("test flags", () => {
-
-  it("Test flags", async () => {
-
-    /**
-    uint16 rChain = 1;
-    uint32 bridgeNonce = 1;
-    uint24 startFee = 3000;
-    uint24 endFee = 3000;
-    int16 slipStart = 300;
-    int16 slipEnd = 300;
-    bool wrap = false;
-    bool unwrap = false;
-
-    bytes memory data = abi.encodePacked(rChain, bridgeNonce, startFee, endFee, slipStart, slipEnd, wrap, unwrap);
-
-    compressed = bytes32(data)
-
-    This results in compressed = 0x000100000001000bb8000bb8012c012c00000000000000000000000000000000
-
-    which doesn't work currently, can't get data back based on the library
-
-
-     */
-
-    //0x010001000000b80b00b80b000000000000000000000000000000000000000000/both fees correct
-    //--------------------------------10-------------------20-----------------303132
-    //-------------- 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    //-------------- 0001020304050607080910111213141516171819202122232425262728293031
-    let flags = "0x010001000000b80b00b80b002c012c0100000000000000000000000000000000"
-    //                          |fee1||fee2|
-    //data packed into a normal struct is
-    //16 + 32 + 24 + 24 + 16 + 16 + 8 + 8 == 144
-
-    const data = await s.Portico.testFlags(s.noSippage)
-
+  it("encode flags", async () => {
+    s.noSippage = await encodeFlagSet(1, 1, 3000, 3000, 0, 0, false, false)
+    s.noWrapData = await encodeFlagSet(1, 1, 3000, 3000, 300, 300, false, false)
   })
-
 })
+

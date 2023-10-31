@@ -47,45 +47,24 @@ contract PorticoBase {
     return address(uint160(uint256(whFormatAddress)));
   }
 
-  function testFlags(PorticoFlagSet flagset) external pure returns (bytes memory test) {
-    console.log("RecipientChain: ", flagset.recipientChain());
-    console.log("BridgeNonce   : ", flagset.bridgeNonce());
-    console.log("Fee tier start: ", flagset.feeTierStart());
-    console.log("Fee tier endin: ", flagset.feeTierFinish());
-    console.log("Slippage Start: ", uint256(uint16(flagset.maxSlippageStart())));
-    console.log("Slippage Endin: ", uint256(uint16(flagset.maxSlippageFinish())));
-    console.log("Should do wrap: ", flagset.shouldWrapNative());
-    console.log("Should unwrap : ", flagset.shouldUnwrapNative());
-    uint16 rChain = 1;
-    uint32 bridgeNonce = 1;
-    uint24 startFee = 3000;
-    uint24 endFee = 3000;
-    int16 slipStart = 300;
-    int16 slipEnd = 300;
-    bool wrap = false;
-    bool unwrap = false;
-
-    //bytes memory data = abi.encodePacked(rChain, bridgeNonce, startFee, endFee, slipStart, slipEnd, wrap, unwrap);
-
-    //compressed = bytes32(data);
-
-    //string memory result = string(abi.encodePacked(rChain));
-    return abi.encodePacked(uint24(3000));
-
-    //console.log(string memory (compressed));
-  }
-
   ///@param maxSlippage is in BIPS
   function calculateSlippage(uint256 amount, int16 maxSlippage) internal pure returns (uint256 minAmount) {
+
+    console.log("Calculate Slippage, ", amount);
+
     
     if(maxSlippage == 0){
+      console.log("0");
       return 0;
     }
     
     //get current tick via slot0
     uint16 maxSlippageAbs = maxSlippage > 0 ? uint16(maxSlippage) : uint16(-maxSlippage);
     uint256 buffer = uint256((maxSlippageAbs * amount) / 10000);
-    return maxSlippage > 0 ? amount - buffer : amount + buffer;
+
+    minAmount = maxSlippage > 0 ? amount - buffer : amount + buffer;
+    
+    console.log("minAmount: ", minAmount);
   }
 }
 using PorticoFlagSetAccess for PorticoFlagSet;

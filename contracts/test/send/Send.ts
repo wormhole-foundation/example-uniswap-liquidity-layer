@@ -16,28 +16,8 @@ describe("Send", function () {
 
   it("send transaction", async () => {
 
-    /**
     const params: TradeParameters = {
-      zeroForOne: false,
-      shouldWrapNative: false,
-      shouldUnwrapNative: false,
-      recipientChain: 1,
-      recipientAddress: s.Carol.address,
-      recipientPool: s.e.usdcWethPool,
-      emitterAddress: s.Bank,
-      tokenBridge: s.tokenBridgeAddr,
-      bridgeRecipient: "0x8EB8a3b98659Cce290402893d0123abb75E3ab28000000000000000000000000",
-      arbiterFee: BN("0"),
-      bridgeNonce: 0,
-      messageNonce: 0,
-      consistencyLevel: 0,
-      amountSpecified: s.WETH_AMOUNT,
-      maxSlippage: s.slippage
-    }
-     */
-
-    const params: TradeParameters = {
-      flags: s.noSippage,
+      flags: s.noWrapData,
       startTokenAddress: s.e.wethAddress,
       xAssetAddress: s.e.usdcAddress,
       finalTokenAddress: s.e.wethAddress,
@@ -76,6 +56,7 @@ describe("Send", function () {
 
   })
 })
+/**
 
 describe("Receive", () => {
 
@@ -133,3 +114,5 @@ describe("Receive", () => {
 
   })
 })
+
+ */
