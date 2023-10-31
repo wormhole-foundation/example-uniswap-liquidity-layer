@@ -10,7 +10,7 @@
     "start:prod": "cross-env NODE_ENV=production node dist/index.js",
     "bundle": "tsc && cross-env NODE_ENV=production webpack",
     "start:bundle": "cross-env NODE_ENV=production node dist/app.bundle.js",
-   "test:unit": "cross-env NODE_ENV=test jest",
+    "test:unit": "cross-env NODE_ENV=test jest",
     "test:lint": "eslint '**/*.{ts,js}'",
     "test:lint:fix": "eslint '**/*.{ts,js}' --fix",
     "prettier": "prettier '**/*.{ts,js,json,md,yml,yaml}' --write",

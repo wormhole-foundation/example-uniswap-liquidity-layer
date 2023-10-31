@@ -25,7 +25,7 @@ RUN apt-get update -qq && \
     apt-get install -y build-essential pkg-config python-is-python3
 
 # Install node modules
-COPY --link .yarnrc.yml package.json yarn.lock tsconfig.json tsconfig.compile.json .barrelsby.json ./
+COPY --link .yarn .yarnrc.yml package.json yarn.lock tsconfig.json tsconfig.compile.json .barrelsby.json ./
 
 RUN yarn install --immutable
 

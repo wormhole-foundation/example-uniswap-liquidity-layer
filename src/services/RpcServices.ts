@@ -2,7 +2,8 @@ import { Service } from "@tsed/di";
 import { BadRequest } from "@tsed/exceptions";
 import { config } from "src/config";
 import { ALL_CHAINS } from "src/config/cli";
-import { PublicClient, createPublicClient, http, webSocket } from "viem";
+import { PublicClient, Transport, createClient, createPublicClient, custom, http, webSocket } from "viem";
+import { CachingTransportService } from "./CachingTransportService";
 
 
 @Service()
@@ -10,6 +11,7 @@ export class MultiRpcService {
   providers: Map<number, PublicClient> = new Map();
 
   constructor(
+    private readonly cachingTransportService: CachingTransportService,
   ) {
     ALL_CHAINS.forEach((n) => {
       this.addProvider(
@@ -35,9 +37,18 @@ export class MultiRpcService {
 
   private dialProvider(id: number, url?: string):PublicClient<any, any> {
     let transport = url && url.startsWith("ws") ? webSocket(url) : http(url)
+    const bp = transport({
+      chain: getChain(id),
+      timeout: 3000,
+      retryCount: 3,
+      pollingInterval: 4000,
+    })
+
+    let cachingTransport = this.cachingTransportService.createCachingProvider(id, bp.request)
+
     return createPublicClient({
       chain: getChain(id),
-      transport,
+      transport: cachingTransport,
     }) as PublicClient
   }
 }
