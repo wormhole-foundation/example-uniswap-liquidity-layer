@@ -11,6 +11,7 @@ import "./IWETH.sol";
 import "./uniswap/TickMath.sol";
 import "./uniswap/ISwapRouter.sol";
 import "./uniswap/IV3Pool.sol";
+import "./uniswap/PoolAddress.sol";
 
 //testing
 import "hardhat/console.sol";
@@ -47,35 +48,41 @@ contract PorticoBase {
     return address(uint160(uint256(whFormatAddress)));
   }
 
+  //248,424
+  //247,893
   ///@notice if tokenIn == token0 then slippage is in the negative, and vice versa
   ///@param maxSlippage is in BIPS
-  function calculateSlippage(IV3Pool pool, uint16 maxSlippage, address tokenIn) internal view returns (uint160 sqrtPriceLimitX96) {
+  function calculateSlippage(
+    uint16 maxSlippage,
+    address tokenIn,
+    address tokenOut,
+    uint24 fee
+  ) internal view returns (uint160 sqrtPriceLimitX96) {
+    //compute pool key
+    PoolAddress.PoolKey memory key = PoolAddress.getPoolKey(tokenIn, tokenOut, fee);
+
+    //compute pool
+    IV3Pool pool = IV3Pool(PoolAddress.computeAddress(ROUTERV3.factory(), key));
+
     //get current tick via slot0
     (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
 
     uint160 buffer = (maxSlippage * sqrtPriceX96) / 10000;
 
-    tokenIn == pool.token0() ? sqrtPriceLimitX96 = sqrtPriceX96 - buffer : sqrtPriceLimitX96 = sqrtPriceX96 + buffer;
+    tokenIn == key.token0 ? sqrtPriceLimitX96 = sqrtPriceX96 - buffer : sqrtPriceLimitX96 = sqrtPriceX96 + buffer;
+
   }
 
   ///@param maxSlippage is in BIPS
   function calculateMinPrice(uint256 amount, int16 maxSlippage) internal pure returns (uint256 minAmount) {
-
-    console.log("Calculate Slippage, ", amount);
-
-    
-    if(maxSlippage == 0){
-      console.log("0");
+    if (maxSlippage == 0) {
       return 0;
     }
-    
     //get current tick via slot0
     uint16 maxSlippageAbs = maxSlippage > 0 ? uint16(maxSlippage) : uint16(-maxSlippage);
     uint256 buffer = uint256((maxSlippageAbs * amount) / 10000);
 
     minAmount = maxSlippage > 0 ? amount - buffer : amount + buffer;
-    
-    console.log("minAmount: ", minAmount);
   }
 }
 using PorticoFlagSetAccess for PorticoFlagSet;
@@ -90,10 +97,7 @@ abstract contract PorticoStart is PorticoBase {
     }
     // TODO: need sanity checks for token balances?
     require(params.startTokenAddress.approve(address(ROUTERV3), uint256(params.amountSpecified)), "Approve fail");
-    
-    console.log("Fee: ", params.flags.feeTierStart());
 
-    
     amount = ROUTERV3.exactInputSingle(
       ISwapRouter.ExactInputSingleParams(
         address(params.startTokenAddress), // tokenIn
@@ -102,8 +106,13 @@ abstract contract PorticoStart is PorticoBase {
         address(this), //recipient
         block.timestamp + 10, //deadline
         params.amountSpecified, //amountIn
-        0,//calculateMinPrice(params.amountSpecified, params.flags.maxSlippageStart()), //minAmountOut
-        0//calculateSlippage()
+        0, //calculateMinPrice(params.amountSpecified, params.flags.maxSlippageStart()), //minAmountOut
+        calculateSlippage(
+          uint16(params.flags.maxSlippageStart()),
+          address(params.startTokenAddress),
+          address(params.xAssetAddress),
+          params.flags.feeTierStart()
+        )
       )
     );
 

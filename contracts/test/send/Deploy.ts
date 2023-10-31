@@ -50,7 +50,7 @@ describe("Deploy", function () {
 
   it("encode flags", async () => {
     s.noSippage = await encodeFlagSet(1, 1, 3000, 3000, 0, 0, false, false)
-    s.noWrapData = await encodeFlagSet(1, 1, 3000, 3000, 300, 300, false, false)
+    s.noWrapData = await encodeFlagSet(1, 1, 3000, 3000, s.slippage, s.slippage, false, false)
   })
 })
 

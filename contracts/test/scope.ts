@@ -52,7 +52,7 @@ export type TradeParameters = {
 }
 
 export type DecodedVAA = {
-    flash: BytesLike,
+    flags: BytesLike,
     xAssetAddress: string,
     finalTokenAddress: string,
     recipientAddress: string,

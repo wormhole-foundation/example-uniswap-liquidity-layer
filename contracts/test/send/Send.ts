@@ -5,7 +5,7 @@ import { BN } from "../../util/number";
 import { getGas, toNumber } from "../../util/msc"
 import { start } from "repl";
 import { stealMoney } from "../../util/money";
-import { TradeParameters, s } from "../scope"
+import { DecodedVAA, TradeParameters, s } from "../scope"
 
 /**
  * In this example,
@@ -56,7 +56,7 @@ describe("Send", function () {
 
   })
 })
-/**
+
 
 describe("Receive", () => {
 
@@ -72,22 +72,11 @@ describe("Receive", () => {
     //todo determine what these should actually be set to
     //boiler plate data
     const params: DecodedVAA = {
-      bridgeRecipient: s.Portico.address,
-      emitterAddress: s.Portico.address,
-      pool: s.e.usdcWethPool,
-      shouldUnwrapNative: false,
-      tokenAddress: s.WETH.address,
-      xAssetAddress: s.USDC.address,
-      xAssetAmount: usdcAmount,
-      tokenBridge: s.tokenBridgeAddr,
-      originChain: BN(1),
-      recipientChain: BN(1),
+      flags: s.noWrapData,
+      xAssetAddress: s.e.usdcAddress,
+      finalTokenAddress: s.e.wethAddress,
       recipientAddress: s.Carol.address,
-      porticoVersion: BN(1),
-      messageNonce: BN(1),
-      bridgeNonce: BN(1),
-      bridgeSequence: BN(1),
-      maxSlippage: s.slippage
+      xAssetAmount: usdcAmount
     }
 
     const startPorticoUSDC = await s.USDC.balanceOf(s.Portico.address)
@@ -113,6 +102,6 @@ describe("Receive", () => {
     expect(await toNumber(endCarolWETH)).to.be.closeTo(await toNumber(s.WETH_AMOUNT), 0.02, "Swap completed")
 
   })
+
 })
 
- */
