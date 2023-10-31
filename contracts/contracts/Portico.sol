@@ -32,6 +32,8 @@ contract PorticoBase {
     wormhole = _bridge.wormhole();
   }
 
+  receive() external payable {}
+
   function version() external pure returns (uint32) {
     return 1;
   }
@@ -70,7 +72,6 @@ contract PorticoBase {
     uint160 buffer = (maxSlippage * sqrtPriceX96) / 10000;
 
     tokenIn == key.token0 ? sqrtPriceLimitX96 = sqrtPriceX96 - buffer : sqrtPriceLimitX96 = sqrtPriceX96 + buffer;
-
   }
 
   ///@param maxSlippage is in BIPS

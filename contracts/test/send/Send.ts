@@ -87,7 +87,7 @@ describe("Receive", () => {
     expect(startCarolWETH).to.eq(0, "Carol has 0 WETH")
 
     const gas = await getGas(await s.Portico.testSwap(params))
-    showBodyCyan("Gas to do reciving swap: ", gas)
+    showBodyCyan("GAS TO RECEIVE: ", gas)
 
     const endPorticoUSDC = await s.USDC.balanceOf(s.Portico.address)
     const endCarolUSDC = await s.USDC.balanceOf(s.Carol.address)

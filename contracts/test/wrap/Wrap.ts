@@ -1,14 +1,11 @@
 
-import { DecodedVAA, s, TradeParameters } from "../scope"
-import { showBody, showBodyCyan } from "../../util/format"
-import { ethers, network } from "hardhat";
-import { PorticoReceiver__factory, PorticoStart__factory, TokenBridge__factory } from "../../typechain-types";
+import { DecodedVAA, s, TradeParameters } from "../scope";
+import { showBody, showBodyCyan } from "../../util/format";
+import { ethers } from "hardhat";
 import { expect } from "chai";
 import { BN } from "../../util/number";
-import { getGas, toNumber } from "../../util/msc"
-import { start } from "repl";
+import { getGas, toNumber } from "../../util/msc";
 import { stealMoney } from "../../util/money";
-import { Provider } from "@ethersproject/providers";
 
 
 /**
@@ -21,29 +18,19 @@ describe("Wrap", function () {
   it("send transaction with native ether and wrap", async () => {
 
     const params: TradeParameters = {
-      pool: s.e.usdcWethPool,
-      zeroForOne: false,
-      shouldWrapNative: true,
-      shouldUnwrapNative: false,
-      recipientChain: 1,
+      flags: s.wrapData,
+      startTokenAddress: s.e.wethAddress,
+      xAssetAddress: s.e.usdcAddress,
+      finalTokenAddress: s.e.wethAddress,
       recipientAddress: s.Carol.address,
-      recipientPool: s.e.usdcWethPool,
-      emitterAddress: s.Bank,
-      tokenBridge: s.tokenBridgeAddr,
-      bridgeRecipient: "0x8EB8a3b98659Cce290402893d0123abb75E3ab28000000000000000000000000",
-      arbiterFee: BN("0"),
-      bridgeNonce: 0,
-      messageNonce: 0,
-      consistencyLevel: 0,
-      amountSpecified: s.WETH_AMOUNT,
-      maxSlippage: s.slippage
+      amountSpecified: s.WETH_AMOUNT
     }
 
     //confirm starting balances
     const startBobEther = await ethers.provider.getBalance(s.Bob.address)
-    const startStartWeth = await s.WETH.balanceOf(s.Start.address)
+    const startStartWeth = await s.WETH.balanceOf(s.Portico.address)
     const startBobWeth = await s.WETH.balanceOf(s.Bob.address)
-    const startStartUSDC = await s.USDC.balanceOf(s.Start.address)
+    const startStartUSDC = await s.USDC.balanceOf(s.Portico.address)
     const startBobUSDC = await s.USDC.balanceOf(s.Bob.address)
 
     expect(startStartWeth).to.eq(0, "No weth at start")
@@ -52,14 +39,14 @@ describe("Wrap", function () {
     expect(startBobUSDC).to.eq(0, "Starting USDC is correct")
 
     //await s.WETH.connect(s.Bob).approve(s.Start.address, s.WETH_AMOUNT)
-    const result = await s.Start.connect(s.Bob).start(params, {value: s.WETH_AMOUNT})
+    const result = await s.Portico.connect(s.Bob).start(params, {value: s.WETH_AMOUNT})
     const gas = await getGas(result)
-    showBodyCyan("GAS TO START: ", gas)
+    showBodyCyan("GAS TO START + WRAP: ", gas)
 
     //check ending balances
-    const endStartWeth = await s.WETH.balanceOf(s.Start.address)
+    const endStartWeth = await s.WETH.balanceOf(s.Portico.address)
     const endBobWeth = await s.WETH.balanceOf(s.Bob.address)
-    const endStartUSDC = await s.USDC.balanceOf(s.Start.address)
+    const endStartUSDC = await s.USDC.balanceOf(s.Portico.address)
     const endBobUSDC = await s.USDC.balanceOf(s.Bob.address)
 
     //ending balances should be 0 because the xAsset is sent to the tokenbridge
@@ -78,33 +65,23 @@ describe("Receive", () => {
   const usdcAmount = BN("1783362958")
 
   it("Steal USDC to the Receiver to simulate tokenbridge sending it", async () => {
-    await stealMoney(s.Bank, s.Receiver.address, s.USDC.address, usdcAmount)
+    await stealMoney(s.Bank, s.Portico.address, s.USDC.address, usdcAmount)
   })
 
+  
   it("Recieve xChain tx", async () => {
 
     //todo determine what these should actually be set to
     //boiler plate data
     const params: DecodedVAA = {
-      bridgeRecipient: s.Receiver.address,
-      emitterAddress: s.Receiver.address,
-      pool: s.e.usdcWethPool,
-      shouldUnwrapNative: true,
-      tokenAddress: s.WETH.address,
-      xAssetAddress: s.USDC.address,
-      xAssetAmount: usdcAmount,
-      tokenBridge: s.tokenBridgeAddr,
-      originChain: BN(1),
-      recipientChain: BN(1),
+      flags: s.wrapData,
+      xAssetAddress: s.e.usdcAddress,
+      finalTokenAddress: s.e.wethAddress,
       recipientAddress: s.Carol.address,
-      porticoVersion: BN(1),
-      messageNonce: BN(1),
-      bridgeNonce: BN(1),
-      bridgeSequence: BN(1),
-      maxSlippage: s.slippage
+      xAssetAmount: usdcAmount
     }
 
-    const startReceiverUSDC = await s.USDC.balanceOf(s.Receiver.address)
+    const startReceiverUSDC = await s.USDC.balanceOf(s.Portico.address)
     const startCarolUSDC = await s.USDC.balanceOf(s.Carol.address)
     const startCarolWETH = await s.WETH.balanceOf(s.Carol.address)
     expect(startReceiverUSDC).to.eq(usdcAmount, "Receiver has USDC")
@@ -113,13 +90,13 @@ describe("Receive", () => {
 
     const startEth = await ethers.provider.getBalance(s.Carol.address)
     showBody("StartEth: ", await toNumber(startEth))
-    const gas = await getGas(await s.Receiver.testSwap(params))
-    showBodyCyan("Gas to do reciving swap: ", gas)
+    const gas = await getGas(await s.Portico.testSwap(params))
+    showBodyCyan("GAS TO RECEIVE AND UNWRAP: ", gas)
     const endEth = await ethers.provider.getBalance(s.Carol.address)
 
     showBody("Eth Netted: ", await toNumber(endEth.sub(startEth)))
 
-    const endReceiverUSDC = await s.USDC.balanceOf(s.Receiver.address)
+    const endReceiverUSDC = await s.USDC.balanceOf(s.Portico.address)
     const endCarolUSDC = await s.USDC.balanceOf(s.Carol.address)
     const endCarolWETH = await s.WETH.balanceOf(s.Carol.address)
 
@@ -132,5 +109,6 @@ describe("Receive", () => {
     //expect(await toNumber(endCarolWETH)).to.be.closeTo(await toNumber(s.WETH_AMOUNT), 0.02, "Swap completed")
 
   })
+   
 })
  

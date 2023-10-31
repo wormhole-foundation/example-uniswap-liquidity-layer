@@ -13,7 +13,7 @@ export class TestScope {
     //no wrap data
     noWrapData:BytesLike = "0x010001000000b80b00b80b002c012c0100000000000000000000000000000000"
     noSippage:BytesLike = "0x010001000000b80b00b80b000000000000000000000000000000000000000000"
-    
+    wrapData!: BytesLike
 
     USDC!: IERC20
     WETH!: IERC20
