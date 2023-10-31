@@ -31,7 +31,7 @@ describe("Deploy", function () {
 
   it("Deploy the things", async () => {
 
-    s.Portico= await DeployContract(
+    s.Portico = await DeployContract(
       new Portico__factory(s.Frank),
       s.Frank,
       s.swapRouterAddr, s.tokenBridgeAddr, s.relayerAddr
@@ -48,7 +48,7 @@ describe("Deploy", function () {
   })
 })
 
-describe ("test flags", () => {
+describe("test flags", () => {
 
   it("Test flags", async () => {
 
@@ -73,18 +73,16 @@ describe ("test flags", () => {
 
      */
 
-    //0x0100000000000000000000000000000000000000000000000000000000000000
-    //------------------------------------10------------------20------------------303132
-    //----------------- 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-    const flags01 = "0x0100010000000000000000000000000000000000000000000000000000000000"
-    const flags02 = "0x000100000001000bb8000bb8012c012c00000000000000000000000000000000"
-    const flags03 = "0x0100010000002C01000000000000000000000000000000000000000000000000"
-
+    //0x010001000000b80b00b80b000000000000000000000000000000000000000000/both fees correct
+    //--------------------------------10-------------------20-----------------303132
+    //-------------- 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 
+    //-------------- 0001020304050607080910111213141516171819202122232425262728293031
+    const flags = "0x010001000000b80b00b80b002c012c0100000000000000000000000000000000"
+    //                          |fee1||fee2|
     //data packed into a normal struct is
     //16 + 32 + 24 + 24 + 16 + 16 + 8 + 8 == 144
 
-    const data = await s.Portico.testFlags(flags03)
-    console.log(data)
+    const data = await s.Portico.testFlags(s.noSippage)
 
   })
 

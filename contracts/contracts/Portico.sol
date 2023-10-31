@@ -51,7 +51,11 @@ contract PorticoBase {
     console.log("RecipientChain: ", flagset.recipientChain());
     console.log("BridgeNonce   : ", flagset.bridgeNonce());
     console.log("Fee tier start: ", flagset.feeTierStart());
-
+    console.log("Fee tier endin: ", flagset.feeTierFinish());
+    console.log("Slippage Start: ", uint256(uint16(flagset.maxSlippageStart())));
+    console.log("Slippage Endin: ", uint256(uint16(flagset.maxSlippageFinish())));
+    console.log("Should do wrap: ", flagset.shouldWrapNative());
+    console.log("Should unwrap : ", flagset.shouldUnwrapNative());
     uint16 rChain = 1;
     uint32 bridgeNonce = 1;
     uint24 startFee = 3000;
@@ -73,6 +77,11 @@ contract PorticoBase {
 
   ///@param maxSlippage is in BIPS
   function calculateSlippage(uint256 amount, int16 maxSlippage) internal pure returns (uint256 minAmount) {
+    
+    if(maxSlippage == 0){
+      return 0;
+    }
+    
     //get current tick via slot0
     uint16 maxSlippageAbs = maxSlippage > 0 ? uint16(maxSlippage) : uint16(-maxSlippage);
     uint256 buffer = uint256((maxSlippageAbs * amount) / 10000);
@@ -91,6 +100,10 @@ abstract contract PorticoStart is PorticoBase {
     }
     // TODO: need sanity checks for token balances?
     require(params.startTokenAddress.approve(address(ROUTERV3), uint256(params.amountSpecified)), "Approve fail");
+    
+    console.log("Fee: ", params.flags.feeTierStart());
+
+    
     amount = ROUTERV3.exactInputSingle(
       ISwapRouter.ExactInputSingleParams(
         address(params.startTokenAddress), // tokenIn

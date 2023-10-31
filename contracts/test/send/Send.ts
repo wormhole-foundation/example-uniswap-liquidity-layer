@@ -16,6 +16,7 @@ describe("Send", function () {
 
   it("send transaction", async () => {
 
+    /**
     const params: TradeParameters = {
       zeroForOne: false,
       shouldWrapNative: false,
@@ -33,6 +34,17 @@ describe("Send", function () {
       amountSpecified: s.WETH_AMOUNT,
       maxSlippage: s.slippage
     }
+     */
+
+    const params: TradeParameters = {
+      flags: s.noSippage,
+      startTokenAddress: s.e.wethAddress,
+      xAssetAddress: s.e.usdcAddress,
+      finalTokenAddress: s.e.wethAddress,
+      recipientAddress: s.Carol.address,
+      amountSpecified: s.WETH_AMOUNT
+    }
+
 
     //confirm starting balances
     const startPorticoWeth = await s.WETH.balanceOf(s.Portico.address)
