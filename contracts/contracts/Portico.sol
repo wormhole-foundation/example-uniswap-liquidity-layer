@@ -264,20 +264,25 @@ abstract contract PorticoFinish is PorticoBase {
 
   function _finish_v3swap(PorticoStructs.DecodedVAA memory params) internal returns (uint128 amount) {
     params.xAssetAddress.approve(address(ROUTERV3), params.xAssetAmount);
-    uint256 amountOut = ROUTERV3.exactInputSingle(
-      ISwapRouter.ExactInputSingleParams(
-        address(params.xAssetAddress),
-        address(params.finalTokenAddress),
-        params.flags.feeTierFinish(), // fee tier
-        address(this), //todo send to reciever?
-        block.timestamp + 10,
-        params.xAssetAmount, // amountin
-        calculateMinPrice(params.xAssetAmount, params.flags.maxSlippageStart()), //minamount out
-        0
+    amount = uint128(
+      ROUTERV3.exactInputSingle(
+        ISwapRouter.ExactInputSingleParams(
+          address(params.xAssetAddress),
+          address(params.finalTokenAddress),
+          params.flags.feeTierFinish(), // fee tier
+          address(this), //todo send to reciever?
+          block.timestamp + 10,
+          params.xAssetAmount, // amountin
+          0, //calculateMinPrice(params.xAssetAmount, params.flags.maxSlippageStart()), //minamount out
+          calculateSlippage(
+            uint16(params.flags.maxSlippageStart()),
+            address(params.xAssetAddress),
+            address(params.finalTokenAddress),
+            params.flags.feeTierFinish()
+          )
+        )
       )
     );
-
-    return uint128(amountOut);
   }
 }
 
