@@ -31,6 +31,9 @@ const xAssetTable = withFlip({
 })
 
 const nativeAssetTable = withFlip({
+  [mainnet.id]: {
+    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2":"eth"
+  },
   [arbitrum.id]: {
     "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": "eth",
   },
@@ -64,13 +67,22 @@ export class RolodexService {
       [optimism.id]: "",
     }[chainId]
   }
+  getXTokenForToken(chainId: number, token:string) {
+    const ct = xAssetTable[chainId]
+    if(!ct) {
+      return undefined
+    }
+    // if is an x token, just return it
+    if(ct[token]) {
+      return token
+    }
+    const nt = nativeAssetTable[chainId]
+    if(!nt) {
+      return undefined
+    }
+    return ct[nt[token]]
+  }
   getWeth(chainId: number) {
-    return {
-      [mainnet.id]: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-      [arbitrum.id]: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-      [base.id]: "0x4200000000000000000000000000000000000006",
-      [optimism.id]: "0x4200000000000000000000000000000000000006",
-      [polygon.id] : "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
-    }[chainId]
+    return nativeAssetTable[chainId]["eth"];
   }
 }

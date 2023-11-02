@@ -190,7 +190,7 @@ abstract contract PorticoFinish is PorticoBase {
       // complete the transfer
       TOKENBRIDGE.completeTransferWithPayload(additionalVaas[i]);
 
-      // get the address for the token on this addres
+      // get the address for the token on this address
       address thisChainTokenAddress = transfer.tokenChain == wormhole.chainId()
         ? unpadAddress(transfer.tokenAddress)
         : TOKENBRIDGE.wrappedAsset(transfer.tokenChain, transfer.tokenAddress);
@@ -229,7 +229,7 @@ abstract contract PorticoFinish is PorticoBase {
     PorticoStructs.DecodedVAA memory message = abi.decode(payload, (PorticoStructs.DecodedVAA));
 
     // we must have received the xAsset address
-    require(recv.tokenAddress == address(message.xAssetAddress));
+    require(recv.tokenHomeAddress == address(message.xAssetAddress));
     // we must have received the amount expected
     require(recv.amount == message.xAssetAmount);
 

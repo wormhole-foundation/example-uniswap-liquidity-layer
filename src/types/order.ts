@@ -10,6 +10,7 @@ export class CreateOrderRequest {
 
   @Pattern(/0x[a-f0-9]{40}/)
   @Any("string")
+  @Example("0xd8369c2eda18dd6518eabb1f85bd60606deb39ec")
   @Required()
   startingToken: Address
 
@@ -19,6 +20,7 @@ export class CreateOrderRequest {
 
   @Pattern(/0x[a-f0-9]{40}/)
   @Any("string")
+  @Example("0x4200000000000000000000000000000000000006")
   @Required()
   destinationToken: Address
 
@@ -29,7 +31,7 @@ export class CreateOrderRequest {
 
   @Integer()
   @Required()
-  @Example(1)
+  @Example(10)
   destinationChainId: number
 
   @Integer()
