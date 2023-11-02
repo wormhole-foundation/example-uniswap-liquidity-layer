@@ -105,3 +105,35 @@ describe("Receive", () => {
 
 })
 
+describe("Receive where xAsset == finalAsset", () => {
+
+  //this is the amount of USDC received from the first swap as of the pinned block
+  const usdcAmount = BN("1783362958")
+
+  it("Steal USDC to the Portico to simulate tokenbridge sending it", async () => {
+    await stealMoney(s.Bank, s.Portico.address, s.USDC.address, usdcAmount)
+  })
+
+  it("Recieve xChain tx where xAsset == finalAssets", async () => {
+
+    //todo determine what these should actually be set to
+    //boiler plate data
+    const params: DecodedVAA = {
+      flags: s.noWrapData,
+      xAssetAddress: s.e.usdcAddress,
+      finalTokenAddress: s.e.usdcAddress,
+      recipientAddress: s.Carol.address,
+      xAssetAmount: usdcAmount
+    }
+
+    const startPorticoUSDC = await s.USDC.balanceOf(s.Portico.address)
+    const startCarolUSDC = await s.USDC.balanceOf(s.Carol.address)
+    expect(startPorticoUSDC).to.eq(usdcAmount, "Portico has USDC")
+    expect(startCarolUSDC).to.eq(0, "Carol has 0 USDC")
+    //expect(startCarolWETH).to.eq(0, "Carol has 0 WETH")
+    const gas = await getGas(await s.Portico.testSwap(params))
+    showBodyCyan("GAS TO RECEIVE: ", gas)
+    expect(await s.USDC.balanceOf(s.Carol.address)).to.eq(usdcAmount, "Carol received USDC")
+
+  })
+})

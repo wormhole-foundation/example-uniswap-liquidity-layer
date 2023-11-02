@@ -247,22 +247,33 @@ abstract contract PorticoFinish is PorticoBase {
 
   function finish(PorticoStructs.DecodedVAA memory params) internal {
     uint256 amount = 0;
-    if (params.finalTokenAddress == params.xAssetAddress) {
-      amount = params.xAssetAmount;
-    } else {
-      // TODO: check if the coins have actually been received from the bridge
-      amount = _finish_v3swap(params);
-    }
+
+    //if we are unwraping
     if (params.flags.shouldUnwrapNative() && address(params.finalTokenAddress) == address(TOKENBRIDGE.WETH())) {
+      amount = _finish_v3swap(params, address(0x0));
       TOKENBRIDGE.WETH().withdraw(amount);
       (bool sent /*bytes memory data*/, ) = params.recipientAddress.call{ value: amount }("");
       require(sent, "Failed to send Ether");
     } else {
-      require(params.finalTokenAddress.transfer(params.recipientAddress, amount), "transfer failed");
+      //todo test this case
+      if (params.finalTokenAddress == params.xAssetAddress) {
+        console.log("finalToken == params.xAssetAddress");
+        amount = params.xAssetAmount;
+        require(params.finalTokenAddress.transfer(params.recipientAddress, amount), "transfer failed");
+      } else {
+        console.log("SWAP AND SEND");
+        //swap and send tokens directly to receiver
+        _finish_v3swap(params, params.recipientAddress);
+      }
     }
   }
 
-  function _finish_v3swap(PorticoStructs.DecodedVAA memory params) internal returns (uint128 amount) {
+  function _finish_v3swap(PorticoStructs.DecodedVAA memory params, address receiver) internal returns (uint128 amount) {
+    //this should resolve to false if unwrapNative
+    if (receiver == address(0x0)) {
+      console.log("Receiver == 00");
+      receiver = address(this);
+    }
     params.xAssetAddress.approve(address(ROUTERV3), params.xAssetAmount);
     amount = uint128(
       ROUTERV3.exactInputSingle(
@@ -270,7 +281,7 @@ abstract contract PorticoFinish is PorticoBase {
           address(params.xAssetAddress),
           address(params.finalTokenAddress),
           params.flags.feeTierFinish(), // fee tier
-          address(this), //todo send to reciever?
+          receiver,
           block.timestamp + 10,
           params.xAssetAmount, // amountin
           0, //calculateMinPrice(params.xAssetAmount, params.flags.maxSlippageStart()), //minamount out

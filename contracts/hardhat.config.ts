@@ -44,6 +44,15 @@ const config: HardhatUserConfig = {
       chainId: 10
 
     },
+    polygon: {
+      url: process.env.POLYGON_URL ? process.env.POLYGON_URL : zaddr,
+      accounts: [
+        process.env.MAINNET_PRIVATE_KEY
+          ? process.env.MAINNET_PRIVATE_KEY
+          : zaddr,
+      ],
+      chainId: 137, // Polygon's id
+    },
     goerli: {
       url: process.env.GOERLI_URL ? process.env.GOERLI_URL : zaddr,
       accounts: [
