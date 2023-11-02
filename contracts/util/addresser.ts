@@ -27,6 +27,11 @@ export class MainnetAddresses {
     readonly balancerAddress: string = "0xba100000625a3754423978a60c9317c58a424e3D"
     readonly BalancerVault: string = "0xBA12222222228d8Ba445958a75a0704d566BF2C8"
     readonly UniV3Router: string = "0xe592427a0aece92de3edee1f18e0157c05861564"
+    readonly rethAddress: string = "0xae78736Cd615f374D3085123A210448E74Fc6393"
+}
+
+export class PolygonAddresses{
+    readonly wethAddress: string = "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619"
 }
 
 export class OptimisimAddresses {
@@ -85,4 +90,6 @@ export class OptimisimAddresses {
 export const e = new MainnetAddresses()
 
 export const o = new OptimisimAddresses()
+
+export const p = new PolygonAddresses()
 

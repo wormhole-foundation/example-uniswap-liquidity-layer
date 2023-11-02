@@ -1,13 +1,17 @@
-import { s } from "../scope"
+import { TradeParameters, s } from "../scope"
 import { currentBlock, reset, resetCurrent } from "../../util/block"
 import { DeployContract } from "../../util/deploy"
 import { stealMoney } from "../../util/money"
 import { ethers } from "hardhat";
 import { IERC20__factory, Portico__factory, TokenBridge__factory } from "../../typechain-types";
 import { expect } from "chai";
-import { encodeFlagSet } from "../../util/msc";
+import { encodeFlagSet, getGas } from "../../util/msc";
+import { showBodyCyan } from "../../util/format";
 
-describe("Deploy", function () {
+
+//what happens if we try to encode a sequence with a non xasset? 
+
+describe("Setup", function () {
 
   it("Setup", async () => {
     await reset(18429933)
@@ -28,9 +32,17 @@ describe("Deploy", function () {
   it("Connect to contracts", async () => {
     s.WETH = IERC20__factory.connect(s.e.wethAddress, s.Frank)
     s.USDC = IERC20__factory.connect(s.e.usdcAddress, s.Frank)
+    s.rETH = IERC20__factory.connect(s.e.rethAddress, s.Frank)
   })
 
-  it("Deploy the things", async () => {
+  it("Fund participants", async () => {
+
+    await stealMoney(s.Bank, s.Bob.address, s.e.wethAddress, s.WETH_AMOUNT)
+    await stealMoney(s.rEthWhale, s.Bob.address, s.e.rethAddress, s.WETH_AMOUNT)
+
+  })
+
+  it("Deploy", async () => {
 
     s.Portico = await DeployContract(
       new Portico__factory(s.Frank),
@@ -42,16 +54,33 @@ describe("Deploy", function () {
 
   })
 
-  it("Fund participants", async () => {
-
-    await stealMoney(s.Bank, s.Bob.address, s.e.wethAddress, s.WETH_AMOUNT)
-
-  })
+  
 
   it("encode flags", async () => {
     s.noSippage = await encodeFlagSet(1, 1, 3000, 3000, 0, 0, false, false)
     s.wrapData = await encodeFlagSet(1, 1, 3000, 3000, s.slippage, s.slippage, true, true)
-    s.noWrapData = await encodeFlagSet(1, 1, 3000, 3000, s.slippage, s.slippage, false, false)
+    s.noWrapData = await encodeFlagSet(10, 1, 3000, 3000, s.slippage, s.slippage, false, false)
+
   })
+})
+
+describe("Non x asset", async () => { 
+  //it still publishes the sequence
+  it("send tx where cannonAsset != x asset", async () => {
+    const params: TradeParameters = {
+      flags: s.noWrapData,
+      startTokenAddress: s.e.rethAddress,
+      canonAssetAddress: s.e.rethAddress,
+      finalTokenAddress: s.e.wethAddress,
+      recipientAddress: s.Carol.address,
+      amountSpecified: s.WETH_AMOUNT
+    }
+
+    await s.rETH.connect(s.Bob).approve(s.Portico.address, s.WETH_AMOUNT)
+    const result = await s.Portico.connect(s.Bob).start(params)
+    const gas = await getGas(result)
+    showBodyCyan("GAS TO START: ", gas)
+  })
+
 })
 
