@@ -1,11 +1,12 @@
 
-import { s } from "../scope"
-import { currentBlock, reset, resetCurrent } from "../../util/block"
-import { DeployContract } from "../../util/deploy"
-import { stealMoney } from "../../util/money"
-import { ethers, network } from "hardhat";
-import { IERC20__factory, PorticoReceiver__factory, PorticoStart__factory, TokenBridge__factory } from "../../typechain-types";
+import { s } from "../scope";
+import { currentBlock, reset } from "../../util/block";
+import { DeployContract } from "../../util/deploy";
+import { stealMoney } from "../../util/money";
+import { ethers } from "hardhat";
+import { IERC20__factory, PorticoStart__factory, Portico__factory } from "../../typechain-types";
 import { expect } from "chai";
+import { encodeFlagSet } from "../../util/msc";
 
 describe("Deploy", function () {
 
@@ -31,22 +32,13 @@ describe("Deploy", function () {
   })
 
   it("Deploy the things", async () => {
-
-    s.Start = await DeployContract(
-      new PorticoStart__factory(s.Frank),
+    s.Portico = await DeployContract(
+      new Portico__factory(s.Frank),
       s.Frank,
-      s.e.UniV3Router
+      s.swapRouterAddr, s.tokenBridgeAddr, s.relayerAddr
     )
 
-    s.Receiver = await DeployContract(
-      new PorticoReceiver__factory(s.Frank),
-      s.Frank,
-      s.e.UniV3Router,
-      s.tokenBridgeAddr
-    )
-
-    expect(s.Start.address).to.not.eq("0x0000000000000000000000000000000000000000", "Start Deployed")
-    expect(s.Receiver.address).to.not.eq("0x0000000000000000000000000000000000000000", "Receiver Deployed")
+    expect(s.Portico.address).to.not.eq("0x0000000000000000000000000000000000000000", "Start Deployed")
 
   })
 
@@ -56,4 +48,7 @@ describe("Deploy", function () {
 
   })
 
+  it("encode flags", async () => {
+    s.wrapData = await encodeFlagSet(1, 1, 3000, 3000, s.slippage, s.slippage, true, true)
+  })
 })

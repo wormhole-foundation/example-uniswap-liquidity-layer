@@ -11,6 +11,7 @@ import "./IWETH.sol";
 import "./uniswap/TickMath.sol";
 import "./uniswap/ISwapRouter.sol";
 import "./uniswap/IV3Pool.sol";
+import "./uniswap/PoolAddress.sol";
 
 //testing
 import "hardhat/console.sol";
@@ -31,6 +32,8 @@ contract PorticoBase {
     wormhole = _bridge.wormhole();
   }
 
+  receive() external payable {}
+
   function version() external pure returns (uint32) {
     return 1;
   }
@@ -47,45 +50,40 @@ contract PorticoBase {
     return address(uint160(uint256(whFormatAddress)));
   }
 
-  function testFlags(PorticoFlagSet flagset) external pure returns (bytes memory test) {
-    console.log("RecipientChain: ", flagset.recipientChain());
-    console.log("BridgeNonce   : ", flagset.bridgeNonce());
-    console.log("Fee tier start: ", flagset.feeTierStart());
-    console.log("Fee tier endin: ", flagset.feeTierFinish());
-    console.log("Slippage Start: ", uint256(uint16(flagset.maxSlippageStart())));
-    console.log("Slippage Endin: ", uint256(uint16(flagset.maxSlippageFinish())));
-    console.log("Should do wrap: ", flagset.shouldWrapNative());
-    console.log("Should unwrap : ", flagset.shouldUnwrapNative());
-    uint16 rChain = 1;
-    uint32 bridgeNonce = 1;
-    uint24 startFee = 3000;
-    uint24 endFee = 3000;
-    int16 slipStart = 300;
-    int16 slipEnd = 300;
-    bool wrap = false;
-    bool unwrap = false;
+  //248,424
+  //247,893
+  ///@notice if tokenIn == token0 then slippage is in the negative, and vice versa
+  ///@param maxSlippage is in BIPS
+  function calculateSlippage(
+    uint16 maxSlippage,
+    address tokenIn,
+    address tokenOut,
+    uint24 fee
+  ) internal view returns (uint160 sqrtPriceLimitX96) {
+    //compute pool key
+    PoolAddress.PoolKey memory key = PoolAddress.getPoolKey(tokenIn, tokenOut, fee);
 
-    //bytes memory data = abi.encodePacked(rChain, bridgeNonce, startFee, endFee, slipStart, slipEnd, wrap, unwrap);
+    //compute pool
+    IV3Pool pool = IV3Pool(PoolAddress.computeAddress(ROUTERV3.factory(), key));
 
-    //compressed = bytes32(data);
+    //get current tick via slot0
+    (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
 
-    //string memory result = string(abi.encodePacked(rChain));
-    return abi.encodePacked(uint24(3000));
+    uint160 buffer = (maxSlippage * sqrtPriceX96) / 10000;
 
-    //console.log(string memory (compressed));
+    tokenIn == key.token0 ? sqrtPriceLimitX96 = sqrtPriceX96 - buffer : sqrtPriceLimitX96 = sqrtPriceX96 + buffer;
   }
 
   ///@param maxSlippage is in BIPS
-  function calculateSlippage(uint256 amount, int16 maxSlippage) internal pure returns (uint256 minAmount) {
-    
-    if(maxSlippage == 0){
+  function calculateMinPrice(uint256 amount, int16 maxSlippage) internal pure returns (uint256 minAmount) {
+    if (maxSlippage == 0) {
       return 0;
     }
-    
     //get current tick via slot0
     uint16 maxSlippageAbs = maxSlippage > 0 ? uint16(maxSlippage) : uint16(-maxSlippage);
     uint256 buffer = uint256((maxSlippageAbs * amount) / 10000);
-    return maxSlippage > 0 ? amount - buffer : amount + buffer;
+
+    minAmount = maxSlippage > 0 ? amount - buffer : amount + buffer;
   }
 }
 using PorticoFlagSetAccess for PorticoFlagSet;
@@ -100,10 +98,7 @@ abstract contract PorticoStart is PorticoBase {
     }
     // TODO: need sanity checks for token balances?
     require(params.startTokenAddress.approve(address(ROUTERV3), uint256(params.amountSpecified)), "Approve fail");
-    
-    console.log("Fee: ", params.flags.feeTierStart());
 
-    
     amount = ROUTERV3.exactInputSingle(
       ISwapRouter.ExactInputSingleParams(
         address(params.startTokenAddress), // tokenIn
@@ -112,8 +107,13 @@ abstract contract PorticoStart is PorticoBase {
         address(this), //recipient
         block.timestamp + 10, //deadline
         params.amountSpecified, //amountIn
-        calculateSlippage(params.amountSpecified, params.flags.maxSlippageStart()), //minAmountOut
-        0
+        0, //calculateMinPrice(params.amountSpecified, params.flags.maxSlippageStart()), //minAmountOut
+        calculateSlippage(
+          uint16(params.flags.maxSlippageStart()),
+          address(params.startTokenAddress),
+          address(params.xAssetAddress),
+          params.flags.feeTierStart()
+        )
       )
     );
 
@@ -272,7 +272,7 @@ abstract contract PorticoFinish is PorticoBase {
         address(this), //todo send to reciever?
         block.timestamp + 10,
         params.xAssetAmount, // amountin
-        calculateSlippage(params.xAssetAmount, params.flags.maxSlippageStart()), //minamount out
+        calculateMinPrice(params.xAssetAmount, params.flags.maxSlippageStart()), //minamount out
         0
       )
     );

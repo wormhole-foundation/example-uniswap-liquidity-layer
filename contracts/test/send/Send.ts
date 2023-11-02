@@ -5,7 +5,7 @@ import { BN } from "../../util/number";
 import { getGas, toNumber } from "../../util/msc"
 import { start } from "repl";
 import { stealMoney } from "../../util/money";
-import { TradeParameters, s } from "../scope"
+import { DecodedVAA, TradeParameters, s } from "../scope"
 
 /**
  * In this example,
@@ -16,28 +16,8 @@ describe("Send", function () {
 
   it("send transaction", async () => {
 
-    /**
     const params: TradeParameters = {
-      zeroForOne: false,
-      shouldWrapNative: false,
-      shouldUnwrapNative: false,
-      recipientChain: 1,
-      recipientAddress: s.Carol.address,
-      recipientPool: s.e.usdcWethPool,
-      emitterAddress: s.Bank,
-      tokenBridge: s.tokenBridgeAddr,
-      bridgeRecipient: "0x8EB8a3b98659Cce290402893d0123abb75E3ab28000000000000000000000000",
-      arbiterFee: BN("0"),
-      bridgeNonce: 0,
-      messageNonce: 0,
-      consistencyLevel: 0,
-      amountSpecified: s.WETH_AMOUNT,
-      maxSlippage: s.slippage
-    }
-     */
-
-    const params: TradeParameters = {
-      flags: s.noSippage,
+      flags: s.noWrapData,
       startTokenAddress: s.e.wethAddress,
       xAssetAddress: s.e.usdcAddress,
       finalTokenAddress: s.e.wethAddress,
@@ -77,6 +57,7 @@ describe("Send", function () {
   })
 })
 
+
 describe("Receive", () => {
 
   //this is the amount of USDC received from the first swap as of the pinned block
@@ -91,22 +72,11 @@ describe("Receive", () => {
     //todo determine what these should actually be set to
     //boiler plate data
     const params: DecodedVAA = {
-      bridgeRecipient: s.Portico.address,
-      emitterAddress: s.Portico.address,
-      pool: s.e.usdcWethPool,
-      shouldUnwrapNative: false,
-      tokenAddress: s.WETH.address,
-      xAssetAddress: s.USDC.address,
-      xAssetAmount: usdcAmount,
-      tokenBridge: s.tokenBridgeAddr,
-      originChain: BN(1),
-      recipientChain: BN(1),
+      flags: s.noWrapData,
+      xAssetAddress: s.e.usdcAddress,
+      finalTokenAddress: s.e.wethAddress,
       recipientAddress: s.Carol.address,
-      porticoVersion: BN(1),
-      messageNonce: BN(1),
-      bridgeNonce: BN(1),
-      bridgeSequence: BN(1),
-      maxSlippage: s.slippage
+      xAssetAmount: usdcAmount
     }
 
     const startPorticoUSDC = await s.USDC.balanceOf(s.Portico.address)
@@ -117,7 +87,7 @@ describe("Receive", () => {
     expect(startCarolWETH).to.eq(0, "Carol has 0 WETH")
 
     const gas = await getGas(await s.Portico.testSwap(params))
-    showBodyCyan("Gas to do reciving swap: ", gas)
+    showBodyCyan("GAS TO RECEIVE: ", gas)
 
     const endPorticoUSDC = await s.USDC.balanceOf(s.Portico.address)
     const endCarolUSDC = await s.USDC.balanceOf(s.Carol.address)
@@ -132,4 +102,6 @@ describe("Receive", () => {
     expect(await toNumber(endCarolWETH)).to.be.closeTo(await toNumber(s.WETH_AMOUNT), 0.02, "Swap completed")
 
   })
+
 })
+
