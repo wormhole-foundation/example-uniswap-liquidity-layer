@@ -73,6 +73,18 @@ export const resetCurrentOP = async () => {
         ],
     });
 }
+export const resetCurrentPoly = async () => {
+    await network.provider.request({
+        method: "hardhat_reset",
+        params: [
+            {
+                forking: {
+                    jsonRpcUrl: process.env.POLYGON_URL!
+                },
+            },
+        ],
+    });
+}
 
 export const resetCurrentGo = async () => {
     await network.provider.request({
