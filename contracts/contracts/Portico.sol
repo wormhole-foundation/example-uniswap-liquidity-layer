@@ -90,12 +90,6 @@ using PorticoFlagSetAccess for PorticoFlagSet;
 
 abstract contract PorticoStart is PorticoBase {
   function _start_v3swap(PorticoStructs.TradeParameters memory params) internal returns (uint256 amount) {
-    if (address(params.startTokenAddress) == address(TOKENBRIDGE.WETH()) && params.flags.shouldWrapNative()) {
-      TOKENBRIDGE.WETH().deposit{ value: uint256(params.amountSpecified) }();
-      require(params.startTokenAddress.balanceOf(address(this)) == uint256(params.amountSpecified));
-    } else {
-      require(params.startTokenAddress.transferFrom(msg.sender, address(this), uint256(params.amountSpecified)), "transfer fail");
-    }
     // TODO: need sanity checks for token balances?
     require(params.startTokenAddress.approve(address(ROUTERV3), uint256(params.amountSpecified)), "Approve fail");
 
@@ -125,11 +119,24 @@ abstract contract PorticoStart is PorticoBase {
   function start(
     PorticoStructs.TradeParameters memory params
   ) public payable returns (address emitterAddress, uint16 chainId, uint64 sequence) {
+    // always check for native wrapping logic
+    if (address(params.startTokenAddress) == address(TOKENBRIDGE.WETH()) && params.flags.shouldWrapNative()) {
+      // if we are wrap9ing a token, we call deposit for the user, assuming we have been send what we need.
+      TOKENBRIDGE.WETH().deposit{ value: uint256(params.amountSpecified) }();
+      // ensure that we now have the wrap9 asset
+      require(params.startTokenAddress.balanceOf(address(this)) == uint256(params.amountSpecified));
+    } else {
+      // otherwise, just get the token we need to do the swap (if we are swapping, or just the token itself)
+      require(params.startTokenAddress.transferFrom(msg.sender, address(this), uint256(params.amountSpecified)), "transfer fail");
+    }
+
     uint256 amount = 0;
+    // if the start token is equal to the x token, then we don't need to swap. this is the case for most native eth assets i believe
     if (params.startTokenAddress == params.xAssetAddress) {
-      // skip the v3 swap, and set amount to the amountSpeciified
+      // skip the v3 swap, and set amount to the amountSpecified, assuming that either the transfer or unwrap above worked
       amount = uint256(params.amountSpecified);
     } else {
+      // do the swap, and amount is now the amount that we received from the swap
       amount = _start_v3swap(params);
     }
     // allow the token bridge to do its token bridge things
@@ -194,17 +201,17 @@ abstract contract PorticoFinish is PorticoBase {
       address thisChainTokenAddress = transfer.tokenChain == wormhole.chainId()
         ? unpadAddress(transfer.tokenAddress)
         : TOKENBRIDGE.wrappedAsset(transfer.tokenChain, transfer.tokenAddress);
-      uint8 decimals = IERC20(thisChainTokenAddress).decimals();
-      uint256 denormalizedAmount = transfer.amount;
-      if (decimals > 8) denormalizedAmount *= uint256(10) ** (decimals - 8);
+        uint8 decimals = IERC20(thisChainTokenAddress).decimals();
+        uint256 denormalizedAmount = transfer.amount;
+        if (decimals > 8) denormalizedAmount *= uint256(10) ** (decimals - 8);
 
-      // receive the token
-      receivedTokens[i] = TokenReceived({
-        tokenHomeAddress: transfer.tokenAddress,
-        tokenHomeChain: transfer.tokenChain,
-        tokenAddress: IERC20(thisChainTokenAddress),
-        amount: denormalizedAmount
-      });
+        // receive the token
+        receivedTokens[i] = TokenReceived({
+          tokenHomeAddress: transfer.tokenAddress,
+          tokenHomeChain: transfer.tokenChain,
+          tokenAddress: IERC20(thisChainTokenAddress),
+          amount: denormalizedAmount
+        });
     }
     // call into overriden method
     receivePayloadAndTokens(payload, receivedTokens, sourceAddress, sourceChain, deliveryHash);
