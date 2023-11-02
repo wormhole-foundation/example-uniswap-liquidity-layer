@@ -164,7 +164,7 @@ abstract contract PorticoFinish is PorticoBase {
   struct TokenReceived {
     bytes32 tokenHomeAddress;
     uint16 tokenHomeChain;
-    address tokenAddress;
+    IERC20 tokenAddress;
     uint256 amount;
   }
 
@@ -202,7 +202,7 @@ abstract contract PorticoFinish is PorticoBase {
       receivedTokens[i] = TokenReceived({
         tokenHomeAddress: transfer.tokenAddress,
         tokenHomeChain: transfer.tokenChain,
-        tokenAddress: thisChainTokenAddress,
+        tokenAddress: IERC20(thisChainTokenAddress),
         amount: denormalizedAmount
       });
     }
@@ -229,29 +229,29 @@ abstract contract PorticoFinish is PorticoBase {
     PorticoStructs.DecodedVAA memory message = abi.decode(payload, (PorticoStructs.DecodedVAA));
 
     // we must have received the xAsset address
-    require(recv.tokenHomeAddress == address(message.xAssetAddress));
+    require(recv.tokenHomeAddress == padAddress(address(message.xAssetAddress)));
     // we must have received the amount expected
     require(recv.amount == message.xAssetAmount);
 
     // now process
-    finish(message);
+    finish(message, recv);
     // simply emit the raw data bytes. it should be trivial to parse.
     // TODO: consider what fields to index here
     emit ProcessedMessage(payload);
   }
 
   /// @notice function to allow testing of finishing swap
-  function testSwap(PorticoStructs.DecodedVAA memory params, TokenReceived recv) public payable {
+  function testSwap(PorticoStructs.DecodedVAA memory params, TokenReceived memory recv) public payable {
     finish(params, recv);
   }
 
-  function finish(PorticoStructs.DecodedVAA memory params, TokenReceived recv) internal {
+  function finish(PorticoStructs.DecodedVAA memory params, TokenReceived memory recv) internal {
     uint256 amount = 0;
     if (params.finalTokenAddress == recv.tokenAddress) {
       amount = params.xAssetAmount;
     } else {
       // TODO: check if the coins have actually been received from the bridge
-      amount = _finish_v3swap(params);
+      amount = _finish_v3swap(params, recv);
     }
     if (params.flags.shouldUnwrapNative() && address(params.finalTokenAddress) == address(TOKENBRIDGE.WETH())) {
       TOKENBRIDGE.WETH().withdraw(amount);
@@ -262,7 +262,7 @@ abstract contract PorticoFinish is PorticoBase {
     }
   }
 
-  function _finish_v3swap(PorticoStructs.DecodedVAA memory params, TokenReceived recv) internal returns (uint128 amount) {
+  function _finish_v3swap(PorticoStructs.DecodedVAA memory params, TokenReceived memory recv) internal returns (uint128 amount) {
     recv.tokenAddress.approve(address(ROUTERV3), params.xAssetAmount);
     uint256 amountOut = ROUTERV3.exactInputSingle(
       ISwapRouter.ExactInputSingleParams(
