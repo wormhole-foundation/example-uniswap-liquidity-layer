@@ -1,6 +1,6 @@
 import { IERC20, ITokenBridge, Portico, } from "../typechain-types"
 import { BN } from "../util/number"
-import { BigNumber, BytesLike } from "ethers";
+import { BigNumber, Bytes, BytesLike } from "ethers";
 import { e, o } from "../util/addresser"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
@@ -40,6 +40,13 @@ export class TestScope {
     Gus!: SignerWithAddress
 
 
+}
+
+export type TokenReceived = {
+    tokenHomeAddress: BytesLike,
+    tokenHomeChain: number,
+    tokenAddress: string,
+    amount: BigNumber
 }
 
 export type TradeParameters = {

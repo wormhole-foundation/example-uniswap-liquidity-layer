@@ -78,6 +78,15 @@ library PorticoStructs {
     bool unwrap;
   }
 
+  //https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/main/src/WormholeRelayerSDK.sol#L177
+  //https://docs.wormhole.com/wormhole/quick-start/tutorials/hello-token#receiving-a-token
+  struct TokenReceived {
+    bytes32 tokenHomeAddress;
+    uint16 tokenHomeChain;
+    IERC20 tokenAddress;
+    uint256 amount;
+  }
+
   //268,090 - to beat
   struct TradeParameters {
     PorticoFlagSet flags;

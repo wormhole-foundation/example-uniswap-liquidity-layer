@@ -5,7 +5,7 @@ import { BN } from "../../util/number";
 import { getGas, toNumber } from "../../util/msc"
 import { start } from "repl";
 import { stealMoney } from "../../util/money";
-import { DecodedVAA, TradeParameters, s } from "../scope"
+import { DecodedVAA, TokenReceived, TradeParameters, s } from "../scope"
 
 /**
  * In this example,
@@ -69,8 +69,12 @@ describe("Receive", () => {
 
   it("Recieve xChain tx", async () => {
 
-    //todo determine what these should actually be set to
-    //boiler plate data
+    const TokenReceived: TokenReceived = {
+      tokenHomeAddress: s.noWrapData,//not used for testing
+      tokenHomeChain: 1,
+      tokenAddress: s.e.usdcAddress,
+      amount: usdcAmount
+    }
     const params: DecodedVAA = {
       flags: s.noWrapData,
       canonAssetAddress: s.e.usdcAddress,
@@ -86,7 +90,7 @@ describe("Receive", () => {
     expect(startCarolUSDC).to.eq(0, "Carol has 0 USDC")
     expect(startCarolWETH).to.eq(0, "Carol has 0 WETH")
 
-    const gas = await getGas(await s.Portico.testSwap(params))
+    const gas = await getGas(await s.Portico.testSwap(params, TokenReceived))
     showBodyCyan("GAS TO RECEIVE: ", gas)
 
     const endPorticoUSDC = await s.USDC.balanceOf(s.Portico.address)
@@ -115,12 +119,15 @@ describe("Receive where xAsset == finalAsset", () => {
   })
 
   it("Recieve xChain tx where xAsset == finalAssets", async () => {
-
-    //todo determine what these should actually be set to
-    //boiler plate data
+    const TokenReceived: TokenReceived = {
+      tokenHomeAddress: s.noWrapData,//not used for testing
+      tokenHomeChain: 1,
+      tokenAddress: s.e.usdcAddress,
+      amount: usdcAmount
+    }
     const params: DecodedVAA = {
       flags: s.noWrapData,
-      xAssetAddress: s.e.usdcAddress,
+      canonAssetAddress: s.e.usdcAddress,
       finalTokenAddress: s.e.usdcAddress,
       recipientAddress: s.Carol.address,
       xAssetAmount: usdcAmount
@@ -131,7 +138,7 @@ describe("Receive where xAsset == finalAsset", () => {
     expect(startPorticoUSDC).to.eq(usdcAmount, "Portico has USDC")
     expect(startCarolUSDC).to.eq(0, "Carol has 0 USDC")
     //expect(startCarolWETH).to.eq(0, "Carol has 0 WETH")
-    const gas = await getGas(await s.Portico.testSwap(params))
+    const gas = await getGas(await s.Portico.testSwap(params, TokenReceived))
     showBodyCyan("GAS TO RECEIVE: ", gas)
     expect(await s.USDC.balanceOf(s.Carol.address)).to.eq(usdcAmount, "Carol received USDC")
 

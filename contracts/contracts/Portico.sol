@@ -73,18 +73,6 @@ contract PorticoBase {
 
     tokenIn == key.token0 ? sqrtPriceLimitX96 = sqrtPriceX96 - buffer : sqrtPriceLimitX96 = sqrtPriceX96 + buffer;
   }
-
-  ///@param maxSlippage is in BIPS
-  function calculateMinPrice(uint256 amount, int16 maxSlippage) internal pure returns (uint256 minAmount) {
-    if (maxSlippage == 0) {
-      return 0;
-    }
-    //get current tick via slot0
-    uint16 maxSlippageAbs = maxSlippage > 0 ? uint16(maxSlippage) : uint16(-maxSlippage);
-    uint256 buffer = uint256((maxSlippageAbs * amount) / 10000);
-
-    minAmount = maxSlippage > 0 ? amount - buffer : amount + buffer;
-  }
 }
 using PorticoFlagSetAccess for PorticoFlagSet;
 
@@ -101,7 +89,7 @@ abstract contract PorticoStart is PorticoBase {
         address(this), //recipient
         block.timestamp + 10, //deadline
         params.amountSpecified, //amountIn
-        0, //calculateMinPrice(params.amountSpecified, params.flags.maxSlippageStart()), //minAmountOut
+        0, //use slippage instead of minAmountReceived
         calculateSlippage(
           uint16(params.flags.maxSlippageStart()),
           address(params.startTokenAddress),
@@ -110,10 +98,6 @@ abstract contract PorticoStart is PorticoBase {
         )
       )
     );
-
-    // TODO: do we need sanity checks for token balances (feeOnTransfer tokens?)
-    // TODO: we technically dont need to do this. maybe worth the gas saving to be mean to the network :)
-    //params.tokenAddress.approve(params.pool, 0);
   }
 
   function start(
@@ -164,16 +148,10 @@ abstract contract PorticoStart is PorticoBase {
 }
 
 abstract contract PorticoFinish is PorticoBase {
-  event ProcessedMessage(PorticoStructs.DecodedVAA data, TokenReceived recv);
+  
+  event ProcessedMessage(PorticoStructs.DecodedVAA data, PorticoStructs.TokenReceived recv);
 
-  //https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/main/src/WormholeRelayerSDK.sol#L177
-  //https://docs.wormhole.com/wormhole/quick-start/tutorials/hello-token#receiving-a-token
-  struct TokenReceived {
-    bytes32 tokenHomeAddress;
-    uint16 tokenHomeChain;
-    IERC20 tokenAddress;
-    uint256 amount;
-  }
+  
 
   function receiveWormholeMessages(
     bytes memory payload,
@@ -182,7 +160,7 @@ abstract contract PorticoFinish is PorticoBase {
     uint16 sourceChain,
     bytes32 deliveryHash
   ) external payable {
-    TokenReceived[] memory receivedTokens = new TokenReceived[](additionalVaas.length);
+    PorticoStructs.TokenReceived[] memory receivedTokens = new PorticoStructs.TokenReceived[](additionalVaas.length);
     IWormhole wormhole = wormhole;
     for (uint256 i = 0; i < additionalVaas.length; ++i) {
       IWormhole.VM memory parsed = wormhole.parseVM(additionalVaas[i]);
@@ -201,17 +179,17 @@ abstract contract PorticoFinish is PorticoBase {
       address thisChainTokenAddress = transfer.tokenChain == wormhole.chainId()
         ? unpadAddress(transfer.tokenAddress)
         : TOKENBRIDGE.wrappedAsset(transfer.tokenChain, transfer.tokenAddress);
-        uint8 decimals = IERC20(thisChainTokenAddress).decimals();
-        uint256 denormalizedAmount = transfer.amount;
-        if (decimals > 8) denormalizedAmount *= uint256(10) ** (decimals - 8);
+      uint8 decimals = IERC20(thisChainTokenAddress).decimals();
+      uint256 denormalizedAmount = transfer.amount;
+      if (decimals > 8) denormalizedAmount *= uint256(10) ** (decimals - 8);
 
-        // receive the token
-        receivedTokens[i] = TokenReceived({
-          tokenHomeAddress: transfer.tokenAddress,
-          tokenHomeChain: transfer.tokenChain,
-          tokenAddress: IERC20(thisChainTokenAddress),
-          amount: denormalizedAmount
-        });
+      // receive the token
+      receivedTokens[i] = PorticoStructs.TokenReceived({
+        tokenHomeAddress: transfer.tokenAddress,
+        tokenHomeChain: transfer.tokenChain,
+        tokenAddress: IERC20(thisChainTokenAddress),
+        amount: denormalizedAmount
+      });
     }
     // call into overriden method
     receivePayloadAndTokens(payload, receivedTokens, sourceAddress, sourceChain, deliveryHash);
@@ -219,13 +197,13 @@ abstract contract PorticoFinish is PorticoBase {
 
   function receivePayloadAndTokens(
     bytes memory payload,
-    TokenReceived[] memory receivedTokens,
+    PorticoStructs.TokenReceived[] memory receivedTokens,
     bytes32 sourceAddress,
     uint16 sourceChain,
     bytes32 deliveryHash
   ) internal {
     // make sure the sender is the relayer
-    if(WORMHOLE_RELAYER != address(0x0)) {
+    if (WORMHOLE_RELAYER != address(0x0)) {
       require(_msgSender() == WORMHOLE_RELAYER);
     }
     // make sure there is only one transfer received
@@ -233,7 +211,7 @@ abstract contract PorticoFinish is PorticoBase {
     // require(sourceAddress == address(0)) - we don't actually care about the source address.
     // what matters more is what coin did we recv, and does it match up with the data?
     // grab the coin
-    TokenReceived memory recv = receivedTokens[0];
+    PorticoStructs.TokenReceived memory recv = receivedTokens[0];
     // decode the message
     PorticoStructs.DecodedVAA memory message = abi.decode(payload, (PorticoStructs.DecodedVAA));
 
@@ -250,18 +228,18 @@ abstract contract PorticoFinish is PorticoBase {
   }
 
   /// @notice function to allow testing of finishing swap
-  function testSwap(PorticoStructs.DecodedVAA memory params, TokenReceived memory recv) public payable {
+  function testSwap(PorticoStructs.DecodedVAA memory params, PorticoStructs.TokenReceived memory recv) public payable {
     finish(params, recv);
   }
 
-  function finish(PorticoStructs.DecodedVAA memory params, TokenReceived memory recv) internal {
+  function finish(PorticoStructs.DecodedVAA memory params, PorticoStructs.TokenReceived memory recv) internal {
     uint256 amount = 0;
     bool shouldUnwrap = params.flags.shouldUnwrapNative() && address(params.finalTokenAddress) == address(TOKENBRIDGE.WETH());
     if (params.finalTokenAddress == recv.tokenAddress) {
       // the person wanted the bridge token, so we will skip the swap
       amount = params.xAssetAmount;
       // if ther is no unwrapping step, we need to send the tokens
-      if(!shouldUnwrap) {
+      if (!shouldUnwrap) {
         require(params.finalTokenAddress.transfer(params.recipientAddress, amount), "transfer failed");
       }
     } else {
@@ -276,21 +254,31 @@ abstract contract PorticoFinish is PorticoBase {
     }
   }
 
-  function _finish_v3swap(PorticoStructs.DecodedVAA memory params, TokenReceived memory recv, address receiver) internal returns (uint128 amount) {
+  function _finish_v3swap(
+    PorticoStructs.DecodedVAA memory params,
+    PorticoStructs.TokenReceived memory recv,
+    address receiver
+  ) internal returns (uint128 amount) {
     recv.tokenAddress.approve(address(ROUTERV3), params.xAssetAmount);
-    uint256 amountOut = ROUTERV3.exactInputSingle(
-      ISwapRouter.ExactInputSingleParams(
-        address(recv.tokenAddress),
-        address(params.finalTokenAddress),
-        params.flags.feeTierFinish(), // fee tier
-        receiver,
-        block.timestamp + 10,
-        params.xAssetAmount, // amountin
-        calculateMinPrice(params.xAssetAmount, params.flags.maxSlippageStart()), //minamount out
-        0
-    )
+    amount = uint128(
+      ROUTERV3.exactInputSingle(
+        ISwapRouter.ExactInputSingleParams(
+          address(recv.tokenAddress),
+          address(params.finalTokenAddress),
+          params.flags.feeTierFinish(), // fee tier
+          receiver,
+          block.timestamp + 10,
+          params.xAssetAmount, // amountin
+          0, //no min amount, slippage instead
+          calculateSlippage(
+            uint16(params.flags.maxSlippageFinish()),
+            address(recv.tokenAddress),
+            address(params.finalTokenAddress),
+            params.flags.feeTierFinish()
+          )
+        )
+      )
     );
-    return uint128(amountOut);
   }
 }
 
