@@ -2,7 +2,7 @@ import { Service} from "@tsed/di";
 import { Address } from "cluster";
 import { MultiRpcService } from "./RpcServices";
 import { RedisService } from "./RedisService";
-import { arbitrum, base, optimism, polygon } from "viem/chains";
+import { arbitrum, base, mainnet, optimism, polygon } from "viem/chains";
 
 interface lut {[key:string]:{[key:string]:string}}
 
@@ -15,7 +15,10 @@ const withFlip = (x:lut):lut => {
   return x
 }
 
-const xAssetTable = withFlip({
+const canonAssetTable = withFlip({
+  [mainnet.id]: {
+    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2":"eth"
+  },
   [arbitrum.id]: {
     "0xd8369c2eda18dd6518eabb1f85bd60606deb39ec": "eth",
   },
@@ -23,7 +26,7 @@ const xAssetTable = withFlip({
     "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619": "eth",
   },
   [base.id]: {
-    "0x71b35ECb35104773537f849FBC353F81303A5860": "eth",
+    "0x11CD37bb86F65419713f30673A480EA33c826872": "eth",
   },
   [optimism.id]: {
     "0xb47bC3ed6D70F04fe759b2529c9bc7377889678f": "eth",
@@ -31,11 +34,14 @@ const xAssetTable = withFlip({
 })
 
 const nativeAssetTable = withFlip({
+  [mainnet.id]: {
+    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2":"eth"
+  },
   [arbitrum.id]: {
     "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": "eth",
   },
   [polygon.id] : {
-    "0x11cd37bb86f65419713f30673a480ea33c826872": "eth",
+    "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619": "eth",
   },
   [base.id]: {
     "0x4200000000000000000000000000000000000006": "eth",
@@ -55,32 +61,31 @@ export class RolodexService {
     private readonly redisService: RedisService,
   ) {
   }
-  getPoolForSwap(chainId: number, from:Address, to:Address){
-    const key = [from,to].sort().join("_")
-    return
-  }
-  getBridge(chainId: number) {
-    return {
-      [arbitrum.id]: "",
-      [polygon.id] : "",
-      [base.id]: "",
-      [optimism.id]: "",
-    }[chainId]
-  }
   getPortico(chainId: number) {
     return {
+      [mainnet.id]: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
       [arbitrum.id]: "",
-      [polygon.id] : "",
+      [polygon.id] : "0x05498574BD0Fa99eeCB01e1241661E7eE58F8a85",
       [base.id]: "",
       [optimism.id]: "",
     }[chainId]
   }
+  getCanonTokenForToken(chainId: number, token:string) {
+    const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]
+    if(!(ct && nt)) {
+      return undefined
+    }
+    // if the token is the canon token, then just return it, no need to swap
+    if(ct[token]) {
+      return token
+    }
+    // get the name of the token we would like to find the canon token for
+    // for instance, if the input is native polygon weth, it will return "eth"
+    const tokenName = nt[token]
+    // now get the canon asset on the chain for that name.
+    return ct[tokenName]
+  }
   getWeth(chainId: number) {
-    return {
-      [arbitrum.id]: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-      [base.id]: "0x4200000000000000000000000000000000000006",
-      [optimism.id]: "0x4200000000000000000000000000000000000006",
-      [polygon.id] : "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
-    }[chainId]
+    return nativeAssetTable[chainId]["eth"];
   }
 }

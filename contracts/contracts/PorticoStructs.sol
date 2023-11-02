@@ -82,7 +82,7 @@ library PorticoStructs {
   struct TradeParameters {
     PorticoFlagSet flags;
     IERC20 startTokenAddress;
-    IERC20 xAssetAddress;
+    IERC20 canonAssetAddress;
     IERC20 finalTokenAddress;
     // address of the recipient on the recipientChain
     address recipientAddress;
@@ -92,7 +92,7 @@ library PorticoStructs {
   //268,041 158,788
   struct DecodedVAA {
     PorticoFlagSet flags;
-    IERC20 xAssetAddress;
+    IERC20 canonAssetAddress;
     IERC20 finalTokenAddress;
     // the person to receive the token
     address recipientAddress;

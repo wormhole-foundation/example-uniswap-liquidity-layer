@@ -6,7 +6,7 @@ import { OrderModel } from "src/models";
 import { RolodexService } from "src/services";
 import { CreateOrderRequest, CreateOrderResponse} from "src/types";
 import { encodeFlagSet, encodeStartData } from "src/web3";
-import { toHex } from "viem";
+import { Address, toHex } from "viem";
 
 @Controller("/order")
 export class OrderController {
@@ -27,6 +27,10 @@ export class OrderController {
   @Post("/create")
   @Returns(200, CreateOrderResponse)
   create(@BodyParams() req: CreateOrderRequest) {
+    const canonToken = this.rolodexService.getCanonTokenForToken(req.startingChainId, req.startingToken)
+    if(!canonToken) {
+      throw new BadRequest("no route found")
+    }
     let transactionData = encodeStartData(
       encodeFlagSet(
         req.destinationChainId,
@@ -39,7 +43,7 @@ export class OrderController {
         req.shouldUnwrapNative || false,
       ),
       req.startingToken,
-      req.destinationToken,
+      canonToken as Address,
       req.destinationToken,
       req.destinationAddress,
       BigInt(req.startingTokenAmount),
@@ -54,7 +58,7 @@ export class OrderController {
     return {
       transactionData,
       transactionTarget: req.porticoAddress,
-      transactionValue: toHex(BigInt(req.startingTokenAmount)),
+      transactionValue: req.shouldWrapNative ? toHex(BigInt(req.startingTokenAmount)) : undefined,
     }
   }
 }
