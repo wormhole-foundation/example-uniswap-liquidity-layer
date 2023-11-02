@@ -45,7 +45,7 @@ export class TestScope {
 export type TradeParameters = {
     flags: BytesLike,
     startTokenAddress: string,
-    xAssetAddress: string,
+    canonAssetAddress: string,
     finalTokenAddress: string,
     recipientAddress: string,
     amountSpecified: BigNumber
@@ -53,7 +53,7 @@ export type TradeParameters = {
 
 export type DecodedVAA = {
     flags: BytesLike,
-    xAssetAddress: string,
+    canonAssetAddress: string,
     finalTokenAddress: string,
     recipientAddress: string,
     xAssetAmount: BigNumber

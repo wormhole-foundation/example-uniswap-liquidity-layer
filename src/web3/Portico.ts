@@ -7,7 +7,7 @@ const tradeParameterAbi = parseAbi([
 export const encodeStartData = (
 flagSet: Hex,
 startTokenAddress: Address,
-xAssetAddress: Address,
+canonTokenAddress: Address,
 finalTokenAddress: Address,
 recipientAddress: Address,
 amountSpecified: bigint,
@@ -18,7 +18,7 @@ amountSpecified: bigint,
     args: [[
       flagSet,
       startTokenAddress,
-      xAssetAddress,
+      canonTokenAddress,
       finalTokenAddress,
       recipientAddress,
       amountSpecified,

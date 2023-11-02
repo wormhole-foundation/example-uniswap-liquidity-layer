@@ -20,7 +20,7 @@ describe("Wrap", function () {
     const params: TradeParameters = {
       flags: s.wrapData,
       startTokenAddress: s.e.wethAddress,
-      xAssetAddress: s.e.usdcAddress,
+      canonAssetAddress: s.e.usdcAddress,
       finalTokenAddress: s.e.wethAddress,
       recipientAddress: s.Carol.address,
       amountSpecified: s.WETH_AMOUNT
@@ -75,7 +75,7 @@ describe("Receive", () => {
     //boiler plate data
     const params: DecodedVAA = {
       flags: s.wrapData,
-      xAssetAddress: s.e.usdcAddress,
+      canonAssetAddress: s.e.usdcAddress,
       finalTokenAddress: s.e.wethAddress,
       recipientAddress: s.Carol.address,
       xAssetAmount: usdcAmount

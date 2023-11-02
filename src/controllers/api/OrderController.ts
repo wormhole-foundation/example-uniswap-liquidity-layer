@@ -27,6 +27,10 @@ export class OrderController {
   @Post("/create")
   @Returns(200, CreateOrderResponse)
   create(@BodyParams() req: CreateOrderRequest) {
+    const canonToken = this.rolodexService.getCanonTokenForToken(req.startingChainId, req.startingToken)
+    if(!canonToken) {
+      throw new BadRequest("no route found")
+    }
     let transactionData = encodeStartData(
       encodeFlagSet(
         req.destinationChainId,

@@ -17,7 +17,7 @@ const withFlip = (x:lut):lut => {
 
 const xAssetTable = withFlip({
   [mainnet.id]: {
-    "0x8B5653Ae095529155462eDa8CF664eD96773F557": "eth",
+    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2":"eth"
   },
   [arbitrum.id]: {
     "0xd8369c2eda18dd6518eabb1f85bd60606deb39ec": "eth",
@@ -70,15 +70,16 @@ export class RolodexService {
       [optimism.id]: "",
     }[chainId]
   }
-  getXTokenForToken(chainId: number, token:string) {
+  getCanonTokenForToken(chainId: number, token:string) {
     const ct = xAssetTable[chainId]
     if(!ct) {
       return undefined
     }
-    // if is an x token, just return it
+    // if the token is the canon token, then just return it
     if(ct[token]) {
       return token
     }
+    // get the name of the token we would like to find the canon token for
     const nt = nativeAssetTable[chainId]
     if(!nt) {
       return undefined

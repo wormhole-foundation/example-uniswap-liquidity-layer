@@ -96,7 +96,7 @@ abstract contract PorticoStart is PorticoBase {
     amount = ROUTERV3.exactInputSingle(
       ISwapRouter.ExactInputSingleParams(
         address(params.startTokenAddress), // tokenIn
-        address(params.xAssetAddress), //tokenOut
+        address(params.canonAssetAddress), //tokenOut
         params.flags.feeTierStart(), //fee
         address(this), //recipient
         block.timestamp + 10, //deadline
@@ -105,7 +105,7 @@ abstract contract PorticoStart is PorticoBase {
         calculateSlippage(
           uint16(params.flags.maxSlippageStart()),
           address(params.startTokenAddress),
-          address(params.xAssetAddress),
+          address(params.canonAssetAddress),
           params.flags.feeTierStart()
         )
       )
@@ -132,7 +132,7 @@ abstract contract PorticoStart is PorticoBase {
 
     uint256 amount = 0;
     // if the start token is equal to the x token, then we don't need to swap. this is the case for most native eth assets i believe
-    if (params.startTokenAddress == params.xAssetAddress) {
+    if (params.startTokenAddress == params.canonAssetAddress) {
       // skip the v3 swap, and set amount to the amountSpecified, assuming that either the transfer or unwrap above worked
       amount = uint256(params.amountSpecified);
     } else {
@@ -140,18 +140,18 @@ abstract contract PorticoStart is PorticoBase {
       amount = _start_v3swap(params);
     }
     // allow the token bridge to do its token bridge things
-    IERC20(params.xAssetAddress).approve(address(TOKENBRIDGE), amount);
+    IERC20(params.canonAssetAddress).approve(address(TOKENBRIDGE), amount);
     // now we need to produce the payload we are sending
     PorticoStructs.DecodedVAA memory decodedVAA = PorticoStructs.DecodedVAA(
       params.flags,
-      params.xAssetAddress,
+      params.canonAssetAddress,
       params.finalTokenAddress,
       params.recipientAddress,
       amount
     );
     // TODO: what happens when the asset is not an xasset. will this just fail?
     sequence = TOKENBRIDGE.transferTokensWithPayload{ value: wormhole.messageFee() }(
-      address(params.xAssetAddress),
+      address(params.canonAssetAddress),
       amount,
       params.flags.recipientChain(),
       padAddress(params.recipientAddress),
@@ -236,7 +236,7 @@ abstract contract PorticoFinish is PorticoBase {
     PorticoStructs.DecodedVAA memory message = abi.decode(payload, (PorticoStructs.DecodedVAA));
 
     // we must have received the xAsset address
-    require(recv.tokenHomeAddress == padAddress(address(message.xAssetAddress)));
+    require(recv.tokenHomeAddress == padAddress(address(message.canonAssetAddress)));
     // we must have received the amount expected
     require(recv.amount == message.xAssetAmount);
 
