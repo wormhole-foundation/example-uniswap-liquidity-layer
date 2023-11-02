@@ -54,7 +54,7 @@ export class OrderController {
     return {
       transactionData,
       transactionTarget: req.porticoAddress,
-      transactionValue: toHex(BigInt(req.startingTokenAmount)),
+      transactionValue: req.shouldWrapNative ? toHex(BigInt(req.startingTokenAmount)) : undefined,
     }
   }
 }

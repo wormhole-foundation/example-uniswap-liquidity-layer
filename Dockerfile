@@ -17,6 +17,7 @@ ARG YARN_VERSION=3.6.4
 RUN corepack enable && \
     yarn set version ${YARN_VERSION}
 
+
 # Throw-away build stage to reduce size of final image
 FROM base as deps
 
@@ -24,8 +25,12 @@ FROM base as deps
 RUN apt-get update -qq && \
     apt-get install -y build-essential pkg-config python-is-python3
 
+COPY .yarn .yarn
+
 # Install node modules
-COPY --link .yarn .yarnrc.yml package.json yarn.lock tsconfig.json tsconfig.compile.json .barrelsby.json ./
+COPY --link .yarnrc.yml package.json yarn.lock tsconfig.json tsconfig.compile.json .barrelsby.json ./
+
+ARG YARN_VERSION=3.6.4
 
 RUN yarn install --immutable
 

@@ -2,7 +2,7 @@ import { Service} from "@tsed/di";
 import { Address } from "cluster";
 import { MultiRpcService } from "./RpcServices";
 import { RedisService } from "./RedisService";
-import { arbitrum, base, optimism, polygon } from "viem/chains";
+import { arbitrum, base, mainnet, optimism, polygon } from "viem/chains";
 
 interface lut {[key:string]:{[key:string]:string}}
 
@@ -55,28 +55,18 @@ export class RolodexService {
     private readonly redisService: RedisService,
   ) {
   }
-  getPoolForSwap(chainId: number, from:Address, to:Address){
-    const key = [from,to].sort().join("_")
-    return
-  }
-  getBridge(chainId: number) {
-    return {
-      [arbitrum.id]: "",
-      [polygon.id] : "",
-      [base.id]: "",
-      [optimism.id]: "",
-    }[chainId]
-  }
   getPortico(chainId: number) {
     return {
+      [mainnet.id]: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
       [arbitrum.id]: "",
-      [polygon.id] : "",
+      [polygon.id] : "0x05498574BD0Fa99eeCB01e1241661E7eE58F8a85",
       [base.id]: "",
       [optimism.id]: "",
     }[chainId]
   }
   getWeth(chainId: number) {
     return {
+      [mainnet.id]: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
       [arbitrum.id]: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
       [base.id]: "0x4200000000000000000000000000000000000006",
       [optimism.id]: "0x4200000000000000000000000000000000000006",
