@@ -1,10 +1,9 @@
-
-import { s } from "../scope";
-import { currentBlock, reset } from "../../util/block";
-import { DeployContract } from "../../util/deploy";
-import { stealMoney } from "../../util/money";
+import { s } from "../scope"
+import { currentBlock, reset, resetCurrent } from "../../util/block"
+import { DeployContract } from "../../util/deploy"
+import { stealMoney } from "../../util/money"
 import { ethers } from "hardhat";
-import { IERC20__factory, PorticoStart__factory, Portico__factory } from "../../typechain-types";
+import { IERC20__factory, Portico__factory, TokenBridge__factory } from "../../typechain-types";
 import { expect } from "chai";
 import { encodeFlagSet } from "../../util/msc";
 
@@ -16,7 +15,7 @@ describe("Deploy", function () {
 
     //connect to signers
     let accounts = await ethers.getSigners();
-    s.Frank = accounts[0];//Frank is acting as the treasury address 
+    s.Frank = accounts[0];//Frank is acting as the treasury address
     s.Eric = accounts[5];
     s.Andy = accounts[6];
     s.Bob = accounts[7]; //Bob has wETH and wants to borrow MATTIC
@@ -32,6 +31,7 @@ describe("Deploy", function () {
   })
 
   it("Deploy the things", async () => {
+
     s.Portico = await DeployContract(
       new Portico__factory(s.Frank),
       s.Frank,
@@ -49,6 +49,9 @@ describe("Deploy", function () {
   })
 
   it("encode flags", async () => {
+    s.noSippage = await encodeFlagSet(1, 1, 3000, 3000, 0, 0, false, false)
     s.wrapData = await encodeFlagSet(1, 1, 3000, 3000, s.slippage, s.slippage, true, true)
+    s.noWrapData = await encodeFlagSet(1, 1, 3000, 3000, s.slippage, s.slippage, false, false)
   })
 })
+

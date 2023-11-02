@@ -80,7 +80,6 @@ abstract contract PorticoStart is PorticoBase {
   function _start_v3swap(PorticoStructs.TradeParameters memory params) internal returns (uint256 amount) {
     // TODO: need sanity checks for token balances?
     require(params.startTokenAddress.approve(address(ROUTERV3), uint256(params.amountSpecified)), "Approve fail");
-
     amount = ROUTERV3.exactInputSingle(
       ISwapRouter.ExactInputSingleParams(
         address(params.startTokenAddress), // tokenIn
@@ -148,7 +147,7 @@ abstract contract PorticoStart is PorticoBase {
 }
 
 abstract contract PorticoFinish is PorticoBase {
-  
+
   event ProcessedMessage(PorticoStructs.DecodedVAA data, PorticoStructs.TokenReceived recv);
 
   
