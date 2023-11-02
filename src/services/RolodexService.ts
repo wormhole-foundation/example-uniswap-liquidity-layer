@@ -15,7 +15,7 @@ const withFlip = (x:lut):lut => {
   return x
 }
 
-const xAssetTable = withFlip({
+const canonAssetTable = withFlip({
   [mainnet.id]: {
     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2":"eth"
   },
@@ -26,7 +26,7 @@ const xAssetTable = withFlip({
     "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619": "eth",
   },
   [base.id]: {
-    "0x71b35ECb35104773537f849FBC353F81303A5860": "eth",
+    "0x11CD37bb86F65419713f30673A480EA33c826872": "eth",
   },
   [optimism.id]: {
     "0xb47bC3ed6D70F04fe759b2529c9bc7377889678f": "eth",
@@ -41,7 +41,7 @@ const nativeAssetTable = withFlip({
     "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": "eth",
   },
   [polygon.id] : {
-    "0x11cd37bb86f65419713f30673a480ea33c826872": "eth",
+    "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619": "eth",
   },
   [base.id]: {
     "0x4200000000000000000000000000000000000006": "eth",
@@ -71,20 +71,19 @@ export class RolodexService {
     }[chainId]
   }
   getCanonTokenForToken(chainId: number, token:string) {
-    const ct = xAssetTable[chainId]
-    if(!ct) {
+    const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]
+    if(!(ct && nt)) {
       return undefined
     }
-    // if the token is the canon token, then just return it
+    // if the token is the canon token, then just return it, no need to swap
     if(ct[token]) {
       return token
     }
     // get the name of the token we would like to find the canon token for
-    const nt = nativeAssetTable[chainId]
-    if(!nt) {
-      return undefined
-    }
-    return ct[nt[token]]
+    // for instance, if the input is native polygon weth, it will return "eth"
+    const tokenName = nt[token]
+    // now get the canon asset on the chain for that name.
+    return ct[tokenName]
   }
   getWeth(chainId: number) {
     return nativeAssetTable[chainId]["eth"];
