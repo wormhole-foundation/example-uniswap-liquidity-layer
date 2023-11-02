@@ -241,13 +241,13 @@ abstract contract PorticoFinish is PorticoBase {
   }
 
   /// @notice function to allow testing of finishing swap
-  function testSwap(PorticoStructs.DecodedVAA memory params) public payable {
-    finish(params);
+  function testSwap(PorticoStructs.DecodedVAA memory params, TokenReceived recv) public payable {
+    finish(params, recv);
   }
 
-  function finish(PorticoStructs.DecodedVAA memory params) internal {
+  function finish(PorticoStructs.DecodedVAA memory params, TokenReceived recv) internal {
     uint256 amount = 0;
-    if (params.finalTokenAddress == params.xAssetAddress) {
+    if (params.finalTokenAddress == recv.tokenAddress) {
       amount = params.xAssetAmount;
     } else {
       // TODO: check if the coins have actually been received from the bridge
@@ -262,11 +262,11 @@ abstract contract PorticoFinish is PorticoBase {
     }
   }
 
-  function _finish_v3swap(PorticoStructs.DecodedVAA memory params) internal returns (uint128 amount) {
-    params.xAssetAddress.approve(address(ROUTERV3), params.xAssetAmount);
+  function _finish_v3swap(PorticoStructs.DecodedVAA memory params, TokenReceived recv) internal returns (uint128 amount) {
+    recv.tokenAddress.approve(address(ROUTERV3), params.xAssetAmount);
     uint256 amountOut = ROUTERV3.exactInputSingle(
       ISwapRouter.ExactInputSingleParams(
-        address(params.xAssetAddress),
+        address(recv.tokenAddress),
         address(params.finalTokenAddress),
         params.flags.feeTierFinish(), // fee tier
         address(this), //todo send to reciever?

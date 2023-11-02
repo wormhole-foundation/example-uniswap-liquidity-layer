@@ -39,7 +39,7 @@ export class OrderController {
         req.shouldUnwrapNative || false,
       ),
       req.startingToken,
-      req.destinationToken,
+      req.startingToken,
       req.destinationToken,
       req.destinationAddress,
       BigInt(req.startingTokenAmount),

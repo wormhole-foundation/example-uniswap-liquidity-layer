@@ -16,6 +16,9 @@ const withFlip = (x:lut):lut => {
 }
 
 const xAssetTable = withFlip({
+  [mainnet.id]: {
+    "0x8B5653Ae095529155462eDa8CF664eD96773F557": "eth",
+  },
   [arbitrum.id]: {
     "0xd8369c2eda18dd6518eabb1f85bd60606deb39ec": "eth",
   },
