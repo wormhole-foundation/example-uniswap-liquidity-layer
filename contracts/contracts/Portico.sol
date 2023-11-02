@@ -237,8 +237,6 @@ abstract contract PorticoFinish is PorticoBase {
     // decode the message
     PorticoStructs.DecodedVAA memory message = abi.decode(payload, (PorticoStructs.DecodedVAA));
 
-    // we must have received the xAsset address
-    require(recv.tokenHomeAddress == padAddress(address(message.canonAssetAddress)));
     // we must have received the amount expected
     require(recv.amount == message.xAssetAmount);
 
