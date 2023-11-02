@@ -225,7 +225,9 @@ abstract contract PorticoFinish is PorticoBase {
     bytes32 deliveryHash
   ) internal {
     // make sure the sender is the relayer
-    require(_msgSender() == WORMHOLE_RELAYER);
+    if(WORMHOLE_RELAYER != address(0x)) {
+      require(_msgSender() == WORMHOLE_RELAYER);
+    }
     // make sure there is only one transfer received
     require(receivedTokens.length == 1, "only 1 transfer allowed");
     // require(sourceAddress == address(0)) - we don't actually care about the source address.

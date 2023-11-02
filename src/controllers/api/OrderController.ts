@@ -6,7 +6,7 @@ import { OrderModel } from "src/models";
 import { RolodexService } from "src/services";
 import { CreateOrderRequest, CreateOrderResponse} from "src/types";
 import { encodeFlagSet, encodeStartData } from "src/web3";
-import { toHex } from "viem";
+import { Address, toHex } from "viem";
 
 @Controller("/order")
 export class OrderController {
@@ -43,7 +43,7 @@ export class OrderController {
         req.shouldUnwrapNative || false,
       ),
       req.startingToken,
-      req.startingToken,
+      canonToken as Address,
       req.destinationToken,
       req.destinationAddress,
       BigInt(req.startingTokenAmount),
