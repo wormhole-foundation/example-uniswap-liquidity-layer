@@ -1,21 +1,13 @@
-import { formatEther, parseEther } from "viem";
+import { deployContract } from "@nomiclabs/hardhat-ethers/types";
 import hre from "hardhat";
+import { Portico__factory } from "../typechain-types";
 
 async function main() {
-  const currentTimestampInSeconds = Math.round(Date.now() / 1000);
-  const unlockTime = BigInt(currentTimestampInSeconds + 60);
+  const signer = (await hre.ethers.getSigners())[0]
+  const factory = new Portico__factory()
 
-  const lockedAmount = parseEther("0.001");
+  factory.deploy()
 
-  const lock = await hre.viem.deployContract("Lock", [unlockTime], {
-    value: lockedAmount,
-  });
-
-  console.log(
-    `Lock with ${formatEther(
-      lockedAmount
-    )}ETH and unlock timestamp ${unlockTime} deployed to ${lock.address}`
-  );
 }
 
 // We recommend this pattern to be able to use async/await everywhere

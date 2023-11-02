@@ -1,6 +1,5 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
-//import "@nomicfoundation/hardhat-ethers";
 import * as dotenv from "dotenv";
 
 dotenv.config();
@@ -42,7 +41,17 @@ const config: HardhatUserConfig = {
       ],
       minGasPrice: 32000000000,
       chainId: 10
-
+    },
+    polygon: {
+      url: process.env.POLYGON_URL ? process.env.POLYGON_URL : zaddr,
+      accounts: [
+        process.env.MAINNET_PRIVATE_KEY
+          ? process.env.MAINNET_PRIVATE_KEY
+          : zaddr,
+        process.env.PERSONAL_PRIVATE_KEY
+          ? process.env.PERSONAL_PRIVATE_KEY
+          : zaddr
+      ],
     },
     goerli: {
       url: process.env.GOERLI_URL ? process.env.GOERLI_URL : zaddr,

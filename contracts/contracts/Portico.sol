@@ -157,7 +157,7 @@ abstract contract PorticoStart is PorticoBase {
 }
 
 abstract contract PorticoFinish is PorticoBase {
-  event ProcessedMessage(bytes data);
+  event ProcessedMessage(PorticoStructs.DecodedVAA data, TokenReceived recv);
 
   //https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/main/src/WormholeRelayerSDK.sol#L177
   //https://docs.wormhole.com/wormhole/quick-start/tutorials/hello-token#receiving-a-token
@@ -237,7 +237,7 @@ abstract contract PorticoFinish is PorticoBase {
     finish(message, recv);
     // simply emit the raw data bytes. it should be trivial to parse.
     // TODO: consider what fields to index here
-    emit ProcessedMessage(payload);
+    emit ProcessedMessage(message, recv);
   }
 
   /// @notice function to allow testing of finishing swap
@@ -247,36 +247,40 @@ abstract contract PorticoFinish is PorticoBase {
 
   function finish(PorticoStructs.DecodedVAA memory params, TokenReceived memory recv) internal {
     uint256 amount = 0;
+    bool shouldUnwrap = params.flags.shouldUnwrapNative() && address(params.finalTokenAddress) == address(TOKENBRIDGE.WETH());
     if (params.finalTokenAddress == recv.tokenAddress) {
+      // the person wanted the bridge token, so we will skip the swap
       amount = params.xAssetAmount;
+      // if ther is no unwrapping step, we need to send the tokens
+      if(!shouldUnwrap) {
+        require(params.finalTokenAddress.transfer(params.recipientAddress, amount), "transfer failed");
+      }
     } else {
-      // TODO: check if the coins have actually been received from the bridge
-      amount = _finish_v3swap(params, recv);
+      // if we are not unwrapping, we can send the result of the swap straight to the user.
+      address receiver = shouldUnwrap ? address(this) : params.recipientAddress;
+      amount = _finish_v3swap(params, recv, receiver);
     }
-    if (params.flags.shouldUnwrapNative() && address(params.finalTokenAddress) == address(TOKENBRIDGE.WETH())) {
+    if (shouldUnwrap) {
       TOKENBRIDGE.WETH().withdraw(amount);
       (bool sent /*bytes memory data*/, ) = params.recipientAddress.call{ value: amount }("");
       require(sent, "Failed to send Ether");
-    } else {
-      require(params.finalTokenAddress.transfer(params.recipientAddress, amount), "transfer failed");
     }
   }
 
-  function _finish_v3swap(PorticoStructs.DecodedVAA memory params, TokenReceived memory recv) internal returns (uint128 amount) {
+  function _finish_v3swap(PorticoStructs.DecodedVAA memory params, TokenReceived memory recv, address receiver) internal returns (uint128 amount) {
     recv.tokenAddress.approve(address(ROUTERV3), params.xAssetAmount);
     uint256 amountOut = ROUTERV3.exactInputSingle(
       ISwapRouter.ExactInputSingleParams(
         address(recv.tokenAddress),
         address(params.finalTokenAddress),
         params.flags.feeTierFinish(), // fee tier
-        address(this), //todo send to reciever?
+        receiver,
         block.timestamp + 10,
         params.xAssetAmount, // amountin
         calculateMinPrice(params.xAssetAmount, params.flags.maxSlippageStart()), //minamount out
         0
-      )
+    )
     );
-
     return uint128(amountOut);
   }
 }
