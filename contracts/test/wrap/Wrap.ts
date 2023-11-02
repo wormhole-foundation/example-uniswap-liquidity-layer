@@ -1,5 +1,5 @@
 
-import { DecodedVAA, s, TradeParameters } from "../scope";
+import { DecodedVAA, s, TokenReceived, TradeParameters } from "../scope";
 import { showBody, showBodyCyan } from "../../util/format";
 import { ethers } from "hardhat";
 import { expect } from "chai";
@@ -68,11 +68,14 @@ describe("Receive", () => {
     await stealMoney(s.Bank, s.Portico.address, s.USDC.address, usdcAmount)
   })
 
-  
   it("Recieve xChain tx", async () => {
 
-    //todo determine what these should actually be set to
-    //boiler plate data
+    const TokenReceived: TokenReceived = {
+      tokenHomeAddress: s.wrapData,//not used for testing
+      tokenHomeChain: 1,
+      tokenAddress: s.e.usdcAddress,
+      amount: usdcAmount
+    }
     const params: DecodedVAA = {
       flags: s.wrapData,
       canonAssetAddress: s.e.usdcAddress,
@@ -90,7 +93,7 @@ describe("Receive", () => {
 
     const startEth = await ethers.provider.getBalance(s.Carol.address)
     showBody("StartEth: ", await toNumber(startEth))
-    const gas = await getGas(await s.Portico.testSwap(params))
+    const gas = await getGas(await s.Portico.testSwap(params, TokenReceived))
     showBodyCyan("GAS TO RECEIVE AND UNWRAP: ", gas)
     const endEth = await ethers.provider.getBalance(s.Carol.address)
 
