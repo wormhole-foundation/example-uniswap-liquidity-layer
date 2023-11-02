@@ -9,12 +9,12 @@ import { encodeFlagSet, getGas } from "../../util/msc";
 import { showBody, showBodyCyan } from "../../util/format";
 
 
-//transfer Mainnet-Canonical-Eth on polygon -> mainnet-canonica-eth on optimism without any univ3 swaps
+//transfer Mainnet-Canonical-Eth on op -> mainnet-canonica-eth on poly without any univ3 swaps
 describe("Setup", function () {
-  const recipientChainId = 10//optimism
+  const recipientChainId = 137//polygon
   it("Setup", async () => {
-    await resetCurrentPoly()
-    console.log("Testing on polygon @ block ", (await currentBlock())!.number)
+    await resetCurrentOP()
+    console.log("Testing on optimism @ block ", (await currentBlock())!.number)
 
     //connect to signers
     let accounts = await ethers.getSigners();
@@ -38,10 +38,10 @@ describe("Setup", function () {
     s.Portico = await DeployContract(
       new Portico__factory(s.Frank),
       s.Frank,
-      s.polySwapRouter, s.polyTokenBridge, s.polyRelayerAddress
+      s.opSwapRouter, s.opTokenBridge, s.opRelayerAddress, s.o.wethAddress
     )
 
-    expect(s.Portico.address).to.not.eq("0x0000000000000000000000000000000000000000", "Start Deployed")
+    expect(s.Portico.address).to.not.eq("0x0000000000000000000000000000000000000000", "Deployed")
 
   })
 
@@ -55,9 +55,9 @@ describe("Direct eth xchain transfer", () => {
   it("Transfer eth", async () => {
     const params: TradeParameters = {
       flags: s.wrapData,
-      startTokenAddress: s.p.wethAddress,
-      canonAssetAddress: s.p.wethAddress,
-      finalTokenAddress: s.o.wethAddress,
+      startTokenAddress: s.o.wethAddress,
+      canonAssetAddress: s.o.wethAddress,
+      finalTokenAddress: s.p.wethAddress,
       recipientAddress: s.Bob.address,
       amountSpecified: s.WETH_AMOUNT
     }

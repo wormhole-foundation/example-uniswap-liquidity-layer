@@ -22,14 +22,16 @@ contract PorticoBase {
   ISwapRouter public immutable ROUTERV3;
   ITokenBridge public immutable TOKENBRIDGE;
   address public immutable WORMHOLE_RELAYER;
+  IWETH public immutable WETH;
 
   IWormhole public immutable wormhole;
 
-  constructor(ISwapRouter _routerV3, ITokenBridge _bridge, address _relayer) {
+  constructor(ISwapRouter _routerV3, ITokenBridge _bridge, address _relayer, IWETH _weth) {
     ROUTERV3 = _routerV3;
     WORMHOLE_RELAYER = _relayer;
     TOKENBRIDGE = _bridge;
     wormhole = _bridge.wormhole();
+    WETH = _weth;
   }
 
   receive() external payable {}
@@ -106,14 +108,15 @@ abstract contract PorticoStart is PorticoBase {
 
     console.log("TOKENBRIDGE: ", address(TOKENBRIDGE));
     console.log("Start: ", address(params.startTokenAddress));
-    console.log("WETH : ", address(TOKENBRIDGE.WETH()));
+    console.log("WETH : ", address(WETH));
 
     // always check for native wrapping logic
-    if (address(params.startTokenAddress) == address(TOKENBRIDGE.WETH()) && params.flags.shouldWrapNative()) {
-      console.log("WRAP");
+    if (address(params.startTokenAddress) == address(WETH) && params.flags.shouldWrapNative()) {
+      console.log("WRAP", uint256(params.amountSpecified));
 
       // if we are wrap9ing a token, we call deposit for the user, assuming we have been send what we need.
-      TOKENBRIDGE.WETH().deposit{ value: uint256(params.amountSpecified) }();
+      WETH.deposit{ value: uint256(params.amountSpecified) }();
+      console.log("DONE");
       // ensure that we now have the wrap9 asset
       require(params.startTokenAddress.balanceOf(address(this)) == uint256(params.amountSpecified));
     } else {
@@ -240,7 +243,7 @@ abstract contract PorticoFinish is PorticoBase {
 
   function finish(PorticoStructs.DecodedVAA memory params, PorticoStructs.TokenReceived memory recv) internal {
     uint256 amount = 0;
-    bool shouldUnwrap = params.flags.shouldUnwrapNative() && address(params.finalTokenAddress) == address(TOKENBRIDGE.WETH());
+    bool shouldUnwrap = params.flags.shouldUnwrapNative() && address(params.finalTokenAddress) == address(WETH);
     if (params.finalTokenAddress == recv.tokenAddress) {
       // the person wanted the bridge token, so we will skip the swap
       amount = params.xAssetAmount;
@@ -254,7 +257,7 @@ abstract contract PorticoFinish is PorticoBase {
       amount = _finish_v3swap(params, recv, receiver);
     }
     if (shouldUnwrap) {
-      TOKENBRIDGE.WETH().withdraw(amount);
+      WETH.withdraw(amount);
       (bool sent /*bytes memory data*/, ) = params.recipientAddress.call{ value: amount }("");
       require(sent, "Failed to send Ether");
     }
@@ -289,5 +292,5 @@ abstract contract PorticoFinish is PorticoBase {
 }
 
 contract Portico is PorticoFinish, PorticoStart {
-  constructor(ISwapRouter _routerV3, ITokenBridge _bridge, address _relayer) PorticoBase(_routerV3, _bridge, _relayer) {}
+  constructor(ISwapRouter _routerV3, ITokenBridge _bridge, address _relayer, IWETH _weth) PorticoBase(_routerV3, _bridge, _relayer, _weth) {}
 }
