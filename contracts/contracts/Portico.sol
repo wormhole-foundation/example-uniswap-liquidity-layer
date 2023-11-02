@@ -184,6 +184,10 @@ abstract contract PorticoFinish is PorticoBase {
   ) external payable {
     TokenReceived[] memory receivedTokens = new TokenReceived[](additionalVaas.length);
     IWormhole wormhole = wormhole;
+    // make sure the sender is the relayer
+    if(WORMHOLE_RELAYER != address(0x0)) {
+      require(_msgSender() == WORMHOLE_RELAYER);
+    }
     for (uint256 i = 0; i < additionalVaas.length; ++i) {
       IWormhole.VM memory parsed = wormhole.parseVM(additionalVaas[i]);
       // make sure its coming from a proper bridge contract
@@ -224,10 +228,6 @@ abstract contract PorticoFinish is PorticoBase {
     uint16 sourceChain,
     bytes32 deliveryHash
   ) internal {
-    // make sure the sender is the relayer
-    if(WORMHOLE_RELAYER != address(0x0)) {
-      require(_msgSender() == WORMHOLE_RELAYER);
-    }
     // make sure there is only one transfer received
     require(receivedTokens.length == 1, "only 1 transfer allowed");
     // require(sourceAddress == address(0)) - we don't actually care about the source address.
