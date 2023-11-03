@@ -148,12 +148,32 @@ abstract contract PorticoStart is PorticoBase {
 }
 
 abstract contract PorticoFinish is PorticoBase {
-  event ProcessedMessage(PorticoStructs.DecodedVAA data, PorticoStructs.TokenReceived recv);
+  event ProcessedMessage(PorticoStructs.DecodedVAA data);
 
   /***************************************From Wormhole Slack*********************************************************************** */
+  /**
+    TODO
+    relayerFee logic
+   */
+
   //https://github.com/wormhole-foundation/example-token-bridge-relayer/blob/8132e8cc0589cd5cf739bae012c42321879cfd4e/evm/src/token-bridge-relayer/TokenBridgeRelayer.sol#L496
   function receiveMessageAndSwap(bytes calldata encodedTransferMessage) external payable {
     (bytes memory payload, uint256 amount, address token) = _completeTransfer(encodedTransferMessage);
+
+    // decode the message
+    PorticoStructs.DecodedVAA memory message = abi.decode(payload, (PorticoStructs.DecodedVAA));
+
+    // we must have received the amount expected
+    require(amount == message.xAssetAmount);
+
+    // confirm token is correct
+    require(token == address(message.finalTokenAddress));
+
+    //now process
+
+    // simply emit the raw data bytes. it should be trivial to parse.
+    // TODO: consider what fields to index here
+    emit ProcessedMessage(message);
   }
 
   function _completeTransfer(bytes calldata encodedTransferMessage) internal returns (bytes memory paylad, uint256 amount, address token) {
@@ -250,7 +270,8 @@ abstract contract PorticoFinish is PorticoBase {
 
   /******************************************************************************************************************************** */
 
-  function receiveWormholeMessages(
+  /**
+function receiveWormholeMessages(
     bytes memory payload,
     bytes[] memory additionalVaas,
     bytes32 sourceAddress,
@@ -321,10 +342,11 @@ abstract contract PorticoFinish is PorticoBase {
     // TODO: consider what fields to index here
     emit ProcessedMessage(message, recv);
   }
+   */
 
   /// @notice function to allow testing of finishing swap
   function testSwap(PorticoStructs.DecodedVAA memory params, PorticoStructs.TokenReceived memory recv) public payable {
-    finish(params, recv);
+    finish(params, address(recv.tokenAddress), recv.amount);
   }
 
   /**
@@ -332,10 +354,9 @@ abstract contract PorticoFinish is PorticoBase {
     if swap fails, pay relayerFee in xasset, otherwise pay in final asset
     do swap, transfer proceeds - relayerFee
    */
-  function finish(PorticoStructs.DecodedVAA memory params, PorticoStructs.TokenReceived memory recv) internal {
-    uint256 amount = 0;
+  function finish(PorticoStructs.DecodedVAA memory params, address token, uint256 amount) internal {
     bool shouldUnwrap = params.flags.shouldUnwrapNative() && address(params.finalTokenAddress) == address(WETH);
-    if (params.finalTokenAddress == recv.tokenAddress) {
+    if (address(params.finalTokenAddress) == token) {
       // the person wanted the bridge token, so we will skip the swap
       amount = params.xAssetAmount;
       // if ther is no unwrapping step, we need to send the tokens
@@ -345,7 +366,7 @@ abstract contract PorticoFinish is PorticoBase {
     } else {
       // if we are not unwrapping, we can send the result of the swap straight to the user.
       address receiver = shouldUnwrap ? address(this) : params.recipientAddress;
-      amount = _finish_v3swap(params, recv, receiver);
+      amount = _finish_v3swap(params, token, receiver);
     }
     if (shouldUnwrap) {
       WETH.withdraw(amount);
@@ -354,16 +375,12 @@ abstract contract PorticoFinish is PorticoBase {
     }
   }
 
-  function _finish_v3swap(
-    PorticoStructs.DecodedVAA memory params,
-    PorticoStructs.TokenReceived memory recv,
-    address receiver
-  ) internal returns (uint128 amount) {
-    recv.tokenAddress.approve(address(ROUTERV3), params.xAssetAmount);
+  function _finish_v3swap(PorticoStructs.DecodedVAA memory params, address token, address receiver) internal returns (uint128 amount) {
+    IERC20(token).approve(address(ROUTERV3), params.xAssetAmount);
     amount = uint128(
       ROUTERV3.exactInputSingle(
         ISwapRouter.ExactInputSingleParams(
-          address(recv.tokenAddress),
+          token,
           address(params.finalTokenAddress),
           params.flags.feeTierFinish(), // fee tier
           receiver,
@@ -372,7 +389,7 @@ abstract contract PorticoFinish is PorticoBase {
           0, //no min amount, slippage instead
           calculateSlippage(
             uint16(params.flags.maxSlippageFinish()),
-            address(recv.tokenAddress),
+            token,
             address(params.finalTokenAddress),
             params.flags.feeTierFinish()
           )
