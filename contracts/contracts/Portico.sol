@@ -104,30 +104,16 @@ abstract contract PorticoStart is PorticoBase {
   function start(
     PorticoStructs.TradeParameters memory params
   ) public payable returns (address emitterAddress, uint16 chainId, uint64 sequence) {
-    console.log("START");
-
-    console.log("TOKENBRIDGE: ", address(TOKENBRIDGE));
-    console.log("Start: ", address(params.startTokenAddress));
-    console.log("WETH : ", address(WETH));
-
     // always check for native wrapping logic
     if (address(params.startTokenAddress) == address(WETH) && params.flags.shouldWrapNative()) {
-      console.log("WRAP", uint256(params.amountSpecified));
-
       // if we are wrap9ing a token, we call deposit for the user, assuming we have been send what we need.
       WETH.deposit{ value: uint256(params.amountSpecified) }();
-      console.log("DONE");
       // ensure that we now have the wrap9 asset
       require(params.startTokenAddress.balanceOf(address(this)) == uint256(params.amountSpecified));
     } else {
-      console.log("NO WRAP");
-
       // otherwise, just get the token we need to do the swap (if we are swapping, or just the token itself)
       require(params.startTokenAddress.transferFrom(msg.sender, address(this), uint256(params.amountSpecified)), "transfer fail");
     }
-
-    console.log("WRAP DOEN");
-
     uint256 amount = 0;
     // if the start token is equal to the x token, then we don't need to swap. this is the case for most native eth assets i believe
     if (params.startTokenAddress == params.canonAssetAddress) {
@@ -163,6 +149,23 @@ abstract contract PorticoStart is PorticoBase {
 
 abstract contract PorticoFinish is PorticoBase {
   event ProcessedMessage(PorticoStructs.DecodedVAA data, PorticoStructs.TokenReceived recv);
+
+
+
+  function receiveMessageAndSwap(
+    bytes memory payload;
+  ) external payable{
+
+  }
+
+
+
+
+
+
+
+
+
 
   function receiveWormholeMessages(
     bytes memory payload,
