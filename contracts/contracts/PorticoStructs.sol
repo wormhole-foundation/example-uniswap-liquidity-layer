@@ -97,6 +97,8 @@ library PorticoStructs {
     address recipientAddress;
     // the amount of the token that the person wishes to transfer
     uint256 amountSpecified;
+    //
+    uint256 relayerFee;//estimated cost of the receive function on the target chain + some buffer amount
   }
   //268,041 158,788
   struct DecodedVAA {

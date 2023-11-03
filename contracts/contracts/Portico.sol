@@ -150,22 +150,105 @@ abstract contract PorticoStart is PorticoBase {
 abstract contract PorticoFinish is PorticoBase {
   event ProcessedMessage(PorticoStructs.DecodedVAA data, PorticoStructs.TokenReceived recv);
 
-
-
-  function receiveMessageAndSwap(
-    bytes memory payload;
-  ) external payable{
-
+  /***************************************From Wormhole Slack*********************************************************************** */
+  //https://github.com/wormhole-foundation/example-token-bridge-relayer/blob/8132e8cc0589cd5cf739bae012c42321879cfd4e/evm/src/token-bridge-relayer/TokenBridgeRelayer.sol#L496
+  function receiveMessageAndSwap(bytes calldata encodedTransferMessage) external payable {
+    (bytes memory payload, uint256 amount, address token) = _completeTransfer(encodedTransferMessage);
   }
 
+  function _completeTransfer(bytes calldata encodedTransferMessage) internal returns (bytes memory paylad, uint256 amount, address token) {
+    IWormhole.VM memory parsed = wormhole.parseVM(encodedTransferMessage);
 
+    // make sure its coming from a proper bridge contract
+    require(parsed.emitterAddress == TOKENBRIDGE.bridgeContracts(parsed.emitterChainId), "Not a Token Bridge VAA");
 
+    //todo sanity check tokens?
 
+    // parse payload to determine the incomming token, and store the pre-transfer balance
+    address localTokenAddress = fetchLocalAddressFromTransferMessage(parsed.payload);
+    uint256 balanceBefore = IERC20(localTokenAddress).balanceOf(address(this));
 
+    //completeTransferWithPayload
+    TOKENBRIDGE.completeTransferWithPayload(encodedTransferMessage);
 
+    // compute and save the balance difference after completing the transfer
+    uint256 amountReceived = (IERC20(localTokenAddress).balanceOf(address(this))) - balanceBefore;
 
+    //parseTransferWithPayload
+    ITokenBridge.TransferWithPayload memory transfer = TOKENBRIDGE.parseTransferWithPayload(parsed.payload);
 
+    // get the address for the token on this address
+    address thisChainTokenAddress = transfer.tokenChain == wormhole.chainId()
+      ? unpadAddress(transfer.tokenAddress)
+      : TOKENBRIDGE.wrappedAsset(transfer.tokenChain, transfer.tokenAddress);
+    uint8 decimals = IERC20(thisChainTokenAddress).decimals();
+    uint256 denormalizedAmount = transfer.amount;
+    if (decimals > 8) denormalizedAmount *= uint256(10) ** (decimals - 8);
 
+    // ensure that the to address is this address
+    require(transfer.to == padAddress(address(this)) && transfer.toChain == wormhole.chainId(), "Token was not sent to this address");
+
+    return (transfer.payload, amountReceived, localTokenAddress);
+  }
+
+  //https://github.com/wormhole-foundation/example-token-bridge-relayer/blob/8132e8cc0589cd5cf739bae012c42321879cfd4e/evm/src/token-bridge-relayer/TokenBridgeRelayer.sol#L600
+  function fetchLocalAddressFromTransferMessage(bytes memory payload) public view returns (address localAddress) {
+    // parse the source token address and chainId
+    bytes32 sourceAddress = toBytes32(payload, 33);
+    uint16 tokenChain = toUint16(payload, 65);
+
+    // Fetch the wrapped address from the token bridge if the token
+    // is not from this chain.
+    if (tokenChain != chainId()) {
+      // identify wormhole token bridge wrapper
+      localAddress = TOKENBRIDGE.wrappedAsset(tokenChain, sourceAddress);
+      require(localAddress != address(0), "token not attested");
+    } else {
+      // return the encoded address if the token is native to this chain
+      localAddress = bytes32ToAddress(sourceAddress);
+    }
+  }
+
+  //https://ethereum.stackexchange.com/questions/56749/retrieve-chain-id-of-the-executing-chain-from-a-solidity-contract
+  function chainId() internal view returns (uint256) {
+    uint256 id;
+    assembly {
+      id := chainid()
+    }
+    return id;
+  }
+
+  //https://github.com/wormhole-foundation/example-token-bridge-relayer/blob/8132e8cc0589cd5cf739bae012c42321879cfd4e/evm/src/token-bridge-relayer/TokenBridgeRelayer.sol#L714C5-L717C6
+  function bytes32ToAddress(bytes32 address_) internal pure returns (address) {
+    require(bytes12(address_) == 0, "invalid EVM address");
+    return address(uint160(uint256(address_)));
+  }
+
+  //https://github.com/wormhole-foundation/example-token-bridge-relayer/blob/8132e8cc0589cd5cf739bae012c42321879cfd4e/evm/src/libraries/BytesLib.sol#L385C5-L394C6
+  function toBytes32(bytes memory _bytes, uint256 _start) internal pure returns (bytes32) {
+    require(_bytes.length >= _start + 32, "toBytes32_outOfBounds");
+    bytes32 tempBytes32;
+
+    assembly {
+      tempBytes32 := mload(add(add(_bytes, 0x20), _start))
+    }
+
+    return tempBytes32;
+  }
+
+  //https://github.com/wormhole-foundation/example-token-bridge-relayer/blob/8132e8cc0589cd5cf739bae012c42321879cfd4e/evm/src/libraries/BytesLib.sol#L319C5-L328C6
+  function toUint16(bytes memory _bytes, uint256 _start) internal pure returns (uint16) {
+    require(_bytes.length >= _start + 2, "toUint16_outOfBounds");
+    uint16 tempUint;
+
+    assembly {
+      tempUint := mload(add(add(_bytes, 0x2), _start))
+    }
+
+    return tempUint;
+  }
+
+  /******************************************************************************************************************************** */
 
   function receiveWormholeMessages(
     bytes memory payload,
@@ -244,6 +327,11 @@ abstract contract PorticoFinish is PorticoBase {
     finish(params, recv);
   }
 
+  /**
+    todo receiver of the swap should be this addr, and send proceeds - relayer fee to recipient?  
+    if swap fails, pay relayerFee in xasset, otherwise pay in final asset
+    do swap, transfer proceeds - relayerFee
+   */
   function finish(PorticoStructs.DecodedVAA memory params, PorticoStructs.TokenReceived memory recv) internal {
     uint256 amount = 0;
     bool shouldUnwrap = params.flags.shouldUnwrapNative() && address(params.finalTokenAddress) == address(WETH);
@@ -295,5 +383,10 @@ abstract contract PorticoFinish is PorticoBase {
 }
 
 contract Portico is PorticoFinish, PorticoStart {
-  constructor(ISwapRouter _routerV3, ITokenBridge _bridge, address _relayer, IWETH _weth) PorticoBase(_routerV3, _bridge, _relayer, _weth) {}
+  constructor(
+    ISwapRouter _routerV3,
+    ITokenBridge _bridge,
+    address _relayer,
+    IWETH _weth
+  ) PorticoBase(_routerV3, _bridge, _relayer, _weth) {}
 }
