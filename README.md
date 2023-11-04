@@ -6,31 +6,10 @@
 
 > Thermae - Ts.ED based api for cross-chain like-kind swaps
 
-## Getting started
+##
 
-> **Important!** Ts.ED requires Node >= 14, Express >= 4 and TypeScript >= 4.
+contracts in contracts/ folder
 
-```batch
-# install dependencies
-$  install
-
-# serve
-$  start
-
-# build for production
-$  build
-$  start:prod
-```
-
-## Docker
-
-```
-# build docker image
-docker compose build
-
-# start docker image
-docker compose up
-```
 
 ## Barrelsby
 
