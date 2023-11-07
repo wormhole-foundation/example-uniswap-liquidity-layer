@@ -39,6 +39,10 @@ export class CreateOrderRequest {
   @Example(1)
   bridgeNonce: number
 
+  @Required()
+  @Example('0')
+  relayerFee: string
+
   @Integer()
   @Default(100)
   feeTierStart: number = 100
