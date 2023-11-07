@@ -47,6 +47,7 @@ export class OrderController {
       req.destinationToken,
       req.destinationAddress,
       BigInt(req.startingTokenAmount),
+      BigInt(req.relayerFee),
     )
     let porticoAddress = this.rolodexService.getPortico(req.startingChainId)
     if(req.porticoAddress) {

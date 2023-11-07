@@ -20,7 +20,7 @@ contract PorticoBase {
 
   ISwapRouter public immutable ROUTERV3;
   ITokenBridge public immutable TOKENBRIDGE;
-  address public immutable WORMHOLE_RELAYER;
+  address public immutable FEE_RECIPIENT;
   IWETH public immutable WETH;
 
   IWormhole public immutable wormhole;
@@ -29,7 +29,7 @@ contract PorticoBase {
 
   constructor(ISwapRouter _routerV3, ITokenBridge _bridge, address _relayer, IWETH _weth) {
     ROUTERV3 = _routerV3;
-    WORMHOLE_RELAYER = _relayer;
+    FEE_RECIPIENT = _relayer;
     TOKENBRIDGE = _bridge;
     wormhole = _bridge.wormhole();
     WETH = _weth;
@@ -214,10 +214,6 @@ abstract contract PorticoFinish is PorticoBase {
 
   ///@notice determines we need to swap and/or unwrap, does those things if needed, and sends tokens to user & pays relayer fee
   function finish(PorticoStructs.DecodedVAA memory params) internal returns (bool swapCompleted) {
-    // make sure that its the correct person sending
-    if(WORMHOLE_RELAYER != address(0)) {
-      require(_msgSender() == WORMHOLE_RELAYER, "bad relayer");
-    }
     bool shouldUnwrap = params.flags.shouldUnwrapNative() && address(params.finalTokenAddress) == address(WETH);
     uint256 finalUserAmount;
     uint256 relayerFeeAmount;
@@ -268,18 +264,22 @@ abstract contract PorticoFinish is PorticoBase {
       )
     });
 
+    uint256 relayerFee = (_msgSender() == params.recipientAddress) ? 0 : params.relayerFee;
+
     try ROUTERV3.exactInputSingle(swapParams) returns (uint256 amountOut) {
       //calculate how much to pay the relayer in the native token
-      relayerFeeAmount = (amountOut * params.relayerFee) / params.xAssetAmount;
+      if(relayerFee > 0) {
+        relayerFeeAmount = (amountOut * relayerFee) / params.xAssetAmount;
+      }
       finalUserAmount = amountOut - relayerFeeAmount;
       swapCompleted = true;
     } catch {
       //if swap fails, we pay relayer in canon asset
-      if(params.relayerFee > 0) {
+      if(relayerFee > 0) {
         params.canonAssetAddress.transfer(msg.sender, params.relayerFee);
       }
       //swap failed - return canon asset (less relayer fee) to recipient
-      params.canonAssetAddress.transfer(params.recipientAddress, params.xAssetAmount - params.relayerFee);
+      params.canonAssetAddress.transfer(params.recipientAddress, params.xAssetAmount - relayerFee);
       //set allowance to 0
       params.canonAssetAddress.approve(address(ROUTERV3), 0);
       // TODO: should we emit a special event here?
@@ -298,14 +298,16 @@ abstract contract PorticoFinish is PorticoBase {
       require(sentToUser, "Failed to send Ether");
 
       //pay relayer fee
-      (bool sentToRelayer, ) = msg.sender.call{ value: relayerFeeAmount }("");
+      (bool sentToRelayer, ) = _msgSender().call{ value: relayerFeeAmount }("");
       require(sentToRelayer, "Failed to send Ether");
     } else {
       //pay recipient
       finalToken.transfer(recipient, finalUserAmount);
 
-      //pay relayer
-      finalToken.transfer(msg.sender, relayerFeeAmount);
+      if(relayerFeeAmount > 0) {
+        //pay relayer
+        finalToken.transfer(FEE_RECIPIENT, relayerFeeAmount);
+      }
     }
   }
 
