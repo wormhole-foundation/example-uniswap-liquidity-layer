@@ -13,8 +13,7 @@ import "./uniswap/ISwapRouter.sol";
 import "./uniswap/IV3Pool.sol";
 import "./uniswap/PoolAddress.sol";
 
-//testing
-import "hardhat/console.sol";
+using PorticoFlagSetAccess for PorticoFlagSet;
 
 contract PorticoBase {
   using PorticoFlagSetAccess for PorticoFlagSet;
@@ -76,7 +75,8 @@ contract PorticoBase {
     tokenIn == key.token0 ? sqrtPriceLimitX96 = sqrtPriceX96 - buffer : sqrtPriceLimitX96 = sqrtPriceX96 + buffer;
   }
 }
-using PorticoFlagSetAccess for PorticoFlagSet;
+
+
 
 abstract contract PorticoStart is PorticoBase {
   function _start_v3swap(PorticoStructs.TradeParameters memory params) internal returns (uint256 amount) {
@@ -220,7 +220,7 @@ abstract contract PorticoFinish is PorticoBase {
 
       payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, finalUserAmount, relayerFeeAmount);
 
-      //todo return false for accounting as no swap was actually completed? 
+      //todo return false for accounting as no swap was actually completed?
       return true;
     } else {
       //do the swap, resulting aset is sent to this address
