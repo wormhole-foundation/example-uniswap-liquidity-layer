@@ -22,7 +22,8 @@ describe("Send", function () {
       canonAssetAddress: s.e.usdcAddress,
       finalTokenAddress: s.e.wethAddress,
       recipientAddress: s.Carol.address,
-      amountSpecified: s.WETH_AMOUNT
+      amountSpecified: s.WETH_AMOUNT,
+      relayerFee: s.relayerFee
     }
 
 
@@ -80,7 +81,8 @@ describe("Receive", () => {
       canonAssetAddress: s.e.usdcAddress,
       finalTokenAddress: s.e.wethAddress,
       recipientAddress: s.Carol.address,
-      canonAssetAmount: usdcAmount
+      canonAssetAmount: usdcAmount,
+      relayerFee: s.relayerFee
     }
 
     const startPorticoUSDC = await s.USDC.balanceOf(s.Portico.address)
@@ -90,7 +92,7 @@ describe("Receive", () => {
     expect(startCarolUSDC).to.eq(0, "Carol has 0 USDC")
     expect(startCarolWETH).to.eq(0, "Carol has 0 WETH")
 
-    const gas = await getGas(await s.Portico.testSwap(params, TokenReceived))
+    const gas = await getGas(await s.Portico.testSwap(params))
     showBodyCyan("GAS TO RECEIVE: ", gas)
 
     const endPorticoUSDC = await s.USDC.balanceOf(s.Portico.address)
@@ -130,7 +132,8 @@ describe("Receive where xAsset == finalAsset", () => {
       canonAssetAddress: s.e.usdcAddress,
       finalTokenAddress: s.e.usdcAddress,
       recipientAddress: s.Carol.address,
-      canonAssetAmount: usdcAmount
+      canonAssetAmount: usdcAmount,
+      relayerFee: s.relayerFee
     }
 
     const startPorticoUSDC = await s.USDC.balanceOf(s.Portico.address)
@@ -138,7 +141,7 @@ describe("Receive where xAsset == finalAsset", () => {
     expect(startPorticoUSDC).to.eq(usdcAmount, "Portico has USDC")
     expect(startCarolUSDC).to.eq(0, "Carol has 0 USDC")
     //expect(startCarolWETH).to.eq(0, "Carol has 0 WETH")
-    const gas = await getGas(await s.Portico.testSwap(params, TokenReceived))
+    const gas = await getGas(await s.Portico.testSwap(params))
     showBodyCyan("GAS TO RECEIVE: ", gas)
     expect(await s.USDC.balanceOf(s.Carol.address)).to.eq(usdcAmount, "Carol received USDC")
 

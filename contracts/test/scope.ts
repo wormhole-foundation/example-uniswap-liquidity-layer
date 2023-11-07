@@ -20,6 +20,8 @@ export class TestScope {
     polyTokenBridge = "0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE"
     polyRelayerAddress = this.relayerAddr
 
+    relayerFee = BN("1e15")
+
 
     //no wrap data
     noWrapData: BytesLike = "0x010001000000b80b00b80b002c012c0100000000000000000000000000000000"
@@ -68,7 +70,8 @@ export type TradeParameters = {
     canonAssetAddress: string,
     finalTokenAddress: string,
     recipientAddress: string,
-    amountSpecified: BigNumber
+    amountSpecified: BigNumber,
+    relayerFee: BigNumber
 }
 
 export type DecodedVAA = {
@@ -76,7 +79,8 @@ export type DecodedVAA = {
     canonAssetAddress: string,
     finalTokenAddress: string,
     recipientAddress: string,
-    canonAssetAmount: BigNumber
+    canonAssetAmount: BigNumber,
+    relayerFee: BigNumber
 }
 
 const ts = new TestScope();
