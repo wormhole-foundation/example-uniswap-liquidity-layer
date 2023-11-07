@@ -292,11 +292,9 @@ abstract contract PorticoFinish is PorticoBase {
   function payOut(bool unwrap, IERC20 finalToken, address recipient, uint256 finalUserAmount, uint256 relayerFeeAmount) internal {
     if (unwrap) {
       WETH.withdraw(IERC20(address(WETH)).balanceOf(address(this)));
-
       //send to user
       (bool sentToUser, ) = recipient.call{ value: finalUserAmount }("");
       require(sentToUser, "Failed to send Ether");
-
       if(relayerFeeAmount > 0) {
         //pay relayer fee
         (bool sentToRelayer, ) = _msgSender().call{ value: relayerFeeAmount }("");
@@ -304,11 +302,12 @@ abstract contract PorticoFinish is PorticoBase {
       }
     } else {
       //pay recipient
-      finalToken.transfer(recipient, finalUserAmount);
-
+      if(finalUserAmount > 0) {
+        require(finalToken.transfer(recipient, finalUserAmount), "STF");
+      }
       if(relayerFeeAmount > 0) {
         //pay relayer
-        finalToken.transfer(FEE_RECIPIENT, relayerFeeAmount);
+        require(finalToken.transfer(FEE_RECIPIENT, relayerFeeAmount), "STF");
       }
     }
   }
