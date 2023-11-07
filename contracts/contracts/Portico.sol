@@ -164,6 +164,11 @@ abstract contract PorticoFinish is PorticoBase {
     // confirm token is correct
     require(token == address(message.finalTokenAddress));
 
+    // make sure that its the correct person sending
+    if(WORMHOLE_RELAYER != address(0)) {
+      require(_msgSender() == WORMHOLE_RELAYER, "bad relayer")
+    }
+
     //now process
     bool swapCompleted = finish(message);
 
