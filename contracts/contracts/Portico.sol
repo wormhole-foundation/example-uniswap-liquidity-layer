@@ -226,7 +226,7 @@ abstract contract PorticoFinish is PorticoBase {
       //do the swap, resulting aset is sent to this address
       (finalUserAmount, relayerFeeAmount, swapCompleted) = _finish_v3swap(params);
 
-      //if swap fails, relayer and user have already been paid in cannon asset, so we are done
+      //if swap fails, relayer and user have already been paid in canon asset, so we are done
       if (!swapCompleted) {
         return swapCompleted;
       }
@@ -264,16 +264,16 @@ abstract contract PorticoFinish is PorticoBase {
       finalUserAmount = amountOut - relayerFeeAmount;
       swapCompleted = true;
     } catch {
-      //if swap fails, we pay relayer in cannon asset
+      //if swap fails, we pay relayer in canon asset
       params.canonAssetAddress.transfer(msg.sender, params.relayerFee);
 
-      //swap failed - return cannon asset (less relayer fee) to recipient
+      //swap failed - return canon asset (less relayer fee) to recipient
       params.canonAssetAddress.transfer(params.recipientAddress, params.xAssetAmount - params.relayerFee);
 
       //set uni allowance to 0
       params.canonAssetAddress.approve(address(ROUTERV3), 0);
 
-      //todo emit?
+      // TODO: should we emit a special event here?
 
       swapCompleted = false;
     }
@@ -317,15 +317,6 @@ abstract contract PorticoFinish is PorticoBase {
       // return the encoded address if the token is native to this chain
       localAddress = bytes32ToAddress(sourceAddress);
     }
-  }
-
-  //https://ethereum.stackexchange.com/questions/56749/retrieve-chain-id-of-the-executing-chain-from-a-solidity-contract
-  function chainId() internal view returns (uint256) {
-    uint256 id;
-    assembly {
-      id := chainid()
-    }
-    return id;
   }
 
   //https://github.com/wormhole-foundation/example-token-bridge-relayer/blob/8132e8cc0589cd5cf739bae012c42321879cfd4e/evm/src/token-bridge-relayer/TokenBridgeRelayer.sol#L714C5-L717C6
