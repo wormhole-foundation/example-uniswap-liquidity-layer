@@ -274,7 +274,8 @@ abstract contract PorticoFinish is PorticoBase {
       console.log("TRY", relayerFee);
       //calculate how much to pay the relayer in the native token
       if (relayerFee > 0) {
-        relayerFeeAmount = (amountOut * relayerFee) / params.canonAssetAmount;
+        //relayerFeeAmount = ((amountOut * relayerFee) / params.canonAssetAmount);
+        relayerFeeAmount = relayerFee;
         console.log("RelayerFeeAMount: ", relayerFeeAmount);
       }
       console.log("amountOut       : ", amountOut);

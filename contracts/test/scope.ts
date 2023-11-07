@@ -20,8 +20,7 @@ export class TestScope {
     polyTokenBridge = "0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE"
     polyRelayerAddress = this.relayerAddr
 
-    relayerFee = BN("1e15")
-
+    relayerFee = BN("1e16")
 
     //no wrap data
     noWrapData: BytesLike = "0x010001000000b80b00b80b002c012c0100000000000000000000000000000000"
@@ -35,7 +34,6 @@ export class TestScope {
     WETH_AMOUNT = BN("1e18")
 
     slippage = 200 //BIPS = 200 => 2% slippage
-
 
     Portico!: Portico
 
