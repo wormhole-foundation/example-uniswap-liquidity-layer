@@ -297,9 +297,11 @@ abstract contract PorticoFinish is PorticoBase {
       (bool sentToUser, ) = recipient.call{ value: finalUserAmount }("");
       require(sentToUser, "Failed to send Ether");
 
-      //pay relayer fee
-      (bool sentToRelayer, ) = _msgSender().call{ value: relayerFeeAmount }("");
-      require(sentToRelayer, "Failed to send Ether");
+      if(relayerFeeAmount > 0) {
+        //pay relayer fee
+        (bool sentToRelayer, ) = _msgSender().call{ value: relayerFeeAmount }("");
+        require(sentToRelayer, "Failed to send Ether");
+      }
     } else {
       //pay recipient
       finalToken.transfer(recipient, finalUserAmount);
