@@ -104,7 +104,7 @@ abstract contract PorticoStart is PorticoBase {
     );
   }
 
-  event PorticoSwapStart(uint64 sequence, uint16 chainId);
+  event PorticoSwapStart(uint64 indexed sequence, uint16 indexed chainId);
 
   function start(
     PorticoStructs.TradeParameters memory params
@@ -155,11 +155,12 @@ abstract contract PorticoStart is PorticoBase {
 }
 
 abstract contract PorticoFinish is PorticoBase {
-  event ProcessedMessage(PorticoStructs.DecodedVAA data, bool swapCompleted);
+   event PorticoSwapFinish(uint64 indexed sequence, uint16 indexed emitterChain, bool swapCompleted, PorticoStructs.DecodedVAA data);
 
 
-  function _completeTransfer(bytes calldata encodedTransferMessage) internal returns (bytes memory paylad, uint256 amount, address token) {
-    IWormhole.VM memory parsed = wormhole.parseVM(encodedTransferMessage);
+  function _completeTransfer(bytes calldata encodedTransferMessage) internal returns
+  (bytes memory paylad, uint256 amount, address token, IWormhole.VM memory parsed) {
+    parsed = wormhole.parseVM(encodedTransferMessage);
 
     // make sure its coming from a proper bridge contract
     require(parsed.emitterAddress == TOKENBRIDGE.bridgeContracts(parsed.emitterChainId), "Not a Token Bridge VAA");
@@ -190,12 +191,12 @@ abstract contract PorticoFinish is PorticoBase {
       // ensure that the to address is this address
       require(transfer.to == padAddress(address(this)) && transfer.toChain == wormholeChainId, "Token was not sent to this address");
 
-      return (transfer.payload, amountReceived, localTokenAddress);
+      return (transfer.payload, amountReceived, localTokenAddress, parsed);
   }
 
   //https://github.com/wormhole-foundation/example-token-bridge-relayer/blob/8132e8cc0589cd5cf739bae012c42321879cfd4e/evm/src/token-bridge-relayer/TokenBridgeRelayer.sol#L496
   function receiveMessageAndSwap(bytes calldata encodedTransferMessage) external payable {
-    (bytes memory payload, uint256 amount, address token) = _completeTransfer(encodedTransferMessage);
+    (bytes memory payload, uint256 amount, address token, IWormhole.VM memory parsed) = _completeTransfer(encodedTransferMessage);
 
     // decode the message
     PorticoStructs.DecodedVAA memory message = abi.decode(payload, (PorticoStructs.DecodedVAA));
@@ -211,7 +212,7 @@ abstract contract PorticoFinish is PorticoBase {
 
     // simply emit the raw data bytes. it should be trivial to parse.
     // TODO: consider what fields to index here
-    emit ProcessedMessage(message, swapCompleted);
+    emit PorticoSwapFinish(parsed.sequence, parsed.emitterChainId, swapCompleted, message);
   }
 
 
