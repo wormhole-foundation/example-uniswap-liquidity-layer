@@ -104,6 +104,8 @@ abstract contract PorticoStart is PorticoBase {
     );
   }
 
+  event PorticoSwapStart(uint64 sequence, uint16 chainId);
+
   function start(
     PorticoStructs.TradeParameters memory params
   ) public payable returns (address emitterAddress, uint16 chainId, uint64 sequence) {
@@ -148,6 +150,7 @@ abstract contract PorticoStart is PorticoBase {
     );
     chainId = wormholeChainId;
     emitterAddress = address(TOKENBRIDGE);
+    emit PorticoSwapStart(sequence, chainId);
   }
 }
 
