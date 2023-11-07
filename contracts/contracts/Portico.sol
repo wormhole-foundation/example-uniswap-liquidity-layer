@@ -224,10 +224,9 @@ abstract contract PorticoFinish is PorticoBase {
 
     if ((params.finalTokenAddress) == params.canonAssetAddress) {
       // this means that we don't need to do a swap, aka, we received the canon asset
-      relayerFeeAmount = (params.canonAssetAmount * params.relayerFee) / params.canonAssetAmount;
-      finalUserAmount = params.canonAssetAmount - relayerFeeAmount;
+      finalUserAmount = params.canonAssetAmount - params.relayerFee;
 
-      payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, finalUserAmount, relayerFeeAmount);
+      payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, finalUserAmount, params.relayerFee);
 
       //todo return false for accounting as no swap was actually completed?
       return true;
@@ -271,19 +270,12 @@ abstract contract PorticoFinish is PorticoBase {
     uint256 relayerFee = (_msgSender() == params.recipientAddress) ? 0 : params.relayerFee;
 
     try ROUTERV3.exactInputSingle(swapParams) returns (uint256 amountOut) {
-      console.log("TRY", relayerFee);
       //calculate how much to pay the relayer in the native token
       if (relayerFee > 0) {
-        relayerFeeAmount = (amountOut * relayerFee) / params.canonAssetAmount;
-        console.log("RelayerFeeAMount: ", relayerFeeAmount);
+        relayerFeeAmount = relayerFee;
       }
-      console.log("amountOut       : ", amountOut);
-
       finalUserAmount = amountOut - relayerFeeAmount;
-      console.log("finalUserAmount: ", finalUserAmount);
-
       swapCompleted = true;
-      console.log(swapCompleted);
     } catch {
       // if swap fails, we don't pay fees to the relayer
       // the reason is because that typically, the swap fails because of bad market conditions
