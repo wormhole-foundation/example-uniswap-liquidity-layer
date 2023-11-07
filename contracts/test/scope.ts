@@ -76,7 +76,7 @@ export type DecodedVAA = {
     canonAssetAddress: string,
     finalTokenAddress: string,
     recipientAddress: string,
-    xAssetAmount: BigNumber
+    canonAssetAmount: BigNumber
 }
 
 const ts = new TestScope();

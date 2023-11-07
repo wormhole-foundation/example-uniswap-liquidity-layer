@@ -202,7 +202,7 @@ abstract contract PorticoFinish is PorticoBase {
     PorticoStructs.DecodedVAA memory message = abi.decode(payload, (PorticoStructs.DecodedVAA));
 
     // we must have received the amount expected
-    require(amount == message.xAssetAmount);
+    require(amount == message.canonAssetAmount);
 
     // confirm token is correct
     require(token == address(message.finalTokenAddress));
@@ -225,8 +225,8 @@ abstract contract PorticoFinish is PorticoBase {
     //do the swap, unwrap later if needed, compute relayer fee later
     if ((params.finalTokenAddress) == params.canonAssetAddress) {
       // this means that we don't need to do a swap, aka, we received the canon asset
-      relayerFeeAmount = (params.xAssetAmount * params.relayerFee) / params.xAssetAmount;
-      finalUserAmount = params.xAssetAmount - relayerFeeAmount;
+      relayerFeeAmount = (params.canonAssetAmount * params.relayerFee) / params.canonAssetAmount;
+      finalUserAmount = params.canonAssetAmount - relayerFeeAmount;
 
       payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, finalUserAmount, relayerFeeAmount);
 
@@ -249,7 +249,7 @@ abstract contract PorticoFinish is PorticoBase {
   function _finish_v3swap(
     PorticoStructs.DecodedVAA memory params
   ) internal returns (uint256 finalUserAmount, uint256 relayerFeeAmount, bool swapCompleted) {
-    params.canonAssetAddress.approve(address(ROUTERV3), params.xAssetAmount);
+    params.canonAssetAddress.approve(address(ROUTERV3), params.canonAssetAmount);
 
     // set swap options with user params
     ISwapRouter.ExactInputSingleParams memory swapParams = ISwapRouter.ExactInputSingleParams({
@@ -258,7 +258,7 @@ abstract contract PorticoFinish is PorticoBase {
       fee: params.flags.feeTierFinish(),
       recipient: address(this), // we need to receive the token in order to correctly split the fee. tragic.
       deadline: block.timestamp + 10,
-      amountIn: params.xAssetAmount,
+      amountIn: params.canonAssetAmount,
       amountOutMinimum: 0,
       sqrtPriceLimitX96: calculateSlippage(
         uint16(params.flags.maxSlippageFinish()),
@@ -273,7 +273,7 @@ abstract contract PorticoFinish is PorticoBase {
     try ROUTERV3.exactInputSingle(swapParams) returns (uint256 amountOut) {
       //calculate how much to pay the relayer in the native token
       if(relayerFee > 0) {
-        relayerFeeAmount = (amountOut * relayerFee) / params.xAssetAmount;
+        relayerFeeAmount = (amountOut * relayerFee) / params.canonAssetAmount;
       }
       finalUserAmount = amountOut - relayerFeeAmount;
       swapCompleted = true;
@@ -282,8 +282,8 @@ abstract contract PorticoFinish is PorticoBase {
       // the reason is because that typically, the swap fails because of bad market conditions
       // in this case, it is in the best interest of the mev/relayer to NOT relay this message until conditions are good
       // the user of course, who if they self relay, does not pay a fee, does not have this problem, so they can force this if they wish
-      // swap failed - return canon asset (less relayer fee) to recipient
-      params.canonAssetAddress.transfer(params.recipientAddress, params.xAssetAmount);
+      // swap failed - return canon asset to recipient
+      params.canonAssetAddress.transfer(params.recipientAddress, params.canonAssetAmount);
       //set allowance to 0
       params.canonAssetAddress.approve(address(ROUTERV3), 0);
       // TODO: should we emit a special event here?

@@ -81,7 +81,7 @@ describe("Receive", () => {
       canonAssetAddress: s.e.usdcAddress,
       finalTokenAddress: s.e.wethAddress,
       recipientAddress: s.Carol.address,
-      xAssetAmount: usdcAmount
+      canonAssetAmount: usdcAmount
     }
 
     const startReceiverUSDC = await s.USDC.balanceOf(s.Portico.address)

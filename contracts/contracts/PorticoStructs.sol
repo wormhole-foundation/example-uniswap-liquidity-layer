@@ -108,7 +108,7 @@ library PorticoStructs {
     // the person to receive the token
     address recipientAddress;
     // the x asset amount expected to  be received
-    uint256 xAssetAmount;
+    uint256 canonAssetAmount;
     uint256 relayerFee;
   }
 }

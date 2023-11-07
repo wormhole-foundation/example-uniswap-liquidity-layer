@@ -80,7 +80,7 @@ describe("Receive", () => {
       canonAssetAddress: s.e.usdcAddress,
       finalTokenAddress: s.e.wethAddress,
       recipientAddress: s.Carol.address,
-      xAssetAmount: usdcAmount
+      canonAssetAmount: usdcAmount
     }
 
     const startPorticoUSDC = await s.USDC.balanceOf(s.Portico.address)
@@ -130,7 +130,7 @@ describe("Receive where xAsset == finalAsset", () => {
       canonAssetAddress: s.e.usdcAddress,
       finalTokenAddress: s.e.usdcAddress,
       recipientAddress: s.Carol.address,
-      xAssetAmount: usdcAmount
+      canonAssetAmount: usdcAmount
     }
 
     const startPorticoUSDC = await s.USDC.balanceOf(s.Portico.address)
