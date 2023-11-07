@@ -120,7 +120,7 @@ abstract contract PorticoStart is PorticoBase {
       require(params.startTokenAddress.transferFrom(msg.sender, address(this), uint256(params.amountSpecified)), "transfer fail");
     }
     uint256 amount = 0;
-    // if the start token is equal to the x token, then we don't need to swap. this is the case for most native eth assets i believe
+    // if the start token is the canon token, we don't need to swap
     if (params.startTokenAddress == params.canonAssetAddress) {
       // skip the v3 swap, and set amount to the amountSpecified, assuming that either the transfer or unwrap above worked
       amount = uint256(params.amountSpecified);
@@ -278,12 +278,12 @@ abstract contract PorticoFinish is PorticoBase {
       finalUserAmount = amountOut - relayerFeeAmount;
       swapCompleted = true;
     } catch {
-      //if swap fails, we pay relayer in canon asset
-      if(relayerFee > 0) {
-        params.canonAssetAddress.transfer(msg.sender, params.relayerFee);
-      }
-      //swap failed - return canon asset (less relayer fee) to recipient
-      params.canonAssetAddress.transfer(params.recipientAddress, params.xAssetAmount - relayerFee);
+      // if swap fails, we don't pay fees to the relayer
+      // the reason is because that typically, the swap fails because of bad market conditions
+      // in this case, it is in the best interest of the mev/relayer to NOT relay this message until conditions are good
+      // the user of course, who if they self relay, does not pay a fee, does not have this problem, so they can force this if they wish
+      // swap failed - return canon asset (less relayer fee) to recipient
+      params.canonAssetAddress.transfer(params.recipientAddress, params.xAssetAmount);
       //set allowance to 0
       params.canonAssetAddress.approve(address(ROUTERV3), 0);
       // TODO: should we emit a special event here?
