@@ -25,12 +25,15 @@ contract PorticoBase {
 
   IWormhole public immutable wormhole;
 
+  uint16 public immutable wormholeChainId;
+
   constructor(ISwapRouter _routerV3, ITokenBridge _bridge, address _relayer, IWETH _weth) {
     ROUTERV3 = _routerV3;
     WORMHOLE_RELAYER = _relayer;
     TOKENBRIDGE = _bridge;
     wormhole = _bridge.wormhole();
     WETH = _weth;
+    wormholeChainId = wormhole.chainId();
   }
 
   receive() external payable {}
@@ -143,13 +146,49 @@ abstract contract PorticoStart is PorticoBase {
       params.flags.bridgeNonce(),
       abi.encode(decodedVAA)
     );
-    chainId = wormhole.chainId();
+    chainId = wormholeChainId;
     emitterAddress = address(TOKENBRIDGE);
   }
 }
 
 abstract contract PorticoFinish is PorticoBase {
   event ProcessedMessage(PorticoStructs.DecodedVAA data, bool swapCompleted);
+
+
+  function _completeTransfer(bytes calldata encodedTransferMessage) internal returns (bytes memory paylad, uint256 amount, address token) {
+    IWormhole.VM memory parsed = wormhole.parseVM(encodedTransferMessage);
+
+    // make sure its coming from a proper bridge contract
+    require(parsed.emitterAddress == TOKENBRIDGE.bridgeContracts(parsed.emitterChainId), "Not a Token Bridge VAA");
+
+
+    // parse payload to determine the incomming token, and store the pre-transfer balance
+    address localTokenAddress = fetchLocalAddressFromTransferMessage(parsed.payload);
+
+    uint256 balanceBefore = IERC20(localTokenAddress).balanceOf(address(this));
+
+    //completeTransferWithPayload
+    TOKENBRIDGE.completeTransferWithPayload(encodedTransferMessage);
+
+    // compute and save the balance difference after completing the transfer
+    uint256 amountReceived = (IERC20(localTokenAddress).balanceOf(address(this))) - balanceBefore;
+
+    //parseTransferWithPayload
+    ITokenBridge.TransferWithPayload memory transfer = TOKENBRIDGE.parseTransferWithPayload(parsed.payload);
+
+    // get the address for the token on this address
+    address thisChainTokenAddress = transfer.tokenChain == wormholeChainId
+      ? unpadAddress(transfer.tokenAddress)
+      : TOKENBRIDGE.wrappedAsset(transfer.tokenChain, transfer.tokenAddress);
+      uint8 decimals = IERC20(thisChainTokenAddress).decimals();
+      uint256 denormalizedAmount = transfer.amount;
+      if (decimals > 8) denormalizedAmount *= uint256(10) ** (decimals - 8);
+
+      // ensure that the to address is this address
+      require(transfer.to == padAddress(address(this)) && transfer.toChain == wormholeChainId, "Token was not sent to this address");
+
+      return (transfer.payload, amountReceived, localTokenAddress);
+  }
 
   //https://github.com/wormhole-foundation/example-token-bridge-relayer/blob/8132e8cc0589cd5cf739bae012c42321879cfd4e/evm/src/token-bridge-relayer/TokenBridgeRelayer.sol#L496
   function receiveMessageAndSwap(bytes calldata encodedTransferMessage) external payable {
@@ -164,11 +203,6 @@ abstract contract PorticoFinish is PorticoBase {
     // confirm token is correct
     require(token == address(message.finalTokenAddress));
 
-    // make sure that its the correct person sending
-    if(WORMHOLE_RELAYER != address(0)) {
-      require(_msgSender() == WORMHOLE_RELAYER, "bad relayer")
-    }
-
     //now process
     bool swapCompleted = finish(message);
 
@@ -177,49 +211,20 @@ abstract contract PorticoFinish is PorticoBase {
     emit ProcessedMessage(message, swapCompleted);
   }
 
-  function _completeTransfer(bytes calldata encodedTransferMessage) internal returns (bytes memory paylad, uint256 amount, address token) {
-    IWormhole.VM memory parsed = wormhole.parseVM(encodedTransferMessage);
-
-    // make sure its coming from a proper bridge contract
-    require(parsed.emitterAddress == TOKENBRIDGE.bridgeContracts(parsed.emitterChainId), "Not a Token Bridge VAA");
-
-    //todo sanity check tokens?
-
-    // parse payload to determine the incomming token, and store the pre-transfer balance
-    address localTokenAddress = fetchLocalAddressFromTransferMessage(parsed.payload);
-    uint256 balanceBefore = IERC20(localTokenAddress).balanceOf(address(this));
-
-    //completeTransferWithPayload
-    TOKENBRIDGE.completeTransferWithPayload(encodedTransferMessage);
-
-    // compute and save the balance difference after completing the transfer
-    uint256 amountReceived = (IERC20(localTokenAddress).balanceOf(address(this))) - balanceBefore;
-
-    //parseTransferWithPayload
-    ITokenBridge.TransferWithPayload memory transfer = TOKENBRIDGE.parseTransferWithPayload(parsed.payload);
-
-    // get the address for the token on this address
-    address thisChainTokenAddress = transfer.tokenChain == wormhole.chainId()
-      ? unpadAddress(transfer.tokenAddress)
-      : TOKENBRIDGE.wrappedAsset(transfer.tokenChain, transfer.tokenAddress);
-    uint8 decimals = IERC20(thisChainTokenAddress).decimals();
-    uint256 denormalizedAmount = transfer.amount;
-    if (decimals > 8) denormalizedAmount *= uint256(10) ** (decimals - 8);
-
-    // ensure that the to address is this address
-    require(transfer.to == padAddress(address(this)) && transfer.toChain == wormhole.chainId(), "Token was not sent to this address");
-
-    return (transfer.payload, amountReceived, localTokenAddress);
-  }
 
   ///@notice determines we need to swap and/or unwrap, does those things if needed, and sends tokens to user & pays relayer fee
   function finish(PorticoStructs.DecodedVAA memory params) internal returns (bool swapCompleted) {
+    // make sure that its the correct person sending
+    if(WORMHOLE_RELAYER != address(0)) {
+      require(_msgSender() == WORMHOLE_RELAYER, "bad relayer");
+    }
     bool shouldUnwrap = params.flags.shouldUnwrapNative() && address(params.finalTokenAddress) == address(WETH);
     uint256 finalUserAmount;
     uint256 relayerFeeAmount;
 
     //do the swap, unwrap later if needed, compute relayer fee later
     if ((params.finalTokenAddress) == params.canonAssetAddress) {
+      // this means that we don't need to do a swap, aka, we received the canon asset
       relayerFeeAmount = (params.xAssetAmount * params.relayerFee) / params.xAssetAmount;
       finalUserAmount = params.xAssetAmount - relayerFeeAmount;
 
@@ -251,7 +256,7 @@ abstract contract PorticoFinish is PorticoBase {
       tokenIn: address(params.canonAssetAddress),
       tokenOut: address(params.finalTokenAddress),
       fee: params.flags.feeTierFinish(),
-      recipient: address(this),
+      recipient: address(this), // we need to receive the token in order to correctly split the fee. tragic.
       deadline: block.timestamp + 10,
       amountIn: params.xAssetAmount,
       amountOutMinimum: 0,
@@ -270,16 +275,14 @@ abstract contract PorticoFinish is PorticoBase {
       swapCompleted = true;
     } catch {
       //if swap fails, we pay relayer in canon asset
-      params.canonAssetAddress.transfer(msg.sender, params.relayerFee);
-
+      if(params.relayerFee > 0) {
+        params.canonAssetAddress.transfer(msg.sender, params.relayerFee);
+      }
       //swap failed - return canon asset (less relayer fee) to recipient
       params.canonAssetAddress.transfer(params.recipientAddress, params.xAssetAmount - params.relayerFee);
-
-      //set uni allowance to 0
+      //set allowance to 0
       params.canonAssetAddress.approve(address(ROUTERV3), 0);
-
       // TODO: should we emit a special event here?
-
       swapCompleted = false;
     }
   }
@@ -314,7 +317,7 @@ abstract contract PorticoFinish is PorticoBase {
 
     // Fetch the wrapped address from the token bridge if the token
     // is not from this chain.
-    if (tokenChain != chainId()) {
+    if (tokenChain != wormholeChainId) {
       // identify wormhole token bridge wrapper
       localAddress = TOKENBRIDGE.wrappedAsset(tokenChain, sourceAddress);
       require(localAddress != address(0), "token not attested");
