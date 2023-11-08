@@ -13,9 +13,6 @@ import "./uniswap/ISwapRouter.sol";
 import "./uniswap/IV3Pool.sol";
 import "./uniswap/PoolAddress.sol";
 
-//testing
-import "hardhat/console.sol";
-
 using PorticoFlagSetAccess for PorticoFlagSet;
 
 contract PorticoBase {
@@ -169,9 +166,14 @@ abstract contract PorticoFinish is PorticoBase {
     // parse payload to determine the incomming token, and store the pre-transfer balance
     address localTokenAddress = fetchLocalAddressFromTransferMessage(parsed.payload);
 
+    // check balance before completing the transfer
     uint256 balanceBefore = IERC20(localTokenAddress).balanceOf(address(this));
 
-    //completeTransferWithPayload
+    /**
+     * Call `completeTransferWithPayload` on the token bridge. This
+     * method acts as a reentrancy protection since it does not allow
+     * transfers to be redeemed more than once.
+     */
     TOKENBRIDGE.completeTransferWithPayload(encodedTransferMessage);
 
     // compute and save the balance difference after completing the transfer
@@ -217,30 +219,23 @@ abstract contract PorticoFinish is PorticoBase {
 
   ///@notice determines we need to swap and/or unwrap, does those things if needed, and sends tokens to user & pays relayer fee
   function finish(PorticoStructs.DecodedVAA memory params) internal returns (bool swapCompleted) {
-    console.log("FINISH");
     bool shouldUnwrap = params.flags.shouldUnwrapNative() && address(params.finalTokenAddress) == address(WETH);
     uint256 finalUserAmount;
     uint256 relayerFeeAmount;
 
     if ((params.finalTokenAddress) == params.canonAssetAddress) {
       // this means that we don't need to do a swap, aka, we received the canon asset
-      relayerFeeAmount = (params.canonAssetAmount * params.relayerFee) / params.canonAssetAmount;
-      finalUserAmount = params.canonAssetAmount - relayerFeeAmount;
-
-      payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, finalUserAmount, relayerFeeAmount);
-
+      finalUserAmount = params.canonAssetAmount - params.relayerFee;
+      payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, finalUserAmount, params.relayerFee);
       //todo return false for accounting as no swap was actually completed?
       return true;
     } else {
-      console.log("DOING SWAP:");
       //do the swap, resulting aset is sent to this address
       (finalUserAmount, relayerFeeAmount, swapCompleted) = _finish_v3swap(params);
-      console.log("SWAPP DONE");
       //if swap fails, relayer and user have already been paid in canon asset, so we are done
       if (!swapCompleted) {
         return swapCompleted;
       }
-
       payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, finalUserAmount, relayerFeeAmount);
     }
   }
@@ -271,20 +266,12 @@ abstract contract PorticoFinish is PorticoBase {
     uint256 relayerFee = (_msgSender() == params.recipientAddress) ? 0 : params.relayerFee;
 
     try ROUTERV3.exactInputSingle(swapParams) returns (uint256 amountOut) {
-      console.log("TRY", relayerFee);
       //calculate how much to pay the relayer in the native token
       if (relayerFee > 0) {
-        //relayerFeeAmount = ((amountOut * relayerFee) / params.canonAssetAmount);
         relayerFeeAmount = relayerFee;
-        console.log("RelayerFeeAMount: ", relayerFeeAmount);
       }
-      console.log("amountOut       : ", amountOut);
-
       finalUserAmount = amountOut - relayerFeeAmount;
-      console.log("finalUserAmount: ", finalUserAmount);
-
       swapCompleted = true;
-      console.log(swapCompleted);
     } catch {
       // if swap fails, we don't pay fees to the relayer
       // the reason is because that typically, the swap fails because of bad market conditions
@@ -302,7 +289,6 @@ abstract contract PorticoFinish is PorticoBase {
   ///@notice pay out to user and relayer
   ///@notice this should always be called UNLESS swap fails, in which case payouts happen there
   function payOut(bool unwrap, IERC20 finalToken, address recipient, uint256 finalUserAmount, uint256 relayerFeeAmount) internal {
-    console.log("PAY OUT");
     if (unwrap) {
       WETH.withdraw(IERC20(address(WETH)).balanceOf(address(this)));
       //send to user
@@ -376,7 +362,6 @@ abstract contract PorticoFinish is PorticoBase {
   /// @notice function to allow testing of finishing swap
   //todo remove PorticoStructs.TokenReceived
   function testSwap(PorticoStructs.DecodedVAA memory params) public payable {
-    console.log("TEST SWAP");
     finish(params);
   }
 }

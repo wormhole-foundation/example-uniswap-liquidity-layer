@@ -3,7 +3,7 @@ import { currentBlock, reset, resetCurrent } from "../../util/block"
 import { DeployContract } from "../../util/deploy"
 import { stealMoney } from "../../util/money"
 import { ethers } from "hardhat";
-import { IERC20__factory, Portico__factory, TokenBridge__factory } from "../../typechain-types";
+import { IERC20__factory, ITokenBridge__factory, IWormhole__factory, Portico__factory, TokenBridge__factory } from "../../typechain-types";
 import { expect } from "chai";
 import { encodeFlagSet } from "../../util/msc";
 
@@ -28,6 +28,9 @@ describe("Deploy", function () {
   it("Connect to contracts", async () => {
     s.WETH = IERC20__factory.connect(s.e.wethAddress, s.Frank)
     s.USDC = IERC20__factory.connect(s.e.usdcAddress, s.Frank)
+
+    s.TokenBridge = ITokenBridge__factory.connect(s.mainnetTokenBridge, s.Frank)
+    s.WH = IWormhole__factory.connect(await s.TokenBridge.wormhole(), s.Frank)
   })
 
   it("Deploy the things", async () => {

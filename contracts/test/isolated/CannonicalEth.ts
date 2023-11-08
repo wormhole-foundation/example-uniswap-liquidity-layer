@@ -59,7 +59,8 @@ describe("Direct eth xchain transfer", () => {
       canonAssetAddress: s.o.wethAddress,
       finalTokenAddress: s.p.wethAddress,
       recipientAddress: s.Bob.address,
-      amountSpecified: s.WETH_AMOUNT
+      amountSpecified: s.WETH_AMOUNT,
+      relayerFee: s.ethRelayerFee
     }
 
     const result = await s.Portico.connect(s.Bob).start(params, { value: s.WETH_AMOUNT })

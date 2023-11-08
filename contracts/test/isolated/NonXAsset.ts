@@ -73,7 +73,9 @@ describe("Non x asset", async () => {
       canonAssetAddress: s.e.rethAddress,
       finalTokenAddress: s.e.wethAddress,
       recipientAddress: s.Carol.address,
-      amountSpecified: s.WETH_AMOUNT
+      amountSpecified: s.WETH_AMOUNT,
+      relayerFee: s.ethRelayerFee
+
     }
 
     await s.rETH.connect(s.Bob).approve(s.Portico.address, s.WETH_AMOUNT)

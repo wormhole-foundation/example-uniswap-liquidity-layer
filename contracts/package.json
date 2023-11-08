@@ -6,6 +6,7 @@
   "author": "a <a@tuxpa.in>",
   "license": "MIT",
   "dependencies": {
+    "@defi-wonderland/smock": "^2.3.5",
     "@ethersproject/providers": "^5.3.0",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.8",
     "@uniswap/v3-periphery": "^1.4.4",

@@ -1,4 +1,4 @@
-import { network } from "hardhat";
+import { ethers, network } from "hardhat";
 import * as dotenv from "dotenv";
 import { BigNumber, utils, Event, BytesLike } from "ethers";
 import { BN } from "../util/number"
@@ -6,6 +6,11 @@ import { Hex } from "viem";
 
 export const toNumber = async (bigboi: BigNumber) => {
     return Number(utils.formatEther(bigboi.toString()))
+}
+
+//convert an address to bytes32
+export const adddr2Bytes = (address: string) => {
+  return ethers.utils.hexlify(ethers.utils.zeroPad(address, 32))
 }
 
 export const getGasCost = async (gas: BigNumber, gasPrice: number, ethPrice: BigNumber) => {

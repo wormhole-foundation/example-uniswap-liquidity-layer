@@ -23,7 +23,8 @@ describe("Wrap", function () {
       canonAssetAddress: s.e.usdcAddress,
       finalTokenAddress: s.e.wethAddress,
       recipientAddress: s.Carol.address,
-      amountSpecified: s.WETH_AMOUNT
+      amountSpecified: s.WETH_AMOUNT,
+      relayerFee: s.ethRelayerFee
     }
 
     //confirm starting balances
@@ -70,18 +71,15 @@ describe("Receive", () => {
 
   it("Recieve xChain tx", async () => {
 
-    const TokenReceived: TokenReceived = {
-      tokenHomeAddress: s.wrapData,//not used for testing
-      tokenHomeChain: 1,
-      tokenAddress: s.e.usdcAddress,
-      amount: usdcAmount
-    }
+
     const params: DecodedVAA = {
       flags: s.wrapData,
       canonAssetAddress: s.e.usdcAddress,
       finalTokenAddress: s.e.wethAddress,
       recipientAddress: s.Carol.address,
-      canonAssetAmount: usdcAmount
+      canonAssetAmount: usdcAmount,
+      relayerFee: s.ethRelayerFee
+
     }
 
     const startReceiverUSDC = await s.USDC.balanceOf(s.Portico.address)
@@ -93,7 +91,7 @@ describe("Receive", () => {
 
     const startEth = await ethers.provider.getBalance(s.Carol.address)
     showBody("StartEth: ", await toNumber(startEth))
-    const gas = await getGas(await s.Portico.testSwap(params, TokenReceived))
+    const gas = await getGas(await s.Portico.testSwap(params))
     showBodyCyan("GAS TO RECEIVE AND UNWRAP: ", gas)
     const endEth = await ethers.provider.getBalance(s.Carol.address)
 
