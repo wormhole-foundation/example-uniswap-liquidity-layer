@@ -32,6 +32,14 @@ describe("Deploy", function () {
 
     s.TokenBridge = ITokenBridge__factory.connect(s.mainnetTokenBridge, s.Frank)
     s.WH = IWormhole__factory.connect(await s.TokenBridge.wormhole(), s.Frank)
+
+    //fake wormhole and token bridge
+    s.fakeWormHole = await smock.fake(IWormhole__factory)
+    s.fakeTokenBridge = await smock.fake(ITokenBridge__factory, { address: s.WH.address })
+
+    //config fake tokenbridge WH() to return fakeWormHole addr
+    await s.fakeTokenBridge.wormhole.returns(s.fakeWormHole.address)
+
     
   })
 
@@ -40,7 +48,7 @@ describe("Deploy", function () {
     s.Portico = await DeployContract(
       new Portico__factory(s.Frank),
       s.Frank,
-      s.swapRouterAddr, s.tokenBridgeAddr, s.relayerAddr, s.e.wethAddress
+      s.swapRouterAddr, s.fakeTokenBridge.address, s.relayerAddr, s.e.wethAddress
     )
 
     expect(s.Portico.address).to.not.eq("0x0000000000000000000000000000000000000000", "Start Deployed")

@@ -5,6 +5,11 @@ import { e, o, p } from "../util/addresser"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 export class TestScope {
+
+    //smock
+    fakeWormHole!:any
+    fakeTokenBridge!:any
+
     Bank = "0x8EB8a3b98659Cce290402893d0123abb75E3ab28"
     rEthWhale = "0x714301eB35fE043FAa547976ce15BcE57BD53144"
 

@@ -7,9 +7,10 @@ import { start } from "repl";
 import { stealMoney } from "../../util/money";
 import { DecodedVAA, TokenReceived, TradeParameters, TransferWithPayload, s } from "../scope"
 import { FakeContract, smock } from '@defi-wonderland/smock';
-import { IWormhole__factory, Portico__factory } from "../../typechain-types";
+import { ITokenBridge__factory, IWormhole__factory, Portico__factory } from "../../typechain-types";
 import { AbiCoder } from "ethers/lib/utils";
 import { ethers } from "hardhat";
+import { currentBlock } from "../../util/block";
 
 /**
  * In this example,
@@ -74,49 +75,8 @@ describe("Receive", () => {
     await stealMoney(s.Bank, s.Portico.address, s.USDC.address, usdcAmount)
   })
 
-  it("Spoof receipt of xchain tx", async () => {
-
-    const params: DecodedVAA = {
-      flags: s.noWrapData,
-      canonAssetAddress: s.e.usdcAddress,
-      finalTokenAddress: s.e.wethAddress,
-      recipientAddress: s.Carol.address,
-      canonAssetAmount: usdcAmount,
-      relayerFee: s.ethRelayerFee
-    }
-
-    const abi = new AbiCoder()
-    const data = abi.encode(
-      ["tuple(bytes32 flags, address canonAssetAddress, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 relayerFee)"],
-      [{
-        flags: params.flags,
-        canonAssetAddress: params.canonAssetAddress,
-        finalTokenAddress: params.finalTokenAddress,
-        recipientAddress: params.recipientAddress,
-        canonAssetAmount: params.canonAssetAmount,
-        relayerFee: params.relayerFee
-      }]
-    )
-
-    const transferData = abi.encode(
-      ["tuple(uint8 payloadID, uint256 amount, bytes32 tokenAddress, uint16 tokenChain, bytes32 to, uint16 toChain, bytes32 fromAddress, bytes payload)"],
-      [{
-        payloadID: 1,
-        amount: usdcAmount,
-        tokenAddress: adddr2Bytes(s.e.usdcAddress),
-        tokenChain: await s.WH.chainId(),
-        to: adddr2Bytes(s.Carol.address),
-        toChain: await s.WH.chainId(),
-        fromAddress: adddr2Bytes(s.Portico.address),
-        payload: data
-      }]
-    )
-
-    //await s.Portico.receiveMessageAndSwap(transferData)
 
 
-
-  })
 
 
   it("Recieve xChain tx", async () => {
@@ -153,7 +113,9 @@ describe("Receive", () => {
     expect(await toNumber(endCarolWETH)).to.be.closeTo(await toNumber(s.WETH_AMOUNT), 0.02, "Swap completed")
 
   })
+
 })
+
 
 describe("Receive where xAsset == finalAsset", () => {
 
@@ -191,3 +153,4 @@ describe("Receive where xAsset == finalAsset", () => {
 
   })
 })
+

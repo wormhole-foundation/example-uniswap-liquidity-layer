@@ -82,6 +82,14 @@ interface IWormhole {
         uint8 consistencyLevel
     ) external payable returns (uint64 sequence);
 
+    function testSigs() external returns (Signature[] memory signatures);
+
+    function test8() external returns (uint8 test);
+
+    function testBytes() external returns (bytes memory payload);
+
+    function testBigKahuna() external returns (VM memory vm);
+
     function initialize() external;
 
     function parseAndVerifyVM(bytes calldata encodedVM) external view returns (VM memory vm, bool valid, string memory reason);

@@ -13,6 +13,9 @@ import "./uniswap/ISwapRouter.sol";
 import "./uniswap/IV3Pool.sol";
 import "./uniswap/PoolAddress.sol";
 
+//testing
+import "hardhat/console.sol";
+
 using PorticoFlagSetAccess for PorticoFlagSet;
 
 contract PorticoBase {
@@ -149,6 +152,8 @@ abstract contract PorticoStart is PorticoBase {
     chainId = wormholeChainId;
     emitterAddress = address(TOKENBRIDGE);
     emit PorticoSwapStart(sequence, chainId);
+    console.log("Sequence: ", sequence);
+    console.log("chainId: ", chainId);
   }
 }
 
@@ -160,11 +165,17 @@ abstract contract PorticoFinish is PorticoBase {
   ) internal returns (bytes memory paylad, uint256 amount, address token, IWormhole.VM memory parsed) {
     parsed = wormhole.parseVM(encodedTransferMessage);
 
+    console.log("Got parsed", parsed.timestamp);
+
     // make sure its coming from a proper bridge contract
     require(parsed.emitterAddress == TOKENBRIDGE.bridgeContracts(parsed.emitterChainId), "Not a Token Bridge VAA");
 
+    console.log("Passed check");
+
     // parse payload to determine the incomming token, and store the pre-transfer balance
     address localTokenAddress = fetchLocalAddressFromTransferMessage(parsed.payload);
+
+    console.log("Got local token address: ", localTokenAddress);
 
     // check balance before completing the transfer
     uint256 balanceBefore = IERC20(localTokenAddress).balanceOf(address(this));
@@ -311,11 +322,13 @@ abstract contract PorticoFinish is PorticoBase {
     }
   }
 
-  //https://github.com/wormhole-foundation/example-token-bridge-relayer/blob/8132e8cc0589cd5cf739bae012c42321879cfd4e/evm/src/token-bridge-relayer/TokenBridgeRelayer.sol#L600
+  ///@notice unpack payload
   function fetchLocalAddressFromTransferMessage(bytes memory payload) public view returns (address localAddress) {
     // parse the source token address and chainId
     bytes32 sourceAddress = toBytes32(payload, 33);
     uint16 tokenChain = toUint16(payload, 65);
+
+    console.log("Got addr and chain", tokenChain);
 
     // Fetch the wrapped address from the token bridge if the token
     // is not from this chain.
