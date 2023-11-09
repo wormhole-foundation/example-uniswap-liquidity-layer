@@ -13,9 +13,6 @@ import "./uniswap/ISwapRouter.sol";
 import "./uniswap/IV3Pool.sol";
 import "./uniswap/PoolAddress.sol";
 
-//testing
-import "hardhat/console.sol";
-
 using PorticoFlagSetAccess for PorticoFlagSet;
 
 contract PorticoBase {
@@ -152,8 +149,6 @@ abstract contract PorticoStart is PorticoBase {
     chainId = wormholeChainId;
     emitterAddress = address(TOKENBRIDGE);
     emit PorticoSwapStart(sequence, chainId);
-    console.log("Sequence: ", sequence);
-    console.log("chainId: ", chainId);
   }
 }
 
@@ -162,37 +157,29 @@ abstract contract PorticoFinish is PorticoBase {
 
   function _completeTransfer(
     bytes calldata encodedTransferMessage
-  ) internal returns (bytes memory paylad, uint256 amount, address token, IWormhole.VM memory parsed) {
+  ) internal returns (PorticoStructs.DecodedVAA memory message, IWormhole.VM memory parsed, uint256 amountReceived) {
     parsed = wormhole.parseVM(encodedTransferMessage);
-
-    console.log("Got parsed", parsed.timestamp);
 
     // make sure its coming from a proper bridge contract
     require(parsed.emitterAddress == TOKENBRIDGE.bridgeContracts(parsed.emitterChainId), "Not a Token Bridge VAA");
 
-    console.log("Passed check");
-
-    // parse payload to determine the incomming token, and store the pre-transfer balance
-    address localTokenAddress = fetchLocalAddressFromTransferMessage(parsed.payload);
-
-    console.log("Got local token address: ", localTokenAddress);
-
-    // check balance before completing the transfer
-    uint256 balanceBefore = IERC20(localTokenAddress).balanceOf(address(this));
+    // parse payload - question is parsed.payload our DecodedVAA? Or is it transfer.payload below?
+    message = abi.decode(parsed.payload, (PorticoStructs.DecodedVAA));
 
     /**
      * Call `completeTransferWithPayload` on the token bridge. This
      * method acts as a reentrancy protection since it does not allow
      * transfers to be redeemed more than once.
      */
-    TOKENBRIDGE.completeTransferWithPayload(encodedTransferMessage);
+    bytes memory transferPayload = TOKENBRIDGE.completeTransferWithPayload(encodedTransferMessage);
 
-    // compute and save the balance difference after completing the transfer
-    uint256 amountReceived = (IERC20(localTokenAddress).balanceOf(address(this))) - balanceBefore;
+    // amountReceived == total balance always, so erouious transfers will just be forwarded to the next recipient of this token
+    amountReceived = message.canonAssetAddress.balanceOf(address(this));
 
     //parseTransferWithPayload
-    ITokenBridge.TransferWithPayload memory transfer = TOKENBRIDGE.parseTransferWithPayload(parsed.payload);
+    ITokenBridge.TransferWithPayload memory transfer = TOKENBRIDGE.parseTransferWithPayload(transferPayload);
 
+    //todo confirm this logic is correct
     // get the address for the token on this address
     address thisChainTokenAddress = transfer.tokenChain == wormholeChainId
       ? unpadAddress(transfer.tokenAddress)
@@ -200,25 +187,19 @@ abstract contract PorticoFinish is PorticoBase {
     uint8 decimals = IERC20(thisChainTokenAddress).decimals();
     uint256 denormalizedAmount = transfer.amount;
     if (decimals > 8) denormalizedAmount *= uint256(10) ** (decimals - 8);
-
+    
     // ensure that the to address is this address
-    require(transfer.to == padAddress(address(this)) && transfer.toChain == wormholeChainId, "Token was not sent to this address");
-
-    return (transfer.payload, amountReceived, localTokenAddress, parsed);
+    require(unpadAddress(transfer.to) == address(this) && transfer.toChain == wormholeChainId, "Token was not sent to this address");
   }
 
   //https://github.com/wormhole-foundation/example-token-bridge-relayer/blob/8132e8cc0589cd5cf739bae012c42321879cfd4e/evm/src/token-bridge-relayer/TokenBridgeRelayer.sol#L496
   function receiveMessageAndSwap(bytes calldata encodedTransferMessage) external payable {
-    (bytes memory payload, uint256 amount, address token, IWormhole.VM memory parsed) = _completeTransfer(encodedTransferMessage);
-
-    // decode the message
-    PorticoStructs.DecodedVAA memory message = abi.decode(payload, (PorticoStructs.DecodedVAA));
+    (PorticoStructs.DecodedVAA memory message, IWormhole.VM memory parsed, uint256 amountReceived) = _completeTransfer(
+      encodedTransferMessage
+    );
 
     // we must have received the amount expected
-    require(amount == message.canonAssetAmount);
-
-    // confirm token is correct
-    require(token == address(message.finalTokenAddress));
+    require(amountReceived == message.canonAssetAmount);
 
     //now process
     bool swapCompleted = finish(message);
@@ -319,26 +300,6 @@ abstract contract PorticoFinish is PorticoBase {
         //pay relayer
         require(finalToken.transfer(FEE_RECIPIENT, relayerFeeAmount), "STF");
       }
-    }
-  }
-
-  ///@notice unpack payload
-  function fetchLocalAddressFromTransferMessage(bytes memory payload) public view returns (address localAddress) {
-    // parse the source token address and chainId
-    bytes32 sourceAddress = toBytes32(payload, 33);
-    uint16 tokenChain = toUint16(payload, 65);
-
-    console.log("Got addr and chain", tokenChain);
-
-    // Fetch the wrapped address from the token bridge if the token
-    // is not from this chain.
-    if (tokenChain != wormholeChainId) {
-      // identify wormhole token bridge wrapper
-      localAddress = TOKENBRIDGE.wrappedAsset(tokenChain, sourceAddress);
-      require(localAddress != address(0), "token not attested");
-    } else {
-      // return the encoded address if the token is native to this chain
-      localAddress = bytes32ToAddress(sourceAddress);
     }
   }
 

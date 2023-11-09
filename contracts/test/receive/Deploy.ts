@@ -40,6 +40,8 @@ describe("Deploy", function () {
     //config fake tokenbridge WH() to return fakeWormHole addr
     await s.fakeTokenBridge.wormhole.returns(s.fakeWormHole.address)
 
+    //config fake wormhole.chainID to return the correct chain id
+    await s.fakeWormHole.chainId.returns(2)
     
   })
 

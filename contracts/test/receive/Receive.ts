@@ -12,14 +12,10 @@ import { AbiCoder } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 import { currentBlock } from "../../util/block";
 
-
-
 describe("Receive", () => {
 
   //this is the amount of USDC received from the first swap as of the pinned block
   const usdcAmount = BN("1783362958")
-
-
 
   it("Steal USDC to the Portico to simulate tokenbridge sending it", async () => {
     await stealMoney(s.Bank, s.Portico.address, s.USDC.address, usdcAmount)
@@ -62,12 +58,8 @@ describe("Receive", () => {
         payload: data
       }]
     )
-    
-
-    showBodyCyan("Sending expected returns")
 
     const bytes32Addr = adddr2Bytes(s.tokenBridgeAddr)
-
     
     //config return for parseVM
     await s.fakeWormHole.parseVM.returns({
@@ -87,21 +79,32 @@ describe("Receive", () => {
     //config return for tokenbridge.bridgeContracts
     await s.fakeTokenBridge.bridgeContracts.returns(bytes32Addr)
 
+    //config completeTransferWithPayload to default return
+    await s.fakeTokenBridge.completeTransferWithPayload.returns();
 
+    //config tokenbridge.parseTransferWithPayload
+    await s.fakeTokenBridge.parseTransferWithPayload.returns({
+      payloadID: 3,
+      amount: usdcAmount,
+      tokenAddress: adddr2Bytes(s.USDC.address),
+      tokenChain: 2,
+      to: adddr2Bytes(s.Portico.address),
+      toChain: 2,
+      fromAddress: adddr2Bytes(s.Portico.address),
+      payload: "0x"
+    })
 
-    //todo config tokenbridge.bridgeContracts?
+    //config tokenBridge.wrappedAsset
+    await s.fakeTokenBridge.wrappedAsset.returns(s.USDC.address)
 
+    const startingWeth = await s.WETH.balanceOf(s.Carol.address)
 
-    //todo configure parsed.payload correctly?
+    const gas = await getGas(await s.Portico.receiveMessageAndSwap(transferData))
+    showBodyCyan("Gas to receive xchain tx: ", gas)
 
-
-
-    showBodyCyan("Sending tx")
-
-    await s.Portico.receiveMessageAndSwap(transferData)
-
-
+    const wethDelta = (await s.WETH.balanceOf(s.Carol.address)).sub(startingWeth)
+    expect(await toNumber(wethDelta)).to.be.closeTo(1, 0.03, "WETH received")
+    showBodyCyan("WETH RECEIVED: ", await toNumber(wethDelta))
 
   })
-
 })
