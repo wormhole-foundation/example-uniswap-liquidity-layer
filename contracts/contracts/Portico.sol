@@ -163,15 +163,15 @@ abstract contract PorticoFinish is PorticoBase {
     // make sure its coming from a proper bridge contract
     require(parsed.emitterAddress == TOKENBRIDGE.bridgeContracts(parsed.emitterChainId), "Not a Token Bridge VAA");
 
-    // parse payload - question is parsed.payload our DecodedVAA? Or is it transfer.payload below?
-    message = abi.decode(parsed.payload, (PorticoStructs.DecodedVAA));
-
     /**
      * Call `completeTransferWithPayload` on the token bridge. This
      * method acts as a reentrancy protection since it does not allow
      * transfers to be redeemed more than once.
      */
-    bytes memory transferPayload = TOKENBRIDGE.completeTransferWithPayload(encodedTransferMessage);
+    bytes memory transferPayload = TOKENBRIDGE.completeTransferWithPayload(parsed.payload);
+
+    // parse payload - question is parsed.payload our DecodedVAA? Or is it transfer.payload below?
+    message = abi.decode(transferPayload, (PorticoStructs.DecodedVAA));
 
     // amountReceived == total balance always, so erouious transfers will just be forwarded to the next recipient of this token
     amountReceived = message.canonAssetAddress.balanceOf(address(this));
@@ -187,7 +187,7 @@ abstract contract PorticoFinish is PorticoBase {
     uint8 decimals = IERC20(thisChainTokenAddress).decimals();
     uint256 denormalizedAmount = transfer.amount;
     if (decimals > 8) denormalizedAmount *= uint256(10) ** (decimals - 8);
-    
+
     // ensure that the to address is this address
     require(unpadAddress(transfer.to) == address(this) && transfer.toChain == wormholeChainId, "Token was not sent to this address");
   }
