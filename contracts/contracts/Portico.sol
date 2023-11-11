@@ -168,7 +168,7 @@ abstract contract PorticoFinish is PorticoBase {
      * method acts as a reentrancy protection since it does not allow
      * transfers to be redeemed more than once.
      */
-    bytes memory transferPayload = TOKENBRIDGE.completeTransferWithPayload(parsed.payload);
+    bytes memory transferPayload = TOKENBRIDGE.completeTransferWithPayload(encodedTransferMessage);
 
 
     // amountReceived == total balance always, so erouious transfers will just be forwarded to the next recipient of this token
