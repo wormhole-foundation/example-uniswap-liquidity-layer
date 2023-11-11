@@ -168,16 +168,17 @@ abstract contract PorticoFinish is PorticoBase {
      * method acts as a reentrancy protection since it does not allow
      * transfers to be redeemed more than once.
      */
-    bytes memory transferPayload = TOKENBRIDGE.completeTransferWithPayload(encodedTransferMessage);
+    bytes memory transferPayload = TOKENBRIDGE.completeTransferWithPayload(parsed.payload);
 
-    // parse payload - question is parsed.payload our DecodedVAA? Or is it transfer.payload below?
-    message = abi.decode(transferPayload, (PorticoStructs.DecodedVAA));
 
     // amountReceived == total balance always, so erouious transfers will just be forwarded to the next recipient of this token
     amountReceived = message.canonAssetAddress.balanceOf(address(this));
 
     //parseTransferWithPayload
     ITokenBridge.TransferWithPayload memory transfer = TOKENBRIDGE.parseTransferWithPayload(transferPayload);
+
+    // parse payload - question is parsed.payload our DecodedVAA? Or is it transfer.payload below?
+    message = abi.decode(transfer.payload, (PorticoStructs.DecodedVAA));
 
     //todo confirm this logic is correct
     // get the address for the token on this address
