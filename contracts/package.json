@@ -6,6 +6,7 @@
   "author": "a <a@tuxpa.in>",
   "license": "MIT",
   "dependencies": {
+    "@certusone/wormhole-sdk": "^0.10.5",
     "@defi-wonderland/smock": "^2.3.5",
     "@ethersproject/providers": "^5.3.0",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.8",

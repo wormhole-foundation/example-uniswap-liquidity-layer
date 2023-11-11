@@ -101,5 +101,26 @@ export type TransferWithPayload = {
     payload: BytesLike
 }
 
+export type Signatures = {
+    r: BytesLike,
+    s: BytesLike,
+    v: number,
+    guardianIndex: number
+}
+
+export type VM = {
+    version: number,
+    timestamp: number,
+    nonce: number, 
+    emitterChainId: number,
+    emitterAddress: BytesLike,
+    sequence: number,
+    consistencyLevel: number,
+    payload: BytesLike,
+    guardianSetIndex: number,
+    signatures: Signatures[],
+    hash: BytesLike
+}
+
 const ts = new TestScope();
 export const s = ts

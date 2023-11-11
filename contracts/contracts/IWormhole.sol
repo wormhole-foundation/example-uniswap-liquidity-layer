@@ -23,10 +23,8 @@ interface IWormhole {
         uint64 sequence;
         uint8 consistencyLevel;
         bytes payload;
-
         uint32 guardianSetIndex;
         Signature[] signatures;
-
         bytes32 hash;
     }
 
