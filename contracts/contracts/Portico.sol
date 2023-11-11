@@ -177,7 +177,6 @@ abstract contract PorticoFinish is PorticoBase {
     //parseTransferWithPayload
     ITokenBridge.TransferWithPayload memory transfer = TOKENBRIDGE.parseTransferWithPayload(transferPayload);
 
-    // parse payload - question is parsed.payload our DecodedVAA? Or is it transfer.payload below?
     message = abi.decode(transfer.payload, (PorticoStructs.DecodedVAA));
 
     //todo confirm this logic is correct
