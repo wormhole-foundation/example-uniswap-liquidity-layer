@@ -168,7 +168,7 @@ abstract contract PorticoFinish is PorticoBase {
      * method acts as a reentrancy protection since it does not allow
      * transfers to be redeemed more than once.
      */
-    bytes memory transferPayload = TOKENBRIDGE.completeTransferWithPayload(parsed.payload);
+    bytes memory transferPayload = TOKENBRIDGE.completeTransferWithPayload(encodedTransferMessage);
 
     // parse payload - question is parsed.payload our DecodedVAA? Or is it transfer.payload below?
     message = abi.decode(transferPayload, (PorticoStructs.DecodedVAA));
