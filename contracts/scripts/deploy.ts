@@ -53,7 +53,7 @@ const deploy = async (deployer: SignerWithAddress) => {
   ],
 });
 
-  console.log("deployed, now verifying")
+  console.log("verified")
 
 }
 
