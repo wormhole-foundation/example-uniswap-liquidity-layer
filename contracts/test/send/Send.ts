@@ -6,11 +6,6 @@ import { adddr2Bytes, getGas, toNumber } from "../../util/msc"
 import { start } from "repl";
 import { stealMoney } from "../../util/money";
 import { DecodedVAA, TokenReceived, TradeParameters, TransferWithPayload, s } from "../scope"
-import { FakeContract, smock } from '@defi-wonderland/smock';
-import { ITokenBridge__factory, IWormhole__factory, Portico__factory } from "../../typechain-types";
-import { AbiCoder } from "ethers/lib/utils";
-import { ethers } from "hardhat";
-import { currentBlock } from "../../util/block";
 
 /**
  * In this example,
@@ -27,7 +22,7 @@ describe("Send", function () {
       canonAssetAddress: s.e.usdcAddress,
       finalTokenAddress: s.e.wethAddress,
       recipientAddress: s.Carol.address,
-      recipientPortico: s.o.opPortico,
+      recipientPorticoAddress: s.o.opPortico,
       amountSpecified: s.WETH_AMOUNT,
       relayerFee: s.ethRelayerFee
     }

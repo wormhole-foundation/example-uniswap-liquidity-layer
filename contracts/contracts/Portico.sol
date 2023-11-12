@@ -142,7 +142,7 @@ abstract contract PorticoStart is PorticoBase {
       address(params.canonAssetAddress),
       amount,
       params.flags.recipientChain(),
-      padAddress(params.porticoAddress),
+      padAddress(params.recipientPorticoAddress),
       params.flags.bridgeNonce(),
       abi.encode(decodedVAA)
     );

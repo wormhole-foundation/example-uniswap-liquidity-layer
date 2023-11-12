@@ -6,7 +6,6 @@ import { ethers } from "hardhat";
 import { IERC20__factory, ITokenBridge__factory, IWormhole__factory, Portico__factory, TokenBridge__factory } from "../../typechain-types";
 import { expect } from "chai";
 import { encodeFlagSet } from "../../util/msc";
-import { smock } from "@defi-wonderland/smock";
 
 describe("Deploy", function () {
 
@@ -32,7 +31,7 @@ describe("Deploy", function () {
 
     s.TokenBridge = ITokenBridge__factory.connect(s.mainnetTokenBridge, s.Frank)
     s.WH = IWormhole__factory.connect(await s.TokenBridge.wormhole(), s.Frank)
-    
+
   })
 
   it("Deploy the things", async () => {
@@ -54,9 +53,9 @@ describe("Deploy", function () {
   })
 
   it("encode flags", async () => {
-    s.noSippage = await encodeFlagSet(1, 1, 3000, 3000, 0, 0, false, false)
-    s.wrapData = await encodeFlagSet(1, 1, 3000, 3000, s.slippage, s.slippage, true, true)
-    s.noWrapData = await encodeFlagSet(1, 1, 3000, 3000, s.slippage, s.slippage, false, false)
+    s.noSippage = encodeFlagSet(1, 1, 3000, 3000, 0, 0, false, false)
+    s.wrapData = encodeFlagSet(1, 1, 3000, 3000, s.slippage, s.slippage, true, true)
+    s.noWrapData = encodeFlagSet(1, 1, 3000, 3000, s.slippage, s.slippage, false, false)
   })
 })
 

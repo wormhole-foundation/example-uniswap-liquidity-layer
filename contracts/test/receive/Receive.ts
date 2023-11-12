@@ -6,11 +6,7 @@ import { adddr2Bytes, getGas, toNumber } from "../../util/msc"
 import { start } from "repl";
 import { stealMoney } from "../../util/money";
 import { DecodedVAA, TokenReceived, TradeParameters, TransferWithPayload, s } from "../scope"
-import { FakeContract, smock } from '@defi-wonderland/smock';
-import { ITokenBridge__factory, IWormhole__factory, Portico__factory } from "../../typechain-types";
 import { AbiCoder } from "ethers/lib/utils";
-import { ethers } from "hardhat";
-import { currentBlock } from "../../util/block";
 
 describe("Receive", () => {
 
@@ -60,7 +56,7 @@ describe("Receive", () => {
     )
 
     const bytes32Addr = adddr2Bytes(s.tokenBridgeAddr)
-    
+
     //config return for parseVM
     await s.fakeWormHole.parseVM.returns({
       version: 1,

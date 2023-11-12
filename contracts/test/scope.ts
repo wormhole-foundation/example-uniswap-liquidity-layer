@@ -77,6 +77,7 @@ export type TradeParameters = {
     canonAssetAddress: string,
     finalTokenAddress: string,
     recipientAddress: string,
+    recipientPorticoAddress: string
     amountSpecified: BigNumber,
     relayerFee: BigNumber
 }
@@ -111,7 +112,7 @@ export type Signatures = {
 export type VM = {
     version: number,
     timestamp: number,
-    nonce: number, 
+    nonce: number,
     emitterChainId: number,
     emitterAddress: BytesLike,
     sequence: number,
