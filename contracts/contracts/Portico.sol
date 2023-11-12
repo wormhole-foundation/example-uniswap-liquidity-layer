@@ -153,15 +153,11 @@ abstract contract PorticoStart is PorticoBase {
 }
 
 abstract contract PorticoFinish is PorticoBase {
-  event PorticoSwapFinish(uint64 indexed sequence, uint16 indexed emitterChain, bool swapCompleted, PorticoStructs.DecodedVAA data);
+  event PorticoSwapFinish(bool swapCompleted, PorticoStructs.DecodedVAA data);
 
   function _completeTransfer(
     bytes calldata encodedTransferMessage
-  ) internal returns (PorticoStructs.DecodedVAA memory message, IWormhole.VM memory parsed, uint256 amountReceived) {
-    parsed = wormhole.parseVM(encodedTransferMessage);
-
-    // make sure its coming from a proper bridge contract
-    require(parsed.emitterAddress == TOKENBRIDGE.bridgeContracts(parsed.emitterChainId), "Not a Token Bridge VAA");
+  ) internal returns (PorticoStructs.DecodedVAA memory message, uint256 amountReceived) {
 
     /**
      * Call `completeTransferWithPayload` on the token bridge. This
@@ -196,7 +192,7 @@ abstract contract PorticoFinish is PorticoBase {
 
   //https://github.com/wormhole-foundation/example-token-bridge-relayer/blob/8132e8cc0589cd5cf739bae012c42321879cfd4e/evm/src/token-bridge-relayer/TokenBridgeRelayer.sol#L496
   function receiveMessageAndSwap(bytes calldata encodedTransferMessage) external payable {
-    (PorticoStructs.DecodedVAA memory message, IWormhole.VM memory parsed, uint256 amountReceived) = _completeTransfer(
+    (PorticoStructs.DecodedVAA memory message, uint256 amountReceived) = _completeTransfer(
       encodedTransferMessage
     );
 
@@ -208,7 +204,7 @@ abstract contract PorticoFinish is PorticoBase {
 
     // simply emit the raw data bytes. it should be trivial to parse.
     // TODO: consider what fields to index here
-    emit PorticoSwapFinish(parsed.sequence, parsed.emitterChainId, swapCompleted, message);
+    emit PorticoSwapFinish(swapCompleted, message);
   }
 
   ///@notice determines we need to swap and/or unwrap, does those things if needed, and sends tokens to user & pays relayer fee
