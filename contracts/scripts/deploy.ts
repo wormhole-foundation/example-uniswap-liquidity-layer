@@ -32,15 +32,29 @@ const deploy = async (deployer: SignerWithAddress) => {
     weth
   )
 
-  console.log("DONE")
-  //await portico.deployed()
-
 
   console.log("Portico Deployed: ", portico.address)
   console.log("swapRouter : ", swapRouter)
   console.log("TokenBridge: ", tokenBridge)
   console.log("Relayer    : ", relayer)
   console.log("Local weth : ", weth)
+
+
+  await portico.deployed()
+  await portico.deployTransaction.wait(10)
+  console.log("deployed, now verifying")
+  await hre.run("verify:verify", {
+  address: portico.address,
+  constructorArguments: [
+     swapRouter,
+    tokenBridge,
+    relayer,
+    weth
+  ],
+});
+
+  console.log("deployed, now verifying")
+
 }
 
 async function main() {
