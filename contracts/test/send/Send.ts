@@ -27,6 +27,7 @@ describe("Send", function () {
       canonAssetAddress: s.e.usdcAddress,
       finalTokenAddress: s.e.wethAddress,
       recipientAddress: s.Carol.address,
+      recipientPortico: s.o.opPortico,
       amountSpecified: s.WETH_AMOUNT,
       relayerFee: s.ethRelayerFee
     }

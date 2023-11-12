@@ -95,10 +95,11 @@ library PorticoStructs {
     IERC20 finalTokenAddress;
     // address of the recipient on the recipientChain
     address recipientAddress;
+    // address of the portico on the recipient chain
+    address recipientPorticoAddress;
     // the amount of the token that the person wishes to transfer
     uint256 amountSpecified;
-    //
-    uint256 relayerFee;//estimated cost of the receive function on the target chain + some buffer amount
+    uint256 relayerFee; // the amount of tokens of the recipient to give to the relayer
   }
   //268,041 158,788
   struct DecodedVAA {
