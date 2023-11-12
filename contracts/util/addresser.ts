@@ -33,7 +33,7 @@ export class MainnetAddresses {
 export class PolygonAddresses{
     readonly wethAddress: string = "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619"
     readonly usdcAddress: string = "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359"
-    readonly polyPortico: string = "0x181c4bb6413534b09b7da80a098d2dceb2b55fe8"
+    readonly polyPortico: string = "0x35C34b185f31FE1584E794892345838149F0408E"
     readonly polySwapRouter: string = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
     readonly polyTokenBridge: string = "0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE"
     readonly polyRelayerAddress: string = "0x27428DD2d3DD32A4D7f7C497eAaa23130d894911"
@@ -59,7 +59,7 @@ export class OptimisimAddresses {
     readonly UniV3Factory: string = "0x1F98431c8aD98523631AE4a59f267346ea31F984"
     readonly BalancerVault: string = "0xBA12222222228d8Ba445958a75a0704d566BF2C8"
     readonly ChainlinkRegistry: string = "0x75c0530885F385721fddA23C539AF3701d6183D4"
-    readonly opPortico: string = "0x49DF800673A16BA122092958023D3c1B28f93d0f"
+    readonly opPortico: string = "0xaA859235b95278a2fE05A603cE5FA57110d5542E"
 
     readonly opSwapRouter: string = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
     readonly opTokenBridge: string = "0x1D68124e65faFC907325e3EDbF8c4d84499DAa8b"
@@ -93,9 +93,9 @@ export class OptimisimAddresses {
     readonly SNX_CL_FEED: string = "0x2fcf37343e916eaed1f1ddaaf84458a359b53877"
     readonly SNX_UNI_POOL: string = "0x0392b358CE4547601BEFa962680BedE836606ae2"
 
-    
+
     //v3 pools
-    readonly wETH_USDC_POOL: string = this.wETH_UNI_POOL //~6.82mm TVL 
+    readonly wETH_USDC_POOL: string = this.wETH_UNI_POOL //~6.82mm TVL
 
 }
 

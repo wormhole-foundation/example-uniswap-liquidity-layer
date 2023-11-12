@@ -171,8 +171,6 @@ abstract contract PorticoFinish is PorticoBase {
     bytes memory transferPayload = TOKENBRIDGE.completeTransferWithPayload(encodedTransferMessage);
 
 
-    // amountReceived == total balance always, so erouious transfers will just be forwarded to the next recipient of this token
-    amountReceived = message.canonAssetAddress.balanceOf(address(this));
 
     //parseTransferWithPayload
     ITokenBridge.TransferWithPayload memory transfer = TOKENBRIDGE.parseTransferWithPayload(transferPayload);
@@ -187,6 +185,10 @@ abstract contract PorticoFinish is PorticoBase {
     uint8 decimals = IERC20(thisChainTokenAddress).decimals();
     uint256 denormalizedAmount = transfer.amount;
     if (decimals > 8) denormalizedAmount *= uint256(10) ** (decimals - 8);
+
+
+    // amountReceived == total balance always, so erouious transfers will just be forwarded to the next recipient of this token
+    amountReceived = denormalizedAmount;
 
     // ensure that the to address is this address
     require(unpadAddress(transfer.to) == address(this) && transfer.toChain == wormholeChainId, "Token was not sent to this address");

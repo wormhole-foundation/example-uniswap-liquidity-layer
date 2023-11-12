@@ -16,7 +16,7 @@ import { AbiCoder } from "ethers/lib/utils";
 let portico: Portico
 
 /**
- * In this example, we send 5 USDC 
+ * In this example, we send 5 USDC
  * from Polygon => Optimism
  */
 
@@ -32,19 +32,20 @@ const send = async (user: SignerWithAddress) => {
 
 
     //connect to USDC
-    const USDC = IERC20__factory.connect(p.usdcAddress, user)
+    const USDC = IERC20__factory.connect(p.wethAddress, user)
 
     const params: TradeParameters = {
         flags: s.noWrapData,
-        startTokenAddress: p.usdcAddress,
+        startTokenAddress: p.wethAddress,
         canonAssetAddress: p.wethAddress,
         finalTokenAddress: o.usdcAddress,
-        recipientAddress: o.opPortico,
+        recipientAddress: user.address,
+        recipientPorticoAddress: o.opPortico,
         amountSpecified: usdcAmount,
         relayerFee: relayerFee
     }
 
-    const approve = await USDC.connect(user).approve(portico.address, usdcAmount)
+    const approve = await USDC.connect(user).approve(portico.address, BN("1e26"))
     await approve.wait()
     console.log("Sending...")
     const result = await portico.connect(user).start(params)
@@ -187,10 +188,11 @@ async function main() {
     }
 
     //recipientChain
-    s.noWrapData = await encodeFlagSet(opChainId, 9876, 3000, 3000, s.slippage, s.slippage, false, false)
+    s.noWrapData = encodeFlagSet(opChainId, new Date().valueOf(), 3000, 3000, s.slippage, s.slippage, false, false)
+    console.log(s.noWrapData)
 
-    //await send(user)
-    await receive(await resetOp())
+    await send(user)
+    //await receive(await resetOp())
 }
 
 // We recommend this pattern to be able to use async/await everywhere
