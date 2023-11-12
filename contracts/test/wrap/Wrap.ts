@@ -23,6 +23,7 @@ describe("Wrap", function () {
       canonAssetAddress: s.e.usdcAddress,
       finalTokenAddress: s.e.wethAddress,
       recipientAddress: s.Carol.address,
+      recipientPorticoAddress: s.Portico.address,
       amountSpecified: s.WETH_AMOUNT,
       relayerFee: s.ethRelayerFee
     }
@@ -110,6 +111,6 @@ describe("Receive", () => {
     //expect(await toNumber(endCarolWETH)).to.be.closeTo(await toNumber(s.WETH_AMOUNT), 0.02, "Swap completed")
 
   })
-   
+
 })
- 
+

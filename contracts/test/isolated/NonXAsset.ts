@@ -9,7 +9,7 @@ import { encodeFlagSet, getGas } from "../../util/msc";
 import { showBodyCyan } from "../../util/format";
 
 
-//what happens if we try to encode a sequence with a non xasset? 
+//what happens if we try to encode a sequence with a non xasset?
 
 describe("Setup", function () {
 
@@ -54,7 +54,7 @@ describe("Setup", function () {
 
   })
 
-  
+
 
   it("encode flags", async () => {
     s.noSippage = await encodeFlagSet(1, 1, 3000, 3000, 0, 0, false, false)
@@ -64,7 +64,7 @@ describe("Setup", function () {
   })
 })
 
-describe("Non x asset", async () => { 
+describe("Non x asset", async () => {
   //it still publishes the sequence
   it("send tx where cannonAsset != x asset", async () => {
     const params: TradeParameters = {
@@ -73,6 +73,7 @@ describe("Non x asset", async () => {
       canonAssetAddress: s.e.rethAddress,
       finalTokenAddress: s.e.wethAddress,
       recipientAddress: s.Carol.address,
+      recipientPorticoAddress: s.Portico.address,
       amountSpecified: s.WETH_AMOUNT,
       relayerFee: s.ethRelayerFee
 

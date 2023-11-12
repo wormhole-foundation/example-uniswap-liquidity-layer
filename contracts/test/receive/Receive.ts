@@ -48,7 +48,7 @@ describe("Receive", () => {
         amount: usdcAmount,
         tokenAddress: adddr2Bytes(s.e.usdcAddress),
         tokenChain: await s.WH.chainId(),
-        to: adddr2Bytes(s.Carol.address),
+        to: adddr2Bytes(s.Portico.address),
         toChain: await s.WH.chainId(),
         fromAddress: adddr2Bytes(s.Portico.address),
         payload: data

@@ -60,6 +60,7 @@ describe("Direct eth xchain transfer", () => {
       finalTokenAddress: s.p.wethAddress,
       recipientAddress: s.Bob.address,
       amountSpecified: s.WETH_AMOUNT,
+      recipientPorticoAddress: s.Portico.address,
       relayerFee: s.ethRelayerFee
     }
 
