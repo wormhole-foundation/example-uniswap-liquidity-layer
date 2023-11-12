@@ -20,7 +20,7 @@ let portico: Portico
  * from Polygon => Optimism
  */
 
-const usdcAmount = BN("5e6")
+const usdcAmount = BN("1e10")
 const relayerFee = BN("5e5")
 const polyWhale = "0xf89d7b9c864f589bbF53a82105107622B35EaA40"
 const polygonChainId = 5
@@ -45,8 +45,8 @@ const send = async (user: SignerWithAddress) => {
         relayerFee: relayerFee
     }
 
-    const approve = await USDC.connect(user).approve(portico.address, BN("1e26"))
-    await approve.wait()
+    //const approve = await USDC.connect(user).approve(portico.address, BN("1e26"))
+  //  await approve.wait()
     console.log("Sending...")
     const result = await portico.connect(user).start(params)
     const gas = await getGas(result)

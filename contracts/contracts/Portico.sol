@@ -157,7 +157,7 @@ abstract contract PorticoFinish is PorticoBase {
 
   function _completeTransfer(
     bytes calldata encodedTransferMessage
-  ) internal returns (PorticoStructs.DecodedVAA memory message, uint256 amountReceived) {
+  ) internal returns (PorticoStructs.DecodedVAA memory message,IERC20 tokenReceived, uint256 amountReceived) {
 
     /**
      * Call `completeTransferWithPayload` on the token bridge. This
@@ -174,10 +174,10 @@ abstract contract PorticoFinish is PorticoBase {
 
     //todo confirm this logic is correct
     // get the address for the token on this address
-    address thisChainTokenAddress = transfer.tokenChain == wormholeChainId
+    tokenReceived = IERC20(transfer.tokenChain == wormholeChainId
       ? unpadAddress(transfer.tokenAddress)
-      : TOKENBRIDGE.wrappedAsset(transfer.tokenChain, transfer.tokenAddress);
-    uint8 decimals = IERC20(thisChainTokenAddress).decimals();
+      : TOKENBRIDGE.wrappedAsset(transfer.tokenChain, transfer.tokenAddress));
+    uint8 decimals = tokenReceived.decimals();
     uint256 denormalizedAmount = transfer.amount;
     if (decimals > 8) denormalizedAmount *= uint256(10) ** (decimals - 8);
 
@@ -190,7 +190,7 @@ abstract contract PorticoFinish is PorticoBase {
 
   //https://github.com/wormhole-foundation/example-token-bridge-relayer/blob/8132e8cc0589cd5cf739bae012c42321879cfd4e/evm/src/token-bridge-relayer/TokenBridgeRelayer.sol#L496
   function receiveMessageAndSwap(bytes calldata encodedTransferMessage) external payable {
-    (PorticoStructs.DecodedVAA memory message, uint256 amountReceived) = _completeTransfer(
+    (PorticoStructs.DecodedVAA memory message, IERC20 tokenReceived, uint256 amountReceived) = _completeTransfer(
       encodedTransferMessage
     );
 
@@ -198,7 +198,7 @@ abstract contract PorticoFinish is PorticoBase {
     require(amountReceived == message.canonAssetAmount);
 
     //now process
-    bool swapCompleted = finish(message);
+    bool swapCompleted = finish(message, tokenReceived);
 
     // simply emit the raw data bytes. it should be trivial to parse.
     // TODO: consider what fields to index here
@@ -206,12 +206,12 @@ abstract contract PorticoFinish is PorticoBase {
   }
 
   ///@notice determines we need to swap and/or unwrap, does those things if needed, and sends tokens to user & pays relayer fee
-  function finish(PorticoStructs.DecodedVAA memory params) internal returns (bool swapCompleted) {
+  function finish(PorticoStructs.DecodedVAA memory params, IERC20 tokenReceived) internal returns (bool swapCompleted) {
     bool shouldUnwrap = params.flags.shouldUnwrapNative() && address(params.finalTokenAddress) == address(WETH);
     uint256 finalUserAmount;
     uint256 relayerFeeAmount;
 
-    if ((params.finalTokenAddress) == params.canonAssetAddress) {
+    if ((params.finalTokenAddress) == tokenReceived) {
       // this means that we don't need to do a swap, aka, we received the canon asset
       finalUserAmount = params.canonAssetAmount - params.relayerFee;
       payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, finalUserAmount, params.relayerFee);
@@ -219,7 +219,7 @@ abstract contract PorticoFinish is PorticoBase {
       return true;
     } else {
       //do the swap, resulting aset is sent to this address
-      (finalUserAmount, relayerFeeAmount, swapCompleted) = _finish_v3swap(params);
+      (finalUserAmount, relayerFeeAmount, swapCompleted) = _finish_v3swap(params, tokenReceived);
       //if swap fails, relayer and user have already been paid in canon asset, so we are done
       if (!swapCompleted) {
         return swapCompleted;
@@ -230,13 +230,13 @@ abstract contract PorticoFinish is PorticoBase {
 
   //https://github.com/wormhole-foundation/example-nativeswap-usdc/blob/ff9a0bd73ddba0cd7b377f57f13aac63a747f881/contracts/contracts/CrossChainSwapV3.sol#L228
   function _finish_v3swap(
-    PorticoStructs.DecodedVAA memory params
+    PorticoStructs.DecodedVAA memory params, IERC20 tokenReceived
   ) internal returns (uint256 finalUserAmount, uint256 relayerFeeAmount, bool swapCompleted) {
-    params.canonAssetAddress.approve(address(ROUTERV3), params.canonAssetAmount);
+    tokenReceived.approve(address(ROUTERV3), params.canonAssetAmount);
 
     // set swap options with user params
     ISwapRouter.ExactInputSingleParams memory swapParams = ISwapRouter.ExactInputSingleParams({
-      tokenIn: address(params.canonAssetAddress),
+      tokenIn: address(tokenReceived),
       tokenOut: address(params.finalTokenAddress),
       fee: params.flags.feeTierFinish(),
       recipient: address(this), // we need to receive the token in order to correctly split the fee. tragic.
@@ -245,7 +245,7 @@ abstract contract PorticoFinish is PorticoBase {
       amountOutMinimum: 0,
       sqrtPriceLimitX96: calculateSlippage(
         uint16(params.flags.maxSlippageFinish()),
-        address(params.canonAssetAddress),
+        address(tokenReceived),
         address(params.finalTokenAddress),
         params.flags.feeTierFinish()
       )
@@ -266,9 +266,9 @@ abstract contract PorticoFinish is PorticoBase {
       // in this case, it is in the best interest of the mev/relayer to NOT relay this message until conditions are good
       // the user of course, who if they self relay, does not pay a fee, does not have this problem, so they can force this if they wish
       // swap failed - return canon asset to recipient
-      params.canonAssetAddress.transfer(params.recipientAddress, params.canonAssetAmount);
+      tokenReceived.transfer(params.recipientAddress, params.canonAssetAmount);
       //set allowance to 0
-      params.canonAssetAddress.approve(address(ROUTERV3), 0);
+      tokenReceived.approve(address(ROUTERV3), 0);
       // TODO: should we emit a special event here?
       swapCompleted = false;
     }
@@ -327,12 +327,6 @@ abstract contract PorticoFinish is PorticoBase {
     }
 
     return tempUint;
-  }
-
-  /// @notice function to allow testing of finishing swap
-  //todo remove PorticoStructs.TokenReceived
-  function testSwap(PorticoStructs.DecodedVAA memory params) public payable {
-    finish(params);
   }
 }
 
