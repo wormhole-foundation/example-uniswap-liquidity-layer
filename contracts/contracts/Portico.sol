@@ -166,11 +166,10 @@ abstract contract PorticoFinish is PorticoBase {
      */
     bytes memory transferPayload = TOKENBRIDGE.completeTransferWithPayload(encodedTransferMessage);
 
-
-
     //parseTransferWithPayload
     ITokenBridge.TransferWithPayload memory transfer = TOKENBRIDGE.parseTransferWithPayload(transferPayload);
 
+    // decode the payload3 we sent into the decodedVAA struct
     message = abi.decode(transfer.payload, (PorticoStructs.DecodedVAA));
 
     //todo confirm this logic is correct
@@ -183,7 +182,6 @@ abstract contract PorticoFinish is PorticoBase {
     if (decimals > 8) denormalizedAmount *= uint256(10) ** (decimals - 8);
 
 
-    // amountReceived == total balance always, so erouious transfers will just be forwarded to the next recipient of this token
     amountReceived = denormalizedAmount;
 
     // ensure that the to address is this address
