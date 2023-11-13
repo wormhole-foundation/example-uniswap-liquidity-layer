@@ -18,6 +18,18 @@ import { AbiCoder, zeroPad } from "ethers/lib/utils";
 import { testVAA, consoleVAA } from "./receiveData"
 import { encode } from "punycode";
 
+const axios = require('axios')
+
+
+const MAINNET_GUARDIAN_RPC: string[] = [
+    "https://wormhole-v2-mainnet-api.certus.one",
+    "https://wormhole.inotel.ro",
+    "https://wormhole-v2-mainnet-api.mcf.rocks",
+    "https://wormhole-v2-mainnet-api.chainlayer.network",
+    "https://wormhole-v2-mainnet-api.staking.fund",
+    "https://wormhole-v2-mainnet.01node.com",
+]
+
 const abi = new AbiCoder()
 
 let portico: Portico
@@ -51,14 +63,26 @@ async function receive(user: SignerWithAddress) {
         ["tuple(uint8 version, uint32 timestamp, uint32 nonce, uint16 emitterChainId, bytes32 emitterAddress, uint64 sequence, uint8 consistencyLevel, bytes payload, uint32 guardianSetIndex, tuple(uint8 index, bytes signature, string name)[] signatures, bytes32 hash)"],
         [signedVaaVerbose]
     )
+        
+    const rpc = "https://api.wormholescan.io/api/v1/"
+
+    const address = p.polyPortico
+    const chainId = 5
+    const emitter = "0000000000000000000000005a58505a96d1dbf8df91cb21b54419fc36e93fde"//address.slice(2).padStart(64, "0"); // 32-byte padded//adddr2Bytes(p.polyPortico)
+    const sequence = 130973
+    const url = `${MAINNET_GUARDIAN_RPC[0]}/v1/signed_vaa/${chainId}/${emitter}/${sequence}`
+    console.log(url)
+    const response = await axios.get(url)
+    const vaa = Buffer.from(response.data.vaaBytes, "base64").toString("hex");
+
+    console.log(vaa)
 
 
-
-    console.log("Encoded")
+    //console.log("Encoded")
     //todo pass raw vaa
     //encodedMessage is the raw vaa encoded as binary
-    console.log("Receiving...")
-    //await portico.connect(user).receiveMessageAndSwap(data)
+    //console.log("Receiving...")
+    await portico.connect(user).receiveMessageAndSwap("0x"+vaa)
 
 
 
@@ -121,12 +145,23 @@ async function encodeTest(user: SignerWithAddress) {
         hash: consoleVAA.hash
     }
 
-    const encodedVm = encodeVM(vm)
+
+    console.log("Getting RESULT")
+   //const result = await getSignedVAA(MAINNET_GUARDIAN_RPC[1], 5, "0000000000000000000000005a58505a96d1dbf8df91cb21b54419fc36e93fde", "130980")
+    console.log("RESULT: ", result)
+
+    //const encodedVm = encodeVM(vm)
 
     //console.log(encodedVm)
 
     //const data = await portico.decodeTest(encodedVm)
     //console.log(data)
+
+
+}
+
+async function getVAA(vm:VM) {
+
 
 
 }
@@ -156,9 +191,9 @@ async function main() {
     }
 
 
-    //await receive(user)
+    await receive(user)
     // await receiveConsole(user)
-    await encodeTest(user)
+    //await encodeTest(user)
 }
 
 // We recommend this pattern to be able to use async/await everywhere
