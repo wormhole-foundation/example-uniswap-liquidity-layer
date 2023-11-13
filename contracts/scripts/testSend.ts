@@ -15,6 +15,7 @@ import { AbiCoder } from "ethers/lib/utils";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 import { signedVAA } from "./receiveData"
+import { encode } from "punycode";
 
 const abi = new AbiCoder()
 
@@ -39,7 +40,7 @@ const send = async (user: SignerWithAddress) => {
         canonAssetAddress: p.wethAddress,
         finalTokenAddress: o.usdcAddress,
         recipientAddress: user.address,
-        recipientPorticoAddress: o.consolePortico,
+        recipientPorticoAddress: o.opPortico,
         amountSpecified: amount,
         relayerFee: relayerFee
     }

@@ -13,8 +13,6 @@ import "./uniswap/ISwapRouter.sol";
 import "./uniswap/IV3Pool.sol";
 import "./uniswap/PoolAddress.sol";
 
-import "./lib/BytesLib.sol";
-
 import "hardhat/console.sol";
 
 using PorticoFlagSetAccess for PorticoFlagSet;
@@ -157,44 +155,7 @@ abstract contract PorticoStart is PorticoBase {
 }
 
 abstract contract PorticoFinish is PorticoBase {
-  using BytesLib for bytes;
-
   event PorticoSwapFinish(bool swapCompleted, PorticoStructs.DecodedVAA data);
-
-  //testing
-  function decodeTest(bytes calldata encodedVM) public view returns (IWormhole.VM memory vm) {
-    console.log("DECODE TEST");
-
-    uint index = 0;
-    console.log("VM version: ", encodedVM.toUint8(index));
-    index += 1;
-
-    console.log("GSI: ", encodedVM.toUint32(index));
-    index += 4;
-
-    uint256 signersLength = encodedVM.toUint8(index);
-    console.log("Signers length: ", signersLength);
-    index += 1;
-
-    vm.signatures = new IWormhole.Signature[](signersLength);
-    for (uint i = 0; i < signersLength; i++) {
-      vm.signatures[i].guardianIndex = encodedVM.toUint8(index);
-      index += 1;
-      console.log("Got i for loop: ", i);
-      console.log("IDX: ", vm.signatures[i].guardianIndex);
-
-      vm.signatures[i].r = encodedVM.toBytes32(index);
-      console.log("Got r for loop: ", i);
-      index += 32;
-      vm.signatures[i].s = encodedVM.toBytes32(index);
-      console.log("Got s for loop: ", i);
-      index += 32;
-      vm.signatures[i].v = encodedVM.toUint8(index) + 27;
-      console.log("Got v for loop: ", i);
-      index += 1;
-    }
-  }
-
   function _completeTransfer(
     bytes calldata encodedTransferMessage
   ) internal returns (PorticoStructs.DecodedVAA memory message, IERC20 tokenReceived, uint256 amountReceived) {
