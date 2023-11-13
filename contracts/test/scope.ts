@@ -109,6 +109,12 @@ export type Signatures = {
     guardianIndex: number
 }
 
+export type newSigs = {
+    index: number,
+    signature: BytesLike,
+    name: string
+}
+
 export type VM = {
     version: number,
     timestamp: number,
@@ -119,7 +125,7 @@ export type VM = {
     consistencyLevel: number,
     payload: BytesLike,
     guardianSetIndex: number,
-    signatures: Signatures[],
+    signatures: newSigs[]//Signatures[],
     hash: BytesLike
 }
 
