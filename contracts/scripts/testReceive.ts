@@ -17,8 +17,12 @@ import { AbiCoder, zeroPad } from "ethers/lib/utils";
 
 import { testVAA, consoleVAA } from "./receiveData"
 import { encode } from "punycode";
-
+/**
+ * 130982 - console
+ * 130997 - standard
+ */
 const axios = require('axios')
+const sender = "0x085909388fc0cE9E5761ac8608aF8f2F52cb8B89"
 
 const MAINNET_GUARDIAN_RPC: string[] = [
     "https://wormhole-v2-mainnet-api.certus.one",
@@ -36,23 +40,83 @@ let portico: Portico
 async function receive(user: SignerWithAddress) {
 
     console.log("Receive")
-    portico = Portico__factory.connect(o.opPortico, user)        
+    portico = Portico__factory.connect(o.opPortico, user)
 
     const chainId = 5 //emitting chain
     const emitter = "0000000000000000000000005a58505a96d1dbf8df91cb21b54419fc36e93fde"//address.slice(2).padStart(64, "0"); // 32-byte padded//adddr2Bytes(p.polyPortico)
-    const sequence = 130980//130997
+    const sequence = 131050//131050//130982//130980//130997
     const url = `${MAINNET_GUARDIAN_RPC[0]}/v1/signed_vaa/${chainId}/${emitter}/${sequence}`
     const response = await axios.get(url)
     const vaa = Buffer.from(response.data.vaaBytes, "base64").toString("hex");
 
-    await portico.connect(user).receiveMessageAndSwap("0x"+vaa)
+    console.log(vaa)
+
+    await portico.connect(user).receiveMessageAndSwap("0x" + vaa, {
+        gasPrice: 1000000000,
+        gasLimit: 400000
+    })
 
 }
+
+async function receiveFromOp(user: SignerWithAddress) {
+    const networkName = hre.network.name
+    if (networkName == "hardhat" || networkName == "localhost") {
+        await network.provider.send("evm_setAutomine", [true])
+        await resetCurrentPoly()
+        console.log("SWITCHED TO POLY @ ", await (await currentBlock()).number)
+        await impersonateAccount(sender)
+        user = ethers.provider.getSigner(sender)
+
+    } else {
+        console.log("SENDING TX ON: ", networkName)
+    }
+
+    portico = Portico__factory.connect(p.polyPortico, user)
+
+    const chainId = 24 //emitting chain
+    const emitter = "0000000000000000000000001d68124e65fafc907325e3edbf8c4d84499daa8b"//address.slice(2).padStart(64, "0"); // 32-byte padded//adddr2Bytes(p.polyPortico)
+    const sequence = 6558//6559 recipient chain = 24//6558 recipient chain = 5
+    const url = `${MAINNET_GUARDIAN_RPC[0]}/v1/signed_vaa/${chainId}/${emitter}/${sequence}`
+    const response = await axios.get(url)
+    const vaa = Buffer.from(response.data.vaaBytes, "base64").toString("hex");
+
+    console.log(vaa)
+
+    await portico.connect(user).receiveMessageAndSwap("0x" + vaa)
+
+
+}
+
+async function test(user: SignerWithAddress) {
+
+    const testPortico = await DeployContract(
+        new Portico__factory(user),
+        user,
+        o.opSwapRouter,
+        o.opTokenBridge,
+        o.opRelayerAddress,
+        o.wethAddress
+    )
+
+    const chainId = 5 //emitting chain
+    const emitter = "0000000000000000000000005a58505a96d1dbf8df91cb21b54419fc36e93fde"//address.slice(2).padStart(64, "0"); // 32-byte padded//adddr2Bytes(p.polyPortico)
+    const sequence = 131049//130980//130997
+    const url = `${MAINNET_GUARDIAN_RPC[0]}/v1/signed_vaa/${chainId}/${emitter}/${sequence}`
+    const response = await axios.get(url)
+    const vaa = "0x"+(Buffer.from(response.data.vaaBytes, "base64").toString("hex")).toString();
+
+    //await testPortico.receiveMessageAndSwap(vaa)
+
+    //await testPortico.testGetToken("0x0000000000000000000000005a58505a96d1dbf8df91cb21b54419fc36e93fde")
+
+
+}
+
+
 
 async function main() {
 
     let user: SignerWithAddress
-    const sender = "0x085909388fc0cE9E5761ac8608aF8f2F52cb8B89"
     //check for test network
     const networkName = hre.network.name
     if (networkName == "hardhat" || networkName == "localhost") {
@@ -72,8 +136,9 @@ async function main() {
     }
 
 
+    //await receiveFromOp(user)
     await receive(user)
-    //await encodeTest(user)
+    //await test(user)
 }
 
 // We recommend this pattern to be able to use async/await everywhere

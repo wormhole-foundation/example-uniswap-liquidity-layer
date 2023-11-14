@@ -34,11 +34,15 @@ const send = async (user: SignerWithAddress) => {
 
     portico = Portico__factory.connect(p.polyPortico, user)
 
+    const flags = encodeFlagSet(24, 1, 3000, 3000, 300, 300, false, false)
+    console.log(flags)
+    //0x1800fbee2cc5b80b00b80b002c012c0100000000000000000000000000000000
+    //0x1800fbee2cc5b80b00b80b00c800c80000000000000000000000000000000000
     const inputData: TradeParameters = {
         flags: "0x1800fbee2cc5b80b00b80b00c800c80000000000000000000000000000000000",
         startTokenAddress: p.wethAddress,
         canonAssetAddress: p.wethAddress,
-        finalTokenAddress: o.usdcAddress,
+        finalTokenAddress: o.wethAddress,
         recipientAddress: user.address,
         recipientPorticoAddress: o.opPortico,
         amountSpecified: amount,
@@ -56,6 +60,51 @@ const send = async (user: SignerWithAddress) => {
     console.log("Sent: ", (await result.wait()).transactionHash)
     console.log("Sequence: ", event.args.sequence.toNumber())
 }
+
+const sendOpToPoly = async (user: SignerWithAddress) => {
+    const networkName = hre.network.name
+    if (networkName == "hardhat" || networkName == "localhost") {
+        await network.provider.send("evm_setAutomine", [true])
+        await resetCurrentOP()
+        console.log("SWITCHED TO OP @ ", await (await currentBlock()).number)
+
+        const whale = "0xBA12222222228d8Ba445958a75a0704d566BF2C8"
+        await stealMoney(whale, user.address, o.wethAddress, amount)
+
+    } else {
+        console.log("SENDING TX ON: ", networkName)
+    }
+
+
+    portico = Portico__factory.connect(o.opPortico, user)
+
+    const flags = encodeFlagSet(24, 1, 3000, 3000, 300, 300, false, false)
+    //0x1800fbee2cc5b80b00b80b002c012c0100000000000000000000000000000000
+    //0x1800fbee2cc5b80b00b80b00c800c80000000000000000000000000000000000
+    const inputData: TradeParameters = {
+        flags: flags,
+        startTokenAddress: o.wethAddress,
+        canonAssetAddress: o.wethAddress,
+        finalTokenAddress: o.wethAddress,
+        recipientAddress: user.address,
+        recipientPorticoAddress: p.polyPortico,
+        amountSpecified: amount,
+        relayerFee: relayerFee
+    }
+
+    const WETH = IERC20__factory.connect(o.wethAddress, user)
+    const approve = await WETH.connect(user).approve(portico.address, amount)
+    await approve.wait()
+    console.log("Sending...")
+    const result = await portico.connect(user).start(inputData)
+    const gas = await getGas(result)
+    showBodyCyan("Gas: ", gas)
+    const event = await getEvent(result, "PorticoSwapStart")
+    console.log("Sent: ", (await result.wait()).transactionHash)
+    console.log("Sequence: ", event.args.sequence.toNumber())
+}
+
+
 
 async function main() {
 
@@ -77,8 +126,8 @@ async function main() {
         console.log("SENDING TX ON: ", networkName)
     }
 
-    await send(user)
-
+    //await send(user)
+    await sendOpToPoly(user)
 }
 
 // We recommend this pattern to be able to use async/await everywhere
@@ -98,4 +147,22 @@ Sequence:  130980
  * consoles: 
 Sent:  0xf7d833c65ab4cebd18e1dd39e9c7b30198059b8d515175188a3f7b8c474a9542
 Sequence:  130982
+ */
+
+/**
+ * No swap: 
+Sent:  0xa2259478bdf4380eddca85f35e1489eea2dc3799e834d6b5b89837dcb12f6d8e
+Sequence:  131050
+ */
+/**
+ * op => polygon
+Sent:  0xc94b24d69a10cb4aded5fb3fcdb3a4086f2400eb5106ffd7f57c1b904bb6bc63
+Sequence:  6558
+
+ * op => polygon with ID 24 in flagset
+Sent:  0xe83b60bc9f6b467e2341946b8be4b2c05ee61e9c54e100728df96e5b128ba7ed
+Sequence:  6559
+
+Sent:  0xadc05c8ed59dd282e26683e1b5744467fd67b2a4ab57c26166133623b53e4bea
+Sequence:  6560
  */

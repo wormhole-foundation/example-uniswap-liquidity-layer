@@ -188,6 +188,9 @@ abstract contract PorticoFinish is PorticoBase {
     );
     uint8 decimals = tokenReceived.decimals();
     uint256 denormalizedAmount = transfer.amount;
+
+    console.log("Token Received: ", address(tokenReceived));
+
     if (decimals > 8) denormalizedAmount *= uint256(10) ** (decimals - 8);
 
     amountReceived = denormalizedAmount;
@@ -196,6 +199,11 @@ abstract contract PorticoFinish is PorticoBase {
 
     // ensure that the to address is this address
     require(unpadAddress(transfer.to) == address(this) && transfer.toChain == wormholeChainId, "Token was not sent to this address");
+  }
+
+  function testGetToken(bytes32 token) external view {
+    console.log("Testing");
+    console.log("inupt unpad: ", unpadAddress(token));
   }
 
   //https://github.com/wormhole-foundation/example-token-bridge-relayer/blob/8132e8cc0589cd5cf739bae012c42321879cfd4e/evm/src/token-bridge-relayer/TokenBridgeRelayer.sol#L496
