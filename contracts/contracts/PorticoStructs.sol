@@ -112,4 +112,10 @@ library PorticoStructs {
     uint256 canonAssetAmount;
     uint256 relayerFee;
   }
+
+  struct BridgeInfo {
+    IERC20 tokenReceived;
+    uint256 amountReceived;
+    uint256 relayerFeeAmount;
+  }
 }

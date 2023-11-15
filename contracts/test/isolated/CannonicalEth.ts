@@ -38,7 +38,7 @@ describe("Setup", function () {
     s.Portico = await DeployContract(
       new Portico__factory(s.Frank),
       s.Frank,
-      s.opSwapRouter, s.opTokenBridge, s.opRelayerAddress, s.o.wethAddress
+      s.opSwapRouter, s.opTokenBridge, s.o.wethAddress
     )
 
     expect(s.Portico.address).to.not.eq("0x0000000000000000000000000000000000000000", "Deployed")
@@ -46,7 +46,7 @@ describe("Setup", function () {
   })
 
   it("encode flags", async () => {
-    s.wrapData = await encodeFlagSet(recipientChainId, 1, 3000, 3000, s.slippage, s.slippage, true, true)
+    s.wrapData = encodeFlagSet(recipientChainId, 1, 3000, 3000, s.slippage, s.slippage, true, true)
   })
 })
 

@@ -3,4 +3,5 @@
  */
 
 export * from "./order";
+export * from "./quote";
 export * from "./web3";

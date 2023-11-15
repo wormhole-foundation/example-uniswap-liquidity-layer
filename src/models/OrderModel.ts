@@ -1,5 +1,6 @@
-import {DateTime, Enum, Example, Format, Integer, Pattern, Property, Required} from "@tsed/schema";
+import {Any, DateTime, Enum, Example, Format, Integer, Optional, Pattern, Property, Required, string} from "@tsed/schema";
 import { TxnData} from "src/types";
+import { Hex } from "viem";
 
 export enum OrderStatus {
   NOTFOUND = "notfound", // txn is not found in mempool
@@ -12,6 +13,49 @@ export enum OrderStatus {
   CANCELLED = "cancelled", // unknown how this can happen yet
 }
 
+
+export class OrderMetadata {
+  @Integer()
+  wormholeOriginChain?: number;
+
+  @Integer()
+  wormholeTargetChain?: number;
+}
+
+export class BridgeStatus {
+  @Required()
+  hash: string;
+
+  @Required()
+  id: string;
+
+  @Integer()
+  sigsRequired: number;
+
+  @Integer()
+  sigsObtained: number;
+
+  @Pattern(/0x[a-f0-9]*/)
+  @Any("string")
+  @Optional()
+  VAA?: Hex
+}
+
+
+export class OriginTxn {
+  @Required()
+  hash: string;
+
+  @Integer()
+  chainId: number;
+
+  @Integer()
+  wormholeChainId: number;
+
+  @Required()
+  data: TxnData
+}
+
 export class OrderModel {
   @Pattern(/0x[a-f0-9]{64}_[0-9]{1,5}/)
   @Example("0x0000000000000000000000000000000000000000000000000000000000000000_1")
@@ -22,13 +66,17 @@ export class OrderModel {
   @Required()
   status: OrderStatus
 
-  @Property()
-  originTxnData?: TxnData
+  @Optional()
+  metadata?: OrderMetadata
 
   @Property()
-  bridgeStatus?: any
+  originTxnData?: OriginTxn
+
+  @Property()
+  bridgeStatus?: BridgeStatus
 
   @Property()
   receipientTxnData?: TxnData
-}
 
+
+}

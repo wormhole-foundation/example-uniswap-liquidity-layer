@@ -72,17 +72,6 @@ describe("Receive", () => {
 
   it("Recieve xChain tx", async () => {
 
-
-    const params: DecodedVAA = {
-      flags: s.wrapData,
-      canonAssetAddress: s.e.usdcAddress,
-      finalTokenAddress: s.e.wethAddress,
-      recipientAddress: s.Carol.address,
-      canonAssetAmount: usdcAmount,
-      relayerFee: s.ethRelayerFee
-
-    }
-
     const startReceiverUSDC = await s.USDC.balanceOf(s.Portico.address)
     const startCarolUSDC = await s.USDC.balanceOf(s.Carol.address)
     const startCarolWETH = await s.WETH.balanceOf(s.Carol.address)
@@ -92,8 +81,6 @@ describe("Receive", () => {
 
     const startEth = await ethers.provider.getBalance(s.Carol.address)
     showBody("StartEth: ", await toNumber(startEth))
-    const gas = await getGas(await s.Portico.testSwap(params))
-    showBodyCyan("GAS TO RECEIVE AND UNWRAP: ", gas)
     const endEth = await ethers.provider.getBalance(s.Carol.address)
 
     showBody("Eth Netted: ", await toNumber(endEth.sub(startEth)))
