@@ -1,4 +1,5 @@
 import {  Any, AnyOf, Default, Example, Integer, Optional, Pattern, Property, Required } from "@tsed/schema";
+import { encodeStartData } from "src/web3";
 import { Address, Hex } from "viem";
 
 
@@ -23,7 +24,7 @@ export class CreateOrderRequest {
   @Required()
   destinationToken: string
 
-  @Pattern(/0x[a-f0-9]{40}/)
+  @Pattern(/0x[a-fA-F0-9]{40}/)
   @Any("string")
   @Required()
   destinationAddress: Address
@@ -67,30 +68,35 @@ export class CreateOrderRequest {
   shouldUnwrapNative? : boolean = false
 
 
-  @Pattern(/0x[a-f0-9]{40}/)
   @Any("string")
-  porticoAddress? : Address
+  @Example("")
+  porticoAddress? : Address = undefined
 
-  @Pattern(/0x[a-f0-9]{40}/)
   @Any("string")
-  destinationPorticoAddress? : Address
+  @Example("")
+  destinationPorticoAddress? : Address = undefined
 }
 
+
+
 export class CreateOrderResponse {
-  @Pattern(/0x[a-f0-9]*/)
+  @Pattern(/0x[a-fA-F0-9]*/)
   @Any("string")
   @Required()
   transactionData: Hex
 
-  @Pattern(/0x[a-f0-9]{40}/)
+  @Pattern(/0x[a-fA-F0-9]{40}/)
   @Any("string")
   @Required()
   transactionTarget: Address
 
-  @Pattern(/0x[a-f0-9]{0,64}/)
+  @Pattern(/0x[a-fA-F0-9]{0,64}/)
   @Any("string")
   @Required()
   transactionValue: Hex
+
+  @Required()
+  startParameters: Array<string>
 }
 
 export class GetOrderRequest {

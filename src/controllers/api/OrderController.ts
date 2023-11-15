@@ -38,30 +38,21 @@ export class OrderController {
   @Post("/create")
   @Returns(200, CreateOrderResponse)
   create(@BodyParams() req: CreateOrderRequest) {
-    const canonToken = this.rolodexService.getCanonTokenForToken(req.destinationChainId, req.destinationToken)
+    const canonToken = this.rolodexService.getCanonTokenForToken(req.startingChainId, req.destinationToken)
     if(!canonToken) {
       throw new BadRequest("no route found")
     }
+
     let destinationPorticoAddress = this.rolodexService.getPortico(req.destinationChainId)
-    if(req.destinationPorticoAddress) {
+    if(req.destinationPorticoAddress && req.destinationPorticoAddress.length == 42) {
       destinationPorticoAddress = req.destinationPorticoAddress
     }
     if(!destinationPorticoAddress) {
       throw new BadRequest("no destination portico found for chain")
     }
 
-    const originTokenAddress = isAddress(req.startingToken) ? req.startingToken : this.rolodexService.getCanonTokenForTokenName(req.startingChainId, req.startingToken)
-    if(!originTokenAddress) {
-      throw new BadRequest(`could not find token for ${req.startingToken}`)
-    }
-
-    const destinationTokenAddress = isAddress(req.destinationToken) ? req.destinationToken : this.rolodexService.getNativeTokenForTokenName(req.destinationChainId, req.destinationToken)
-    if(!destinationTokenAddress) {
-      throw new BadRequest(`could not find token for ${req.destinationToken}`)
-    }
-
-    let transactionData = encodeStartData(
-      encodeFlagSet(
+    const startDataParams: Parameters<typeof encodeStartData> = [
+     encodeFlagSet(
         req.destinationChainId,
         req.bridgeNonce,
         req.feeTierStart,
@@ -71,16 +62,20 @@ export class OrderController {
         req.shouldWrapNative ||  false,
         req.shouldUnwrapNative || false,
       ),
-      originTokenAddress as Address,
+      req.startingToken,
       canonToken as Address,
-      destinationTokenAddress as Address,
+      req.destinationToken,
       req.destinationAddress,
       destinationPorticoAddress,
       BigInt(req.startingTokenAmount),
       BigInt(req.relayerFee),
+    ]
+
+    let transactionData = encodeStartData(
+      ...startDataParams
     )
-    let porticoAddress = this.rolodexService.getPortico(req.destinationChainId)
-    if(req.porticoAddress) {
+    let porticoAddress = this.rolodexService.getPortico(req.startingChainId)
+    if(req.porticoAddress && req.porticoAddress.length == 42) {
       porticoAddress = req.porticoAddress
     }
     if(!porticoAddress) {
@@ -91,6 +86,7 @@ export class OrderController {
       transactionData,
       transactionTarget: porticoAddress,
       transactionValue: req.shouldWrapNative ? toHex(BigInt(req.startingTokenAmount)) : undefined,
+      startParameters: startDataParams.map(x=>x.toString()),
     }
   }
 
