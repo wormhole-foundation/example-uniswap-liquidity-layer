@@ -1,7 +1,7 @@
-import { Address, Hex, encodeAbiParameters, encodeFunctionData, parseAbi } from "viem";
+import { Address, Hex, encodeFunctionData, parseAbi } from "viem";
 
 const tradeParameterAbi = parseAbi([
-  `function start((bytes32,address,address,address,address,uint256,uint256)) returns (address,uint16,uint64)` as const,
+  `function start((bytes32,address,address,address,address,address,uint256,uint256)) returns (address,uint16,uint64)` as const,
 ])
 
 export const encodeStartData = (
@@ -10,6 +10,7 @@ startTokenAddress: Address,
 canonTokenAddress: Address,
 finalTokenAddress: Address,
 recipientAddress: Address,
+destinationPorticoAddress: Address,
 amountSpecified: bigint,
 relayerFee: bigint,
 ) => {
@@ -22,6 +23,7 @@ relayerFee: bigint,
       canonTokenAddress,
       finalTokenAddress,
       recipientAddress,
+      destinationPorticoAddress,
       amountSpecified,
       relayerFee,
     ]]})

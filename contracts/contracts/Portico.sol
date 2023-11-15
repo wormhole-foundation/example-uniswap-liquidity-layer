@@ -13,7 +13,6 @@ import "./uniswap/ISwapRouter.sol";
 import "./uniswap/IV3Pool.sol";
 import "./uniswap/PoolAddress.sol";
 
-import "hardhat/console.sol";
 
 using PorticoFlagSetAccess for PorticoFlagSet;
 
@@ -22,16 +21,14 @@ contract PorticoBase {
 
   ISwapRouter public immutable ROUTERV3;
   ITokenBridge public immutable TOKENBRIDGE;
-  address public immutable FEE_RECIPIENT;
   IWETH public immutable WETH;
 
   IWormhole public immutable wormhole;
 
   uint16 public immutable wormholeChainId;
 
-  constructor(ISwapRouter _routerV3, ITokenBridge _bridge, address _relayer, IWETH _weth) {
+  constructor(ISwapRouter _routerV3, ITokenBridge _bridge, IWETH _weth) {
     ROUTERV3 = _routerV3;
-    FEE_RECIPIENT = _relayer;
     TOKENBRIDGE = _bridge;
     wormhole = _bridge.wormhole();
     WETH = _weth;
@@ -56,8 +53,6 @@ contract PorticoBase {
     return address(uint160(uint256(whFormatAddress)));
   }
 
-  //248,424
-  //247,893
   ///@notice if tokenIn == token0 then slippage is in the negative, and vice versa
   ///@param maxSlippage is in BIPS
   function calculateSlippage(
@@ -66,18 +61,36 @@ contract PorticoBase {
     address tokenOut,
     uint24 fee
   ) internal view returns (uint160 sqrtPriceLimitX96) {
-    //compute pool key
-    PoolAddress.PoolKey memory key = PoolAddress.getPoolKey(tokenIn, tokenOut, fee);
-
+    PoolAddress.PoolKey memory key =  PoolAddress.getPoolKey(tokenIn, tokenOut, fee);
     //compute pool
     IV3Pool pool = IV3Pool(PoolAddress.computeAddress(ROUTERV3.factory(), key));
-
     //get current tick via slot0
-    (uint160 sqrtPriceX96, , , , , , ) = pool.slot0();
-
+    uint160 sqrtPriceX96 = sqrtPrice(pool);
     uint160 buffer = (maxSlippage * sqrtPriceX96) / 10000;
+    if(tokenIn == key.token0){
+      if(sqrtPriceX96 > buffer) {
+        sqrtPriceLimitX96 = sqrtPriceX96 - buffer;
+      }
+    } else {
+      sqrtPriceLimitX96 = sqrtPriceX96 + buffer;
+    }
+  }
 
-    tokenIn == key.token0 ? sqrtPriceLimitX96 = sqrtPriceX96 - buffer : sqrtPriceLimitX96 = sqrtPriceX96 + buffer;
+  function sqrtPrice(IV3Pool pool) internal view returns (uint160)  {
+    //get current tick via slot0
+    try pool.slot0() returns (
+      uint160 sqrtPriceX96,
+      int24 /*tick*/,
+      uint16 /*observationIndex*/,
+      uint16 /*observationCardinality*/,
+      uint16 /*observationCardinalityNext*/,
+      uint8 /*feeProtocol*/,
+      bool /*unlocked*/
+    ) {
+      return sqrtPriceX96;
+    } catch {
+      return 0;
+    }
   }
 }
 
@@ -100,7 +113,7 @@ abstract contract PorticoStart is PorticoBase {
           address(params.canonAssetAddress),
           params.flags.feeTierStart()
         )
-      )
+    )
     );
   }
 
@@ -139,6 +152,8 @@ abstract contract PorticoStart is PorticoBase {
       amount,
       params.relayerFee
     );
+
+    bytes memory encodedVaa = abi.encode(decodedVAA);
     // question: what happens when the asset is not an xasset. will this just fail? ans - nope
     sequence = TOKENBRIDGE.transferTokensWithPayload{ value: wormhole.messageFee() }(
       address(params.canonAssetAddress),
@@ -146,7 +161,7 @@ abstract contract PorticoStart is PorticoBase {
       params.flags.recipientChain(),
       padAddress(params.recipientPorticoAddress),
       params.flags.bridgeNonce(),
-      abi.encode(decodedVAA)
+      encodedVaa
     );
     chainId = wormholeChainId;
     emitterAddress = address(TOKENBRIDGE);
@@ -158,8 +173,7 @@ abstract contract PorticoFinish is PorticoBase {
   event PorticoSwapFinish(bool swapCompleted, PorticoStructs.DecodedVAA data);
   function _completeTransfer(
     bytes calldata encodedTransferMessage
-  ) internal returns (PorticoStructs.DecodedVAA memory message, IERC20 tokenReceived, uint256 amountReceived) {
-    console.log("_completeTransfer start");
+  ) internal returns (PorticoStructs.DecodedVAA memory message, PorticoStructs.BridgeInfo memory bridgeInfo) {
 
     /**
      * Call `completeTransferWithPayload` on the token bridge. This
@@ -176,141 +190,110 @@ abstract contract PorticoFinish is PorticoBase {
 
     //todo confirm this logic is correct
     // get the address for the token on this address
-    tokenReceived = IERC20(
+    bridgeInfo.tokenReceived = IERC20(
       transfer.tokenChain == wormholeChainId
         ? unpadAddress(transfer.tokenAddress)
         : TOKENBRIDGE.wrappedAsset(transfer.tokenChain, transfer.tokenAddress)
     );
-    uint8 decimals = tokenReceived.decimals();
-    amountReceived = tokenReceived.balanceOf(address(this));//transfer.amount;
-
-    console.log("Token Received: ", address(tokenReceived));
-    console.log("Ammnt Received: ", tokenReceived.balanceOf(address(this)));
-
-    if (decimals > 8) amountReceived *= uint256(10) ** (decimals - 8);
-
-    console.log("Amount Received: ", amountReceived);
+    bridgeInfo.amountReceived = transfer.amount;
+    // if there are more than 8 decimals, we need to denormalize
+    uint8 decimals = bridgeInfo.tokenReceived.decimals();
+    if (decimals > 8) {
+      bridgeInfo.amountReceived *= uint256(10) ** (decimals - 8);
+    }
 
     // ensure that the to address is this address
     require(unpadAddress(transfer.to) == address(this) && transfer.toChain == wormholeChainId, "Token was not sent to this address");
+
   }
 
   //https://github.com/wormhole-foundation/example-token-bridge-relayer/blob/8132e8cc0589cd5cf739bae012c42321879cfd4e/evm/src/token-bridge-relayer/TokenBridgeRelayer.sol#L496
   function receiveMessageAndSwap(bytes calldata encodedTransferMessage) external payable {
-    (PorticoStructs.DecodedVAA memory message, IERC20 tokenReceived, uint256 amountReceived) = _completeTransfer(encodedTransferMessage);
+    (PorticoStructs.DecodedVAA memory message, PorticoStructs.BridgeInfo memory bridgeInfo) = _completeTransfer(encodedTransferMessage);
 
-    // we must have received the amount expected
-    //require(amountReceived == message.canonAssetAmount);
-    console.log("amountReceived  : ", amountReceived);
-    console.log("canonAssetAmount: ", message.canonAssetAmount);
-
-    //note testing
-    if(amountReceived != message.canonAssetAmount){
-      message.canonAssetAmount = amountReceived;
-    }
-
+    bridgeInfo.relayerFeeAmount = (_msgSender() == message.recipientAddress) ? 0 : message.relayerFee;
     //now process
-    bool swapCompleted = finish(message, tokenReceived);
+    bool swapCompleted = finish(message, bridgeInfo);
 
-    console.log("DONE: ", swapCompleted);
     // simply emit the raw data bytes. it should be trivial to parse.
     // TODO: consider what fields to index here
     emit PorticoSwapFinish(swapCompleted, message);
   }
 
   ///@notice determines we need to swap and/or unwrap, does those things if needed, and sends tokens to user & pays relayer fee
-  function finish(PorticoStructs.DecodedVAA memory params, IERC20 tokenReceived) internal returns (bool swapCompleted) {
+  function finish(PorticoStructs.DecodedVAA memory params, PorticoStructs.BridgeInfo memory bridgeInfo) internal returns (bool swapCompleted) {
     bool shouldUnwrap = params.flags.shouldUnwrapNative() && address(params.finalTokenAddress) == address(WETH);
-    uint256 finalUserAmount;
-    uint256 relayerFeeAmount;
-
-    if ((params.finalTokenAddress) == tokenReceived) {
-      // this means that we don't need to do a swap, aka, we received the canon asset
-      finalUserAmount = params.canonAssetAmount - params.relayerFee;
-      payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, finalUserAmount, params.relayerFee);
+    if ((params.finalTokenAddress) == bridgeInfo.tokenReceived) {
+      // this means that we don't need to do a swap, aka, we received the canon asset.
+      payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, bridgeInfo.relayerFeeAmount);
       //todo return false for accounting as no swap was actually completed?
       return true;
     } else {
       //do the swap, resulting aset is sent to this address
-      (finalUserAmount, relayerFeeAmount, swapCompleted) = _finish_v3swap(params, tokenReceived);
+      swapCompleted = _finish_v3swap(params, bridgeInfo);
       //if swap fails, relayer and user have already been paid in canon asset, so we are done
       if (!swapCompleted) {
         return swapCompleted;
       }
-      payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, finalUserAmount, relayerFeeAmount);
+      payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, bridgeInfo.relayerFeeAmount);
     }
   }
 
   //https://github.com/wormhole-foundation/example-nativeswap-usdc/blob/ff9a0bd73ddba0cd7b377f57f13aac63a747f881/contracts/contracts/CrossChainSwapV3.sol#L228
+  // if swap fails, we don't pay fees to the relayer
+  // the reason is because that typically, the swap fails because of bad market conditions
+  // in this case, it is in the best interest of the mev/relayer to NOT relay this message until conditions are good
+  // the user of course, who if they self relay, does not pay a fee, does not have this problem, so they can force this if they wish
+  // swap failed - return canon asset to recipient
   function _finish_v3swap(
     PorticoStructs.DecodedVAA memory params,
-    IERC20 tokenReceived
-  ) internal returns (uint256 finalUserAmount, uint256 relayerFeeAmount, bool swapCompleted) {
-    tokenReceived.approve(address(ROUTERV3), params.canonAssetAmount);
+    PorticoStructs.BridgeInfo memory bridgeInfo
+  ) internal returns (bool swapCompleted) {
+    bridgeInfo.tokenReceived.approve(address(ROUTERV3), bridgeInfo.amountReceived);
 
+    uint160 sqrtPriceLimit =  calculateSlippage(
+      uint16(params.flags.maxSlippageFinish()),
+      address(bridgeInfo.tokenReceived),
+      address(params.finalTokenAddress),
+      params.flags.feeTierFinish()
+    );
     // set swap options with user params
     ISwapRouter.ExactInputSingleParams memory swapParams = ISwapRouter.ExactInputSingleParams({
-      tokenIn: address(tokenReceived),
+      tokenIn: address(bridgeInfo.tokenReceived),
       tokenOut: address(params.finalTokenAddress),
       fee: params.flags.feeTierFinish(),
       recipient: address(this), // we need to receive the token in order to correctly split the fee. tragic.
       deadline: block.timestamp + 10,
-      amountIn: params.canonAssetAmount,
+      amountIn: bridgeInfo.amountReceived,
       amountOutMinimum: 0,
-      sqrtPriceLimitX96: calculateSlippage(
-        uint16(params.flags.maxSlippageFinish()),
-        address(tokenReceived),
-        address(params.finalTokenAddress),
-        params.flags.feeTierFinish()
-      )
+      sqrtPriceLimitX96: sqrtPriceLimit
     });
 
-    uint256 relayerFee = (_msgSender() == params.recipientAddress) ? 0 : params.relayerFee;
-
-    try ROUTERV3.exactInputSingle(swapParams) returns (uint256 amountOut) {
-
-      //amountOut - relayerFee should 
-
-      //calculate how much to pay the relayer in the native token
-      if (relayerFee > 0) {
-        relayerFeeAmount = relayerFee;
-      }
-      finalUserAmount = amountOut - relayerFeeAmount;
+    try ROUTERV3.exactInputSingle(swapParams) returns (uint256 /*amountOut*/) {
       swapCompleted = true;
     } catch {
-      // if swap fails, we don't pay fees to the relayer
-      // the reason is because that typically, the swap fails because of bad market conditions
-      // in this case, it is in the best interest of the mev/relayer to NOT relay this message until conditions are good
-      // the user of course, who if they self relay, does not pay a fee, does not have this problem, so they can force this if they wish
-      // swap failed - return canon asset to recipient
-      tokenReceived.transfer(params.recipientAddress, params.canonAssetAmount);
-      //set allowance to 0
-      tokenReceived.approve(address(ROUTERV3), 0);
-      // TODO: should we emit a special event here?
+      bridgeInfo.tokenReceived.transfer(params.recipientAddress, bridgeInfo.amountReceived);
       swapCompleted = false;
     }
   }
 
   ///@notice pay out to user and relayer
   ///@notice this should always be called UNLESS swap fails, in which case payouts happen there
-  function payOut(bool unwrap, IERC20 finalToken, address recipient, uint256 finalUserAmount, uint256 relayerFeeAmount) internal {
-    console.log("Pay Out");
+  function payOut(bool unwrap, IERC20 finalToken, address recipient, uint256 relayerFeeAmount) internal {
 
     uint256 actualBalance = finalToken.balanceOf(address(this));
-    console.log("Actual Balance: ", actualBalance);
-    console.log("Owed To User  : ", finalUserAmount);
-    console.log("Owed to Relayr: ", relayerFeeAmount);
 
     //square up balances with what we actually have, don't trust reporting from the bridge
-    //prioritize relayer fee? 
-    finalUserAmount = actualBalance - relayerFeeAmount;
-    console.log("Actual final user amount: ", finalUserAmount);    
+    //prioritize relayer fee?
+    uint256 finalUserAmount = actualBalance - relayerFeeAmount;
 
     if (unwrap) {
       WETH.withdraw(IERC20(address(WETH)).balanceOf(address(this)));
       //send to user
-      (bool sentToUser, ) = recipient.call{ value: finalUserAmount }("");
-      require(sentToUser, "Failed to send Ether");
+      if(finalUserAmount > 0) {
+        (bool sentToUser, ) = recipient.call{ value: finalUserAmount }("");
+        require(sentToUser, "Failed to send Ether");
+      }
       if (relayerFeeAmount > 0) {
         //pay relayer fee
         (bool sentToRelayer, ) = _msgSender().call{ value: relayerFeeAmount }("");
@@ -323,7 +306,7 @@ abstract contract PorticoFinish is PorticoBase {
       }
       if (relayerFeeAmount > 0) {
         //pay relayer
-        require(finalToken.transfer(FEE_RECIPIENT, relayerFeeAmount), "STF");
+        require(finalToken.transfer(_msgSender(), relayerFeeAmount), "STF");
       }
     }
   }
@@ -363,7 +346,6 @@ contract Portico is PorticoFinish, PorticoStart {
   constructor(
     ISwapRouter _routerV3,
     ITokenBridge _bridge,
-    address _relayer,
     IWETH _weth
-  ) PorticoBase(_routerV3, _bridge, _relayer, _weth) {}
+  ) PorticoBase(_routerV3, _bridge, _weth) {}
 }

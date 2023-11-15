@@ -39,7 +39,7 @@ describe("Deploy", function () {
     s.Portico = await DeployContract(
       new Portico__factory(s.Frank),
       s.Frank,
-      s.swapRouterAddr, s.tokenBridgeAddr, s.relayerAddr, s.e.wethAddress
+      s.swapRouterAddr, s.tokenBridgeAddr, s.e.wethAddress
     )
 
     expect(s.Portico.address).to.not.eq("0x0000000000000000000000000000000000000000", "Start Deployed")

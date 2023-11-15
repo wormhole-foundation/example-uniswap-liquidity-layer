@@ -10,15 +10,12 @@ let portico: Portico
 
 const polySwapRouter = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
 const polyTokenBridge = "0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE"//
-const polyRelayerAddress = "0x27428DD2d3DD32A4D7f7C497eAaa23130d894911"
 
 const opSwapRouter = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
 const opTokenBridge = "0x1D68124e65faFC907325e3EDbF8c4d84499DAa8b"//
-const opRelayerAddress = "0x27428DD2d3DD32A4D7f7C497eAaa23130d894911"
 
 let swapRouter: string
 let tokenBridge: string
-let relayer: string
 let weth: string
 
 const deploy = async (deployer: SignerWithAddress) => {
@@ -28,7 +25,6 @@ const deploy = async (deployer: SignerWithAddress) => {
     deployer,
     swapRouter,
     tokenBridge,
-    relayer,
     weth
   )
 
@@ -36,7 +32,6 @@ const deploy = async (deployer: SignerWithAddress) => {
   console.log("Portico Deployed: ", portico.address)
   console.log("swapRouter : ", swapRouter)
   console.log("TokenBridge: ", tokenBridge)
-  console.log("Relayer    : ", relayer)
   console.log("Local weth : ", weth)
 
 
@@ -44,14 +39,13 @@ const deploy = async (deployer: SignerWithAddress) => {
   await portico.deployTransaction.wait(10)
   console.log("deployed, now verifying")
   await hre.run("verify:verify", {
-  address: portico.address,
-  constructorArguments: [
-     swapRouter,
-    tokenBridge,
-    relayer,
-    weth
-  ],
-});
+    address: portico.address,
+    constructorArguments: [
+      swapRouter,
+      tokenBridge,
+      weth
+    ],
+  });
 
   console.log("verified")
 
@@ -67,7 +61,6 @@ async function main() {
 
     swapRouter = polySwapRouter
     tokenBridge = polyTokenBridge
-    relayer = polyRelayerAddress
     weth = p.wethAddress
 
   } else {
@@ -76,12 +69,10 @@ async function main() {
     if (networkName == "op") {
       swapRouter = opSwapRouter
       tokenBridge = opTokenBridge
-      relayer = opRelayerAddress
       weth = o.wethAddress
     } else {
       swapRouter = polySwapRouter
       tokenBridge = polyTokenBridge
-      relayer = polyRelayerAddress
       weth = p.wethAddress
     }
   }

@@ -1,8 +1,8 @@
 import { Service} from "@tsed/di";
-import { Address } from "cluster";
 import { MultiRpcService } from "./RpcServices";
 import { RedisService } from "./RedisService";
 import { arbitrum, base, mainnet, optimism, polygon } from "viem/chains";
+import { Address } from "viem";
 
 interface lut {[key:string]:{[key:string]:string}}
 
@@ -61,14 +61,28 @@ export class RolodexService {
     private readonly redisService: RedisService,
   ) {
   }
-  getPortico(chainId: number) {
+  getPortico(chainId: number): Address | undefined {
     return {
-      [mainnet.id]: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      [mainnet.id]: "",
       [arbitrum.id]: "",
-      [polygon.id] : "0x05498574BD0Fa99eeCB01e1241661E7eE58F8a85",
+      [polygon.id] : "0x87aC3f21A5335286cCC1785f66d39847Be6Bfed9",
       [base.id]: "",
-      [optimism.id]: "",
-    }[chainId]
+      [optimism.id]: "0xB8177A860A3c9A4c02bcDa00799c9548ec0181c8",
+    }[chainId] as (Address | undefined)
+  }
+  getCanonTokenForTokenName(chainId: number, token:string) {
+    const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]
+    if(!(ct && nt)) {
+      return undefined
+    }
+    return ct[token]
+  }
+  getNativeTokenForTokenName(chainId: number, token:string) {
+    const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]
+    if(!(ct && nt)) {
+      return undefined
+    }
+    return nt[token]
   }
   getCanonTokenForToken(chainId: number, token:string) {
     const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]

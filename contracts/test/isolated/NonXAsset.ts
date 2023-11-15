@@ -47,7 +47,7 @@ describe("Setup", function () {
     s.Portico = await DeployContract(
       new Portico__factory(s.Frank),
       s.Frank,
-      s.swapRouterAddr, s.tokenBridgeAddr, s.relayerAddr, s.e.wethAddress
+      s.swapRouterAddr, s.tokenBridgeAddr, s.e.wethAddress
     )
 
     expect(s.Portico.address).to.not.eq("0x0000000000000000000000000000000000000000", "Start Deployed")
@@ -57,9 +57,9 @@ describe("Setup", function () {
 
 
   it("encode flags", async () => {
-    s.noSippage = await encodeFlagSet(1, 1, 3000, 3000, 0, 0, false, false)
-    s.wrapData = await encodeFlagSet(1, 1, 3000, 3000, s.slippage, s.slippage, true, true)
-    s.noWrapData = await encodeFlagSet(10, 1, 3000, 3000, s.slippage, s.slippage, false, false)
+    s.noSippage = encodeFlagSet(1, 1, 3000, 3000, 0, 0, false, false)
+    s.wrapData = encodeFlagSet(1, 1, 3000, 3000, s.slippage, s.slippage, true, true)
+    s.noWrapData = encodeFlagSet(10, 1, 3000, 3000, s.slippage, s.slippage, false, false)
 
   })
 })

@@ -1,28 +1,27 @@
-import {  Any, Default, Example, Integer, Optional, Pattern, Property, Required } from "@tsed/schema";
+import {  Any, AnyOf, Default, Example, Integer, Optional, Pattern, Property, Required } from "@tsed/schema";
 import { Address, Hex } from "viem";
+
 
 export class CreateOrderRequest {
 
   @Integer()
   @Required()
-  @Example(1)
+  @Example(137)
   startingChainId: number
 
-  @Pattern(/0x[a-f0-9]{40}/)
   @Any("string")
-  @Example("0xd8369c2eda18dd6518eabb1f85bd60606deb39ec")
+  @Example("0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619")
   @Required()
-  startingToken: Address
+  startingToken: string
 
   @Required()
   @Example('10000000000')
   startingTokenAmount: string
 
-  @Pattern(/0x[a-f0-9]{40}/)
   @Any("string")
   @Example("0x4200000000000000000000000000000000000006")
   @Required()
-  destinationToken: Address
+  destinationToken: string
 
   @Pattern(/0x[a-f0-9]{40}/)
   @Any("string")
@@ -71,6 +70,10 @@ export class CreateOrderRequest {
   @Pattern(/0x[a-f0-9]{40}/)
   @Any("string")
   porticoAddress? : Address
+
+  @Pattern(/0x[a-f0-9]{40}/)
+  @Any("string")
+  destinationPorticoAddress? : Address
 }
 
 export class CreateOrderResponse {

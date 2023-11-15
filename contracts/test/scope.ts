@@ -17,15 +17,12 @@ export class TestScope {
 
     tokenBridgeAddr = "0x3ee18B2214AFF97000D974cf647E7C347E8fa585"//"0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B"
     swapRouterAddr = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
-    relayerAddr = "0x27428DD2d3DD32A4D7f7C497eAaa23130d894911"
 
     opSwapRouter = this.swapRouterAddr
     opTokenBridge = "0x1D68124e65faFC907325e3EDbF8c4d84499DAa8b"
-    opRelayerAddress = this.relayerAddr
 
     polySwapRouter = this.swapRouterAddr
     polyTokenBridge = "0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE"
-    polyRelayerAddress = this.relayerAddr
 
     ethRelayerFee = BN("1e16")
     usdcRelayerFee = BN("1e6")
