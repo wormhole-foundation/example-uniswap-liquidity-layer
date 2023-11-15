@@ -64,7 +64,7 @@ export class RolodexService {
   getPortico(chainId: number): Address | undefined {
     return {
       [mainnet.id]: "",
-      [arbitrum.id]: "",
+      [arbitrum.id]: "0x2dB08783F13c4225A1963b2437f0D459a5BCB4D8",
       [polygon.id] : "0x87aC3f21A5335286cCC1785f66d39847Be6Bfed9",
       [base.id]: "",
       [optimism.id]: "0xB8177A860A3c9A4c02bcDa00799c9548ec0181c8",
