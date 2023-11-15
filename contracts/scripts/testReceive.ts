@@ -2,7 +2,7 @@ import { formatEther, parseEther } from "viem";
 import hre, { network } from "hardhat";
 const { ethers } = require("hardhat")
 import { currentBlock, resetCurrent, resetCurrentOP, resetCurrentPoly } from "../util/block";
-import { o, p } from "../util/addresser"
+import { e, o, p } from "../util/addresser"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { IERC20__factory, ITokenBridge__factory, IWormhole, IWormhole__factory, Portico, Portico__factory } from "../typechain-types";
 import { DeployContract } from "../util/deploy";
@@ -39,12 +39,18 @@ let portico: Portico
 
 async function receive(user: SignerWithAddress) {
 
+    const tb = ITokenBridge__factory.connect("0x1D68124e65faFC907325e3EDbF8c4d84499DAa8b", user)
+    const xasset = await tb.wrappedAsset(2, adddr2Bytes(e.wethAddress))
+    //console.log("Test: ", xasset)
+
+
+
     console.log("Receive")
-    portico = Portico__factory.connect(o.opPortico, user)
+    portico = Portico__factory.connect(o.consolePortico, user)
 
     const chainId = 5 //emitting chain
     const emitter = "0000000000000000000000005a58505a96d1dbf8df91cb21b54419fc36e93fde"//address.slice(2).padStart(64, "0"); // 32-byte padded//adddr2Bytes(p.polyPortico)
-    const sequence = 131050//131050//130982//130980//130997
+    const sequence = 131124//131050//130982//130980//130997
     const url = `${MAINNET_GUARDIAN_RPC[0]}/v1/signed_vaa/${chainId}/${emitter}/${sequence}`
     const response = await axios.get(url)
     const vaa = Buffer.from(response.data.vaaBytes, "base64").toString("hex");
@@ -52,7 +58,7 @@ async function receive(user: SignerWithAddress) {
     console.log(vaa)
 
     await portico.connect(user).receiveMessageAndSwap("0x" + vaa, {
-        gasPrice: 1000000000,
+        gasPrice: 174089539,
         gasLimit: 400000
     })
 
@@ -75,14 +81,17 @@ async function receiveFromOp(user: SignerWithAddress) {
 
     const chainId = 24 //emitting chain
     const emitter = "0000000000000000000000001d68124e65fafc907325e3edbf8c4d84499daa8b"//address.slice(2).padStart(64, "0"); // 32-byte padded//adddr2Bytes(p.polyPortico)
-    const sequence = 6558//6559 recipient chain = 24//6558 recipient chain = 5
+    const sequence = 6566//6559 recipient chain = 24//6558 recipient chain = 5
     const url = `${MAINNET_GUARDIAN_RPC[0]}/v1/signed_vaa/${chainId}/${emitter}/${sequence}`
     const response = await axios.get(url)
     const vaa = Buffer.from(response.data.vaaBytes, "base64").toString("hex");
 
     console.log(vaa)
 
-    await portico.connect(user).receiveMessageAndSwap("0x" + vaa)
+    await portico.connect(user).receiveMessageAndSwap("0x" + vaa, {
+        gasPrice: 60000000000,
+        gasLimit: 400000
+    })
 
 
 }
@@ -103,7 +112,7 @@ async function test(user: SignerWithAddress) {
     const sequence = 131049//130980//130997
     const url = `${MAINNET_GUARDIAN_RPC[0]}/v1/signed_vaa/${chainId}/${emitter}/${sequence}`
     const response = await axios.get(url)
-    const vaa = "0x"+(Buffer.from(response.data.vaaBytes, "base64").toString("hex")).toString();
+    const vaa = "0x" + (Buffer.from(response.data.vaaBytes, "base64").toString("hex")).toString();
 
     //await testPortico.receiveMessageAndSwap(vaa)
 
@@ -121,7 +130,7 @@ async function main() {
     const networkName = hre.network.name
     if (networkName == "hardhat" || networkName == "localhost") {
         await network.provider.send("evm_setAutomine", [true])
-        await resetCurrentOP()
+        await resetCurrentOP()//112206197 
         await impersonateAccount(sender)
         user = ethers.provider.getSigner(sender)
         console.log("TEST ON OP @: ", await (await currentBlock()).number)

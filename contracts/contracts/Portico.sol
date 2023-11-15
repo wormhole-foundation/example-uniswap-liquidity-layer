@@ -139,7 +139,7 @@ abstract contract PorticoStart is PorticoBase {
       amount,
       params.relayerFee
     );
-    // TODO: what happens when the asset is not an xasset. will this just fail?
+    // question: what happens when the asset is not an xasset. will this just fail? ans - nope
     sequence = TOKENBRIDGE.transferTokensWithPayload{ value: wormhole.messageFee() }(
       address(params.canonAssetAddress),
       amount,
@@ -168,16 +168,11 @@ abstract contract PorticoFinish is PorticoBase {
      */
     bytes memory transferPayload = TOKENBRIDGE.completeTransferWithPayload(encodedTransferMessage);
 
-    console.log("Got transferPayload");
-
     // parse the wormhole message payload into the `TransferWithPayload` struct
     ITokenBridge.TransferWithPayload memory transfer = TOKENBRIDGE.parseTransferWithPayload(transferPayload);
 
-    console.log("Parsed transferPayload");
-
     // decode the payload3 we sent into the decodedVAA struct
     message = abi.decode(transfer.payload, (PorticoStructs.DecodedVAA));
-    console.log("Parsed message");
 
     //todo confirm this logic is correct
     // get the address for the token on this address
@@ -187,13 +182,12 @@ abstract contract PorticoFinish is PorticoBase {
         : TOKENBRIDGE.wrappedAsset(transfer.tokenChain, transfer.tokenAddress)
     );
     uint8 decimals = tokenReceived.decimals();
-    uint256 denormalizedAmount = transfer.amount;
+    amountReceived = tokenReceived.balanceOf(address(this));//transfer.amount;
 
     console.log("Token Received: ", address(tokenReceived));
+    console.log("Ammnt Received: ", tokenReceived.balanceOf(address(this)));
 
-    if (decimals > 8) denormalizedAmount *= uint256(10) ** (decimals - 8);
-
-    amountReceived = denormalizedAmount;
+    if (decimals > 8) amountReceived *= uint256(10) ** (decimals - 8);
 
     console.log("Amount Received: ", amountReceived);
 
@@ -201,19 +195,20 @@ abstract contract PorticoFinish is PorticoBase {
     require(unpadAddress(transfer.to) == address(this) && transfer.toChain == wormholeChainId, "Token was not sent to this address");
   }
 
-  function testGetToken(bytes32 token) external view {
-    console.log("Testing");
-    console.log("inupt unpad: ", unpadAddress(token));
-  }
-
   //https://github.com/wormhole-foundation/example-token-bridge-relayer/blob/8132e8cc0589cd5cf739bae012c42321879cfd4e/evm/src/token-bridge-relayer/TokenBridgeRelayer.sol#L496
   function receiveMessageAndSwap(bytes calldata encodedTransferMessage) external payable {
     (PorticoStructs.DecodedVAA memory message, IERC20 tokenReceived, uint256 amountReceived) = _completeTransfer(encodedTransferMessage);
 
     // we must have received the amount expected
-    require(amountReceived == message.canonAssetAmount);
+    //require(amountReceived == message.canonAssetAmount);
+    console.log("amountReceived  : ", amountReceived);
+    console.log("canonAssetAmount: ", message.canonAssetAmount);
 
-    console.log("Processing");
+    //note testing
+    if(amountReceived != message.canonAssetAmount){
+      message.canonAssetAmount = amountReceived;
+    }
+
     //now process
     bool swapCompleted = finish(message, tokenReceived);
 
@@ -273,6 +268,9 @@ abstract contract PorticoFinish is PorticoBase {
     uint256 relayerFee = (_msgSender() == params.recipientAddress) ? 0 : params.relayerFee;
 
     try ROUTERV3.exactInputSingle(swapParams) returns (uint256 amountOut) {
+
+      //amountOut - relayerFee should 
+
       //calculate how much to pay the relayer in the native token
       if (relayerFee > 0) {
         relayerFeeAmount = relayerFee;
@@ -296,6 +294,18 @@ abstract contract PorticoFinish is PorticoBase {
   ///@notice pay out to user and relayer
   ///@notice this should always be called UNLESS swap fails, in which case payouts happen there
   function payOut(bool unwrap, IERC20 finalToken, address recipient, uint256 finalUserAmount, uint256 relayerFeeAmount) internal {
+    console.log("Pay Out");
+
+    uint256 actualBalance = finalToken.balanceOf(address(this));
+    console.log("Actual Balance: ", actualBalance);
+    console.log("Owed To User  : ", finalUserAmount);
+    console.log("Owed to Relayr: ", relayerFeeAmount);
+
+    //square up balances with what we actually have, don't trust reporting from the bridge
+    //prioritize relayer fee? 
+    finalUserAmount = actualBalance - relayerFeeAmount;
+    console.log("Actual final user amount: ", finalUserAmount);    
+
     if (unwrap) {
       WETH.withdraw(IERC20(address(WETH)).balanceOf(address(this)));
       //send to user

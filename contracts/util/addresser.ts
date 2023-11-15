@@ -32,6 +32,7 @@ export class MainnetAddresses {
 
 export class PolygonAddresses{
     readonly wethAddress: string = "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619"
+    readonly wormWeth: string = "0x11CD37bb86F65419713f30673A480EA33c826872"
     readonly usdcAddress: string = "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359"
     readonly polyPortico: string = "0x611110E3Db9CE70631eDd2a8f0331c27BA8B1Da6"
     readonly polySwapRouter: string = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
@@ -60,7 +61,8 @@ export class OptimisimAddresses {
     readonly BalancerVault: string = "0xBA12222222228d8Ba445958a75a0704d566BF2C8"
     readonly ChainlinkRegistry: string = "0x75c0530885F385721fddA23C539AF3701d6183D4"
     readonly opPortico: string = "0xe55Aef22E3e950e83DeD156d4C59748eA2F29b0e"
-    readonly consolePortico: string = "0xD90f833a2F615C969D981e074AbF108F5a66533E"
+    readonly wormWeth: string = "0xb47bC3ed6D70F04fe759b2529c9bc7377889678f"
+    readonly consolePortico: string = "0x2c52EE10BD58Efa20FC6ee418BF9085639E8247E"//"0xe9bC6889EE2dc62071efa456D388FFB17E577D17"
 
     readonly opSwapRouter: string = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
     readonly opTokenBridge: string = "0x1D68124e65faFC907325e3EDbF8c4d84499DAa8b"
