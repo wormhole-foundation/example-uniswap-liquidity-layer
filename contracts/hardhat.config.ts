@@ -29,6 +29,14 @@ const config: HardhatUserConfig = {
       ],
       minGasPrice: 32000000000,
     },
+    arbitrum: {
+      url: process.env.ARB_URL ? process.env.ARB_URL : zaddr,
+      accounts: [
+        process.env.MAINNET_PRIVATE_KEY
+          ? process.env.MAINNET_PRIVATE_KEY
+          : zaddr
+      ]
+    },
     op: {
       url: process.env.OP_URL ? process.env.OP_URL : zaddr,
       accounts: [
@@ -88,7 +96,8 @@ const config: HardhatUserConfig = {
       mainnet: process.env.API_KEY!,
       goerli: process.env.API_KEY!,
       polygon: process.env.ETHERSCAN_POLYGON_KEY!,
-      optimisticEthereum: process.env.OP_KEY!
+      optimisticEthereum: process.env.OP_KEY!,
+      arb: process.env.ARB_API_KEY!
     },
   },
   typechain: {
