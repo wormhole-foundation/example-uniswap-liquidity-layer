@@ -86,6 +86,19 @@ export const resetCurrentPoly = async () => {
     });
 }
 
+export const resetCurrentArb = async () => {
+    await network.provider.request({
+        method: "hardhat_reset",
+        params: [
+            {
+                forking: {
+                    jsonRpcUrl: process.env.ARB_URL!
+                },
+            },
+        ],
+    });
+}
+
 export const resetCurrentGo = async () => {
     await network.provider.request({
         method: "hardhat_reset",

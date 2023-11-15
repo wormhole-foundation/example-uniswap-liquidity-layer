@@ -30,6 +30,15 @@ export class MainnetAddresses {
     readonly rethAddress: string = "0xae78736Cd615f374D3085123A210448E74Fc6393"
 }
 
+export class WormholeConstants {
+    readonly CID = {
+        ethereum: 2,
+        polygon: 5,
+        optimism: 24,
+        arbitrum: 23
+    }
+}
+
 export class PolygonAddresses{
     readonly wethAddress: string = "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619"
     readonly wormWeth: string = "0x11CD37bb86F65419713f30673A480EA33c826872"
@@ -38,6 +47,14 @@ export class PolygonAddresses{
     readonly polySwapRouter: string = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
     readonly polyTokenBridge: string = "0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE"
     readonly polyRelayerAddress: string = "0x27428DD2d3DD32A4D7f7C497eAaa23130d894911"
+
+}
+
+export class ArbAddresses{
+    readonly portico: string = "0x2dB08783F13c4225A1963b2437f0D459a5BCB4D8"
+    readonly wethAddress: string = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1"
+    readonly swapRouter: string = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
+    readonly tokenBridge: string = "0x0b2402144Bb366A632D14B83F244D2e0e21bD39c"
 
 }
 
@@ -100,6 +117,10 @@ export class OptimisimAddresses {
     readonly wETH_USDC_POOL: string = this.wETH_UNI_POOL //~6.82mm TVL
 
 }
+
+export const w = new WormholeConstants()
+
+export const a = new ArbAddresses()
 
 export const e = new MainnetAddresses()
 

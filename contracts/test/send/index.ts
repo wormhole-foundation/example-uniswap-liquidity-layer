@@ -1,2 +1,1 @@
-export * from "./Deploy"
-export * from "./Send"
+export * from "./sendFromMainnet"

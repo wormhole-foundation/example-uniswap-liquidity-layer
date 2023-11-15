@@ -13,7 +13,6 @@ import "./uniswap/ISwapRouter.sol";
 import "./uniswap/IV3Pool.sol";
 import "./uniswap/PoolAddress.sol";
 
-
 using PorticoFlagSetAccess for PorticoFlagSet;
 
 contract PorticoBase {
@@ -61,14 +60,14 @@ contract PorticoBase {
     address tokenOut,
     uint24 fee
   ) internal view returns (uint160 sqrtPriceLimitX96) {
-    PoolAddress.PoolKey memory key =  PoolAddress.getPoolKey(tokenIn, tokenOut, fee);
+    PoolAddress.PoolKey memory key = PoolAddress.getPoolKey(tokenIn, tokenOut, fee);
     //compute pool
     IV3Pool pool = IV3Pool(PoolAddress.computeAddress(ROUTERV3.factory(), key));
     //get current tick via slot0
     uint160 sqrtPriceX96 = sqrtPrice(pool);
     uint160 buffer = (maxSlippage * sqrtPriceX96) / 10000;
-    if(tokenIn == key.token0){
-      if(sqrtPriceX96 > buffer) {
+    if (tokenIn == key.token0) {
+      if (sqrtPriceX96 > buffer) {
         sqrtPriceLimitX96 = sqrtPriceX96 - buffer;
       }
     } else {
@@ -76,7 +75,7 @@ contract PorticoBase {
     }
   }
 
-  function sqrtPrice(IV3Pool pool) internal view returns (uint160)  {
+  function sqrtPrice(IV3Pool pool) internal view returns (uint160) {
     //get current tick via slot0
     try pool.slot0() returns (
       uint160 sqrtPriceX96,
@@ -95,17 +94,17 @@ contract PorticoBase {
 }
 
 abstract contract PorticoStart is PorticoBase {
-  function _start_v3swap(PorticoStructs.TradeParameters memory params) internal returns (uint256 amount) {
+  function _start_v3swap(PorticoStructs.TradeParameters memory params, uint256 actualAmount) internal returns (uint256 amount) {
     // TODO: need sanity checks for token balances?
     require(params.startTokenAddress.approve(address(ROUTERV3), uint256(params.amountSpecified)), "Approve fail");
-    amount = ROUTERV3.exactInputSingle(
+    ROUTERV3.exactInputSingle(
       ISwapRouter.ExactInputSingleParams(
         address(params.startTokenAddress), // tokenIn
         address(params.canonAssetAddress), //tokenOut
         params.flags.feeTierStart(), //fee
         address(this), //recipient
         block.timestamp + 10, //deadline
-        params.amountSpecified, //amountIn
+        actualAmount, //amountIn
         0, //use slippage instead of minAmountReceived
         calculateSlippage(
           uint16(params.flags.maxSlippageStart()),
@@ -113,8 +112,9 @@ abstract contract PorticoStart is PorticoBase {
           address(params.canonAssetAddress),
           params.flags.feeTierStart()
         )
-    )
+      )
     );
+    amount = params.canonAssetAddress.balanceOf(address(this));
   }
 
   event PorticoSwapStart(uint64 indexed sequence, uint16 indexed chainId);
@@ -124,23 +124,26 @@ abstract contract PorticoStart is PorticoBase {
   ) public payable returns (address emitterAddress, uint16 chainId, uint64 sequence) {
     // always check for native wrapping logic
     if (address(params.startTokenAddress) == address(WETH) && params.flags.shouldWrapNative()) {
-      // if we are wrap9ing a token, we call deposit for the user, assuming we have been send what we need.
+      // if we are wrapping a token, we call deposit for the user, assuming we have been send what we need.
       WETH.deposit{ value: uint256(params.amountSpecified) }();
-      // ensure that we now have the wrap9 asset
-      require(params.startTokenAddress.balanceOf(address(this)) == uint256(params.amountSpecified));
     } else {
       // otherwise, just get the token we need to do the swap (if we are swapping, or just the token itself)
       require(params.startTokenAddress.transferFrom(msg.sender, address(this), uint256(params.amountSpecified)), "transfer fail");
     }
-    uint256 amount = 0;
+
+    //Because wormhole rounds to 1e8, some dust may exist from previous txs
+    //we use balanceOf to lump this in with future txs
+    uint256 amount = params.startTokenAddress.balanceOf(address(this));
+
+    //ensure we received enough
+    require(amount >= uint256(params.amountSpecified), "transfer insufficient");
+
     // if the start token is the canon token, we don't need to swap
-    if (params.startTokenAddress == params.canonAssetAddress) {
-      // skip the v3 swap, and set amount to the amountSpecified, assuming that either the transfer or unwrap above worked
-      amount = uint256(params.amountSpecified);
-    } else {
+    if (params.startTokenAddress != params.canonAssetAddress) {
       // do the swap, and amount is now the amount that we received from the swap
-      amount = _start_v3swap(params);
+      amount = _start_v3swap(params, amount);
     }
+
     // allow the token bridge to do its token bridge things
     IERC20(params.canonAssetAddress).approve(address(TOKENBRIDGE), amount);
     // now we need to produce the payload we are sending
@@ -152,8 +155,8 @@ abstract contract PorticoStart is PorticoBase {
       amount,
       params.relayerFee
     );
-
     bytes memory encodedVaa = abi.encode(decodedVAA);
+
     // question: what happens when the asset is not an xasset. will this just fail? ans - nope
     sequence = TOKENBRIDGE.transferTokensWithPayload{ value: wormhole.messageFee() }(
       address(params.canonAssetAddress),
@@ -171,10 +174,10 @@ abstract contract PorticoStart is PorticoBase {
 
 abstract contract PorticoFinish is PorticoBase {
   event PorticoSwapFinish(bool swapCompleted, PorticoStructs.DecodedVAA data);
+
   function _completeTransfer(
     bytes calldata encodedTransferMessage
   ) internal returns (PorticoStructs.DecodedVAA memory message, PorticoStructs.BridgeInfo memory bridgeInfo) {
-
     /**
      * Call `completeTransferWithPayload` on the token bridge. This
      * method acts as a reentrancy protection since it does not allow
@@ -204,7 +207,6 @@ abstract contract PorticoFinish is PorticoBase {
 
     // ensure that the to address is this address
     require(unpadAddress(transfer.to) == address(this) && transfer.toChain == wormholeChainId, "Token was not sent to this address");
-
   }
 
   //https://github.com/wormhole-foundation/example-token-bridge-relayer/blob/8132e8cc0589cd5cf739bae012c42321879cfd4e/evm/src/token-bridge-relayer/TokenBridgeRelayer.sol#L496
@@ -221,7 +223,10 @@ abstract contract PorticoFinish is PorticoBase {
   }
 
   ///@notice determines we need to swap and/or unwrap, does those things if needed, and sends tokens to user & pays relayer fee
-  function finish(PorticoStructs.DecodedVAA memory params, PorticoStructs.BridgeInfo memory bridgeInfo) internal returns (bool swapCompleted) {
+  function finish(
+    PorticoStructs.DecodedVAA memory params,
+    PorticoStructs.BridgeInfo memory bridgeInfo
+  ) internal returns (bool swapCompleted) {
     bool shouldUnwrap = params.flags.shouldUnwrapNative() && address(params.finalTokenAddress) == address(WETH);
     if ((params.finalTokenAddress) == bridgeInfo.tokenReceived) {
       // this means that we don't need to do a swap, aka, we received the canon asset.
@@ -251,7 +256,7 @@ abstract contract PorticoFinish is PorticoBase {
   ) internal returns (bool swapCompleted) {
     bridgeInfo.tokenReceived.approve(address(ROUTERV3), bridgeInfo.amountReceived);
 
-    uint160 sqrtPriceLimit =  calculateSlippage(
+    uint160 sqrtPriceLimit = calculateSlippage(
       uint16(params.flags.maxSlippageFinish()),
       address(bridgeInfo.tokenReceived),
       address(params.finalTokenAddress),
@@ -280,7 +285,6 @@ abstract contract PorticoFinish is PorticoBase {
   ///@notice pay out to user and relayer
   ///@notice this should always be called UNLESS swap fails, in which case payouts happen there
   function payOut(bool unwrap, IERC20 finalToken, address recipient, uint256 relayerFeeAmount) internal {
-
     uint256 actualBalance = finalToken.balanceOf(address(this));
 
     //square up balances with what we actually have, don't trust reporting from the bridge
@@ -290,7 +294,7 @@ abstract contract PorticoFinish is PorticoBase {
     if (unwrap) {
       WETH.withdraw(IERC20(address(WETH)).balanceOf(address(this)));
       //send to user
-      if(finalUserAmount > 0) {
+      if (finalUserAmount > 0) {
         (bool sentToUser, ) = recipient.call{ value: finalUserAmount }("");
         require(sentToUser, "Failed to send Ether");
       }
@@ -343,9 +347,5 @@ abstract contract PorticoFinish is PorticoBase {
 }
 
 contract Portico is PorticoFinish, PorticoStart {
-  constructor(
-    ISwapRouter _routerV3,
-    ITokenBridge _bridge,
-    IWETH _weth
-  ) PorticoBase(_routerV3, _bridge, _weth) {}
+  constructor(ISwapRouter _routerV3, ITokenBridge _bridge, IWETH _weth) PorticoBase(_routerV3, _bridge, _weth) {}
 }
