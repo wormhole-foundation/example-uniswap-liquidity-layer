@@ -37,6 +37,11 @@ export class WormholeConstants {
         optimism: 24,
         arbitrum: 23
     }
+
+    readonly WHaddrs = {
+        poly: "0x7A4B5a56256163F07b2C80A7cA55aBE66c4ec4d7",
+        op: "0xEe91C335eab126dF5fDB3797EA9d6aD93aeC9722"
+    }
 }
 
 export class PolygonAddresses{

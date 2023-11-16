@@ -35,6 +35,7 @@ export class TestScope {
 
     USDC!: IERC20
     WETH!: IERC20
+    xETH!: IERC20
     rETH!: IERC20
     WH!: IWormhole
     TokenBridge!: ITokenBridge

@@ -104,7 +104,7 @@ library PorticoStructs {
   //268,041 158,788
   struct DecodedVAA {
     PorticoFlagSet flags;
-    IERC20 canonAssetAddress;
+    IERC20 canonAssetAddress;//todo don't need cannon asset in VAA unless we want to check the token received (currently don't)
     IERC20 finalTokenAddress;
     // the person to receive the token
     address recipientAddress;
