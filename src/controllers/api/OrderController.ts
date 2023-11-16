@@ -6,7 +6,7 @@ import { OrderModel, OrderStatus } from "src/models";
 import { OrderService, RolodexService } from "src/services";
 import { CreateOrderRequest, CreateOrderResponse, CreateQuoteRequest} from "src/types";
 import { encodeFlagSet, encodeStartData } from "src/web3";
-import { Address, Hex, isAddress, toHex } from "viem";
+import { Address, Hex, checksumAddress, getAddress, isAddress, toHex } from "viem";
 
 @Controller("/order")
 export class OrderController {
@@ -59,11 +59,11 @@ export class OrderController {
         req.shouldWrapNative ||  false,
         req.shouldUnwrapNative || false,
       ),
-      req.startingToken as Address,
-      canonToken as Address,
-      req.destinationToken as Address,
-      req.destinationAddress,
-      destinationPorticoAddress,
+      getAddress(req.startingToken),
+      getAddress(canonToken),
+      getAddress(req.destinationToken),
+      getAddress(req.destinationAddress),
+      getAddress(destinationPorticoAddress),
       BigInt(req.startingTokenAmount),
       BigInt(req.relayerFee),
     ]
@@ -78,10 +78,9 @@ export class OrderController {
     if(!porticoAddress) {
       throw new BadRequest("no portico found for chain")
     }
-
     return {
       transactionData,
-      transactionTarget: porticoAddress,
+      transactionTarget: getAddress(porticoAddress),
       transactionValue: req.shouldWrapNative ? toHex(BigInt(req.startingTokenAmount)) : undefined,
       startParameters: startDataParams.map(x=>x.toString()),
     }

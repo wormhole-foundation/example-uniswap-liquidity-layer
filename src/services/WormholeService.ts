@@ -29,7 +29,7 @@ export class WormholeService {
       const ans = await getSignedVAAWithRetry(
         MAINNET_GUARDIAN_RPC,
         wormholeChainId as ChainId,
-        emitterAddress.replace("0x","00".repeat(12)),
+        emitterAddress,
         sequence,
         {
           transport: NodeHttpTransport(),

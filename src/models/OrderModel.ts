@@ -72,7 +72,7 @@ export class OrderModel {
   bridgeStatus?: BridgeStatus
 
   @Property()
-  receipientTxnData?: TxnData
+  receipientTxnData?: Partial<TxnData>
 
   @Optional()
   reason?: string

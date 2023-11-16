@@ -72,6 +72,17 @@ export class RolodexService {
     }[chainId] as (Address | undefined)
   }
 
+  getTokenBridge(chainId: number): (Address | undefined) {
+    return {
+      [mainnet.id]: "0x3ee18B2214AFF97000D974cf647E7C347E8fa585",
+      [arbitrum.id]: "0x0b2402144Bb366A632D14B83F244D2e0e21bD39c",
+      [polygon.id] : "0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE",
+      [base.id]: "0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627",
+      [optimism.id]: "0x1D68124e65faFC907325e3EDbF8c4d84499DAa8b",
+    }[chainId] as (Address | undefined)
+
+  }
+
   getWormholeChainId(chainId: number): number| undefined {
     return {
       [mainnet.id]: 2,
