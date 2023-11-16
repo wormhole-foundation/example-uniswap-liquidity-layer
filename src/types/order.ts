@@ -34,11 +34,6 @@ export class CreateOrderRequest {
   @Example(10)
   destinationChainId: number
 
-  @Integer()
-  @Required()
-  @Example(1)
-  bridgeNonce: number
-
   @Required()
   @Example('0')
   relayerFee: string
@@ -58,6 +53,10 @@ export class CreateOrderRequest {
   @Integer()
   @Default(10)
   slippageEnd: number = 10
+
+  @Integer()
+  @Example(1)
+  bridgeNonce?: number = (new Date().valueOf())
 
   @Property()
   @Default(false)

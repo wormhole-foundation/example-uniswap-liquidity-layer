@@ -1,12 +1,13 @@
 
 import { Command, Option } from '@commander-js/extra-typings';
 
-import {mainnet, optimism, base, arbitrum} from 'viem/chains'
+import {mainnet, optimism, base, arbitrum, polygon} from 'viem/chains'
 export const ALL_CHAINS = [
   mainnet,
   optimism,
   base,
   arbitrum,
+  polygon,
 ] as const
 
 export type CHAIN_NETWORK = (typeof ALL_CHAINS)[number]['network'];

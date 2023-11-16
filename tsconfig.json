@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
       "src/*": [
@@ -27,7 +28,7 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "lib": [
-      "es7",
+      "es2023",
       "dom",
       "ESNext.AsyncIterable"
     ],
@@ -39,7 +40,8 @@
     "src"
   ],
   "exclude": [
-    "contracts"
+    "contracts",
+    "node_modules"
   ],
   "linterOptions": {
     "exclude": []

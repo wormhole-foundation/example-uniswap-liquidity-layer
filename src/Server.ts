@@ -8,8 +8,10 @@ import "@tsed/terminus";
 import "@tsed/json-mapper";
 import {config} from "./config/index";
 import * as api from "./controllers/api/index";
+import "./mappers/Mappers";
 import * as pages from "./controllers/pages/index";
 import "@tsed/objection";
+
 
 @Configuration({
   ...config,

@@ -15,3 +15,7 @@ primary_region = "ord"
   auto_start_machines = true
   min_machines_running = 1
   processes = ["app"]
+
+
+[env]
+  REDIS_URL = "redis://thermae-redis.flycast:6379"

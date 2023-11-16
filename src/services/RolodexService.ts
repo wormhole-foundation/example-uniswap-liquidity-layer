@@ -3,6 +3,7 @@ import { MultiRpcService } from "./RpcServices";
 import { RedisService } from "./RedisService";
 import { arbitrum, base, mainnet, optimism, polygon } from "viem/chains";
 import { Address } from "viem";
+import { v5 } from "uuid";
 
 interface lut {[key:string]:{[key:string]:string}}
 
@@ -65,10 +66,20 @@ export class RolodexService {
     return {
       [mainnet.id]: "",
       [arbitrum.id]: "0x2dB08783F13c4225A1963b2437f0D459a5BCB4D8",
-      [polygon.id] : "0x87aC3f21A5335286cCC1785f66d39847Be6Bfed9",
+      [polygon.id] : "0x87aC3f21A5335286cCC1785f6ed39847Be6Bfed9",
       [base.id]: "",
       [optimism.id]: "0xB8177A860A3c9A4c02bcDa00799c9548ec0181c8",
     }[chainId] as (Address | undefined)
+  }
+
+  getWormholeChainId(chainId: number): number| undefined {
+    return {
+      [mainnet.id]: 2,
+      [arbitrum.id]: 23,
+      [polygon.id] : 5,
+      [base.id]: 30,
+      [optimism.id]: 24,
+    }[chainId] as (number | undefined)
   }
   getCanonTokenForTokenName(chainId: number, token:string) {
     const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]

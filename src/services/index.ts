@@ -7,3 +7,4 @@ export * from "./OrderService";
 export * from "./RedisService";
 export * from "./RolodexService";
 export * from "./RpcServices";
+export * from "./WormholeService";

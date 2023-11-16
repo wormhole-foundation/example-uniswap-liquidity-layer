@@ -22,7 +22,6 @@ export class MultiRpcService {
   }
 
   getProvider(id: number):PublicClient {
-
     const ans = this.providers.get(id)
     if(ans) {
       return ans
