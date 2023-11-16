@@ -59,19 +59,42 @@ export class OrderService {
       throw new BadRequest("no token bridge on receiver chain")
     }
 
+    const eventKey = `portico_receipt:${tokenBridge}:${sequence}:${emitterAddress}:${wormholeChainId}`
+
+    try {
+      const cachedResult = await this.redisService.client.get(eventKey)
+      if(cachedResult) {
+        const parsed = JSON.parse(cachedResult)
+        if(parsed) {
+          return parsed
+        }
+      }
+    } catch {
+    }
+
+    const args = {
+        sequence: BigInt(sequence),
+        emitterChainId: wormholeChainId,
+      }
+
+
+    console.log(args, tokenBridge)
     const events = await provider.getContractEvents({
       address: tokenBridge,
       abi: porticoEventsAbi,
       eventName: "TransferRedeemed",
-      args: {
-        sequence: BigInt(sequence),
-        emitterAddress: emitterAddress,
-        emitterChainId: wormholeChainId,
-      },
+      fromBlock: await provider.getBlockNumber() - 500n,
+      toBlock: await provider.getBlockNumber(),
+      args: args,
     })
+    console.log("got", events.length, events)
     const event = events.pop()
     if (event) {
       const txData = await this.getTxData(event.transactionHash, chainId)
+      // cache for one hour,
+      await this.redisService.client.set(eventKey, JSON.stringify(txData), {
+        EX: 60 * 60,
+      })
       return txData
     }
     return undefined
@@ -169,14 +192,27 @@ export class OrderService {
     // this is a getLogs filter to locate the transaction to then do a getTxData
 
     const metadata =  {
-        wormholeOriginChain: decodedStartLog.args.chainId,
-        sequence: decodedStartLog.args.sequence.toString(10),
-        wormholeTargetChain:  tokenTransferPayload.toChain,
-      }
+      wormholeOriginChain: decodedStartLog.args.chainId,
+      sequence: decodedStartLog.args.sequence.toString(10),
+      wormholeTargetChain:  tokenTransferPayload.toChain,
+    }
 
     const bridgeStatus = {
       VAA: toHex(bridgeInfo.vaaBytes),
       target: getAddress(toHex(tokenTransferPayload.to).replace("0x"+"00".repeat(12), "0x")),
+    }
+
+    const destinationEvmChainId = this.rolodexService.getEvmChainId(tokenTransferPayload.toChain)
+    if (!destinationEvmChainId) {
+      return {
+        id,
+        status: OrderStatus.LEGGED,
+        reason: "not a valid destination chain",
+        bridgeStatus,
+        metadata,
+        originTxnData,
+
+      }
     }
 
     // try to get the log on the corresponding chain
@@ -184,13 +220,13 @@ export class OrderService {
       metadata.sequence,
       decodedStartLog.args.chainId,
       decodedLogPublish.args.sender,
-      chainId,
+      destinationEvmChainId,
     )
 
     if(!finishTransfer) {
       return {
         id,
-        status: OrderStatus.WORKING,
+        status: OrderStatus.CONFIRMED,
         bridgeStatus,
         metadata,
         originTxnData,

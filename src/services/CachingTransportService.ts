@@ -24,7 +24,7 @@ export class CachingTransportService {
         const cacheTable = `rpc_cache:${id}:${method}`
         const cacheKey = JSON.stringify(params)
         // see if this is possibly cached
-        if(shouldCache) {
+        if(shouldCache > 0) {
           try {
             const result = await self.redisService.client.hGet(cacheTable, cacheKey)
             if(result) {
@@ -36,28 +36,26 @@ export class CachingTransportService {
           // TODO: metrics here
         }
         const response = await fn({method, params})
-        if(response && shouldCache) {
-          await self.redisService.client.hSet(cacheTable, cacheKey, JSON.stringify(response))
+        if(response && (shouldCache > 0)) {
+          let options = undefined
+          await self.redisService.client.set(
+            `${cacheTable}:${cacheKey}`,
+            JSON.stringify(response),
+            options,
+          )
         }
         return response
       }
     })
   }
 
-  private shouldCacheCall(method:string, params:any) {
+  private shouldCacheCall(method:string, params:any): number {
     switch(method){
       case "eth_getTransactionReceipt":
-      case "eth_getTransactionByHash":
-        return true
-      case "eth_call":
-        if(params && params.length && params.length > 1) {
-          if(params[1] && params[1] != "latest" && params[1] != "pending") {
-            return true
-          }
-        }
-        return false
+      case "eth_getTransactionByHash": // save for an hour
+        return 60 * 60
     }
-    return false
+    return 0
 
   }
 }

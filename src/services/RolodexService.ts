@@ -80,7 +80,6 @@ export class RolodexService {
       [base.id]: "0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627",
       [optimism.id]: "0x1D68124e65faFC907325e3EDbF8c4d84499DAa8b",
     }[chainId] as (Address | undefined)
-
   }
 
   getWormholeChainId(chainId: number): number| undefined {
@@ -91,6 +90,15 @@ export class RolodexService {
       [base.id]: 30,
       [optimism.id]: 24,
     }[chainId] as (number | undefined)
+  }
+  getEvmChainId(wormholeChainId: number): number| undefined {
+    return {
+      [2]: mainnet.id,
+      [23]: arbitrum.id,
+      [5]: polygon.id,
+      [30]:base.id,
+      [24]: optimism.id,
+    }[wormholeChainId] as (number | undefined)
   }
   getCanonTokenForTokenName(chainId: number, token:string) {
     const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]
