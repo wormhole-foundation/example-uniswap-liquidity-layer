@@ -7,7 +7,7 @@ import { TxnData } from "src/types";
 import { RedisService } from "./RedisService";
 import { RolodexService } from "./RolodexService";
 import { porticoEventsAbi } from "src/web3";
-import { getEmitterAddressEth, parseTokenTransferPayload, parseTransferPayload } from "@certusone/wormhole-sdk";
+import { getEmitterAddressEth, parseTokenTransferPayload, parseTransferPayload, parseVaa } from "@certusone/wormhole-sdk";
 import { WormholeService } from "./WormholeService";
 
 @Service()
@@ -110,6 +110,7 @@ export class OrderService {
     })
 
 
+    console.log(decodedLogPublish)
     const bridgeInfo = await this.wormholeService.getBridgeInfo(
       decodedLogPublish.args.sender,
       decodedStartLog.args.chainId,
@@ -132,8 +133,8 @@ export class OrderService {
       }
     }
 
-    const tokenTransferPayload = parseTokenTransferPayload(Buffer.from(bridgeInfo.vaaBytes))
-    console.log(tokenTransferPayload)
+    const parsedVaa = parseVaa(bridgeInfo.vaaBytes)
+    const tokenTransferPayload = parseTokenTransferPayload(parsedVaa.payload)
 
     // TODO: look at the destination Portico to see if the receiving txn has been finished.
     // this is a getLogs filter to locate the transaction to then do a getTxData

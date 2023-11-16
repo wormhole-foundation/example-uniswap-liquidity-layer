@@ -24,10 +24,10 @@ const canonAssetTable = withFlip({
     "0xd8369c2eda18dd6518eabb1f85bd60606deb39ec": "eth",
   },
   [polygon.id] : {
-    "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619": "eth",
+    "0x11CD37bb86F65419713f30673A480EA33c826872": "eth",
   },
   [base.id]: {
-    "0x11CD37bb86F65419713f30673A480EA33c826872": "eth",
+    "0x71b35ecb35104773537f849fbc353f81303a5860": "eth",
   },
   [optimism.id]: {
     "0xb47bC3ed6D70F04fe759b2529c9bc7377889678f": "eth",

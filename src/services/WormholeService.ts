@@ -26,7 +26,6 @@ export class WormholeService {
 
   async getBridgeInfo(emitterAddress: string, wormholeChainId: number, sequence: string) {
     try {
-      console.log("trying to get signed vaa")
       const ans = await getSignedVAAWithRetry(
         MAINNET_GUARDIAN_RPC,
         wormholeChainId as ChainId,
