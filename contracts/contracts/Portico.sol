@@ -52,13 +52,14 @@ contract PorticoBase {
   function unpadAddress(bytes32 whFormatAddress) internal pure returns (address) {
     return address(uint160(uint256(whFormatAddress)));
   }
-function isContract(address _addr) private returns (bool isContract){
-  uint32 size;
-  assembly {
-    size := extcodesize(_addr)
+
+  function isContract(address _addr) private view returns (bool value){
+    uint32 size;
+    assembly {
+      size := extcodesize(_addr)
+    }
+    return (size > 0);
   }
-  return (size > 0);
-}
 
   ///@notice if tokenIn == token0 then slippage is in the negative, and vice versa
   ///@param maxSlippage is in BIPS
@@ -97,10 +98,10 @@ function isContract(address _addr) private returns (bool isContract){
       uint8 /*feeProtocol*/,
       bool /*unlocked*/
     ) {
-      return sqrtPriceX96;
-    } catch {
-      return 0;
-    }
+        return sqrtPriceX96;
+      } catch {
+        return 0;
+      }
   }
 }
 
