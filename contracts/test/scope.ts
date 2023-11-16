@@ -11,6 +11,7 @@ export class TestScope {
     fakeTokenBridge!:any
 
     Bank = "0x8EB8a3b98659Cce290402893d0123abb75E3ab28"
+    OpBank = "0x86Bb63148d17d445Ed5398ef26Aa05Bf76dD5b59"
     rEthWhale = "0x714301eB35fE043FAa547976ce15BcE57BD53144"
 
     mainnetTokenBridge = "0x3ee18B2214AFF97000D974cf647E7C347E8fa585"
@@ -39,6 +40,8 @@ export class TestScope {
     TokenBridge!: ITokenBridge
 
     WETH_AMOUNT = BN("1e18")
+    L2WETH_AMOUNT = BN("1e16")//low liquidity
+    L2relayerFee = BN("1e14")
 
     slippage = 200 //BIPS = 200 => 2% slippage
 

@@ -53,24 +53,24 @@ describe("Deploy", function () {
 
   it("Fund participants", async () => {
 
-    //await stealMoney(s.Bank, s.Bob.address, e.wethAddress, s.WETH_AMOUNT)
+    await stealMoney(s.OpBank, s.Bob.address, o.wethAddress, s.L2WETH_AMOUNT)
 
   })
 })
 
 describe("Send", function () {
 
-  it("send mainnet tx => op with weth", async () => {
+  it("send op tx => polygon with weth", async () => {
 
     const params: TradeParameters = {
-      flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, s.slippage, s.slippage, false, false),
-      startTokenAddress: e.wethAddress,
-      canonAssetAddress: e.wethAddress,
-      finalTokenAddress: o.wethAddress,
+      flags: encodeFlagSet(w.CID.polygon, 1, 100, 100, s.slippage, s.slippage, false, false),
+      startTokenAddress: o.wethAddress,
+      canonAssetAddress: o.wormWeth,
+      finalTokenAddress: p.wethAddress,
       recipientAddress: s.Carol.address,
-      recipientPorticoAddress: o.opPortico,
-      amountSpecified: s.WETH_AMOUNT,
-      relayerFee: s.ethRelayerFee
+      recipientPorticoAddress: p.polyPortico,
+      amountSpecified: s.L2WETH_AMOUNT,
+      relayerFee: s.L2relayerFee
     }
 
     //confirm starting balances
@@ -78,9 +78,9 @@ describe("Send", function () {
     const startBobWeth = await s.WETH.balanceOf(s.Bob.address)
 
     expect(startPorticoWeth).to.eq(0, "No weth at start")
-    expect(startBobWeth).to.eq(s.WETH_AMOUNT, "Porticoing wETH is correct")
+    expect(startBobWeth).to.eq(s.L2WETH_AMOUNT, "Bob wETH is correct")
 
-    await s.WETH.connect(s.Bob).approve(s.Portico.address, s.WETH_AMOUNT)
+    await s.WETH.connect(s.Bob).approve(s.Portico.address, s.L2WETH_AMOUNT)
     const result = await s.Portico.connect(s.Bob).start(params)
     const gas = await getGas(result)
     showBodyCyan("GAS TO START: ", gas)
@@ -95,48 +95,17 @@ describe("Send", function () {
 
   })
 
-  it("Send mainnet tx => polygon with a swap happening first", async () => {
-
-    const USDC_AMOUNT = BN("500e6")
-
-    const params: TradeParameters = {
-      flags: encodeFlagSet(w.CID.polygon, 2, 3000, 100, s.slippage, s.slippage, false, true),
-      startTokenAddress: e.usdcAddress,
-      canonAssetAddress: e.wethAddress,
-      finalTokenAddress: o.wethAddress,
-      recipientAddress: s.Carol.address,
-      recipientPorticoAddress: p.polyPortico,
-      amountSpecified: USDC_AMOUNT,
-      relayerFee: s.ethRelayerFee
-    }
-
-    //fund
-    await stealMoney(s.Bank, s.Bob.address, e.usdcAddress, USDC_AMOUNT)
-
-    //approve
-    await s.USDC.connect(s.Bob).approve(s.Portico.address, USDC_AMOUNT)
-
-    //send
-    await s.Portico.connect(s.Bob).start(params)
-
-    console.log("End Bob Weth: ", await toNumber(await s.WETH.balanceOf(s.Bob.address)))
-    console.log("End Ptc Weth: ", await toNumber(await s.WETH.balanceOf(s.Portico.address)))
-
-
-  })
-
-
   it("Send mainnet tx => op wrapping native eth", async () => {
 
     const params: TradeParameters = {
-      flags: encodeFlagSet(w.CID.optimism, 3, 100, 100, s.slippage, s.slippage, true, true),
+      flags: encodeFlagSet(w.CID.optimism, 2, 100, 100, s.slippage, s.slippage, true, false),
       startTokenAddress: o.wethAddress,
       canonAssetAddress: o.wormWeth,
       finalTokenAddress: p.wethAddress,
       recipientAddress: s.Carol.address,
-      recipientPorticoAddress: o.opPortico,
-      amountSpecified: s.WETH_AMOUNT,
-      relayerFee: s.ethRelayerFee
+      recipientPorticoAddress: p.polyPortico,
+      amountSpecified: s.L2WETH_AMOUNT,
+      relayerFee: s.L2relayerFee
     }
 
     const startBobEther = await ethers.provider.getBalance(s.Bob.address)
@@ -145,14 +114,15 @@ describe("Send", function () {
 
 
     expect(startBobWeth).to.eq(0, "Bob has no and weth")
-    expect(startPorticoWeth).to.be.lt(BN("1e10"), "Wormhole txs round to 1e8")
-    expect(await ethers.provider.getBalance(s.Bob.address)).to.be.gt(s.WETH_AMOUNT, "Bob has enough ETH")
+    expect(await toNumber(startPorticoWeth)).to.be.lt(await toNumber(BN("1e10")), "Wormhole txs round to 1e8")
+    expect(await toNumber(await ethers.provider.getBalance(s.Bob.address))).to.be.gt(await toNumber(s.L2WETH_AMOUNT), "Bob has enough ETH")
 
-    const gas = await getGas(await s.Portico.connect(s.Bob).start(params, { value: s.WETH_AMOUNT }))
+    const gas = await getGas(await s.Portico.connect(s.Bob).start(params, { value: s.L2WETH_AMOUNT }))
     showBodyCyan("Gas to start + wrap: ", gas)
 
     const endBobEther = await ethers.provider.getBalance(s.Bob.address)
     const etherDelta = startBobEther.sub(endBobEther)
-    expect(await toNumber(etherDelta)).to.be.closeTo(await toNumber(s.WETH_AMOUNT), 0.003, "ETHER sent is correct + gas")
+    expect(await toNumber(etherDelta)).to.be.closeTo(await toNumber(s.L2WETH_AMOUNT), 0.003, "ETHER sent is correct + gas")
   })
+
 })
