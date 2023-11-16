@@ -51,7 +51,7 @@ export class OrderController {
     const startDataParams: Parameters<typeof encodeStartData> = [
      encodeFlagSet(
         wormholeDestinationChainId,
-        req.bridgeNonce,
+        req.bridgeNonce || new Date().valueOf(),
         req.feeTierStart,
         req.feeTierEnd,
         req.slippageStart,

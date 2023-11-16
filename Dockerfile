@@ -14,9 +14,8 @@ ENV NODE_ENV="production"
 ARG YARN_VERSION=3.6.4
 
 # Install Yarn 3
-RUN corepack enable && \
-    yarn set version ${YARN_VERSION}
-
+RUN corepack enable
+RUN yarn set version ${YARN_VERSION}
 
 # Throw-away build stage to reduce size of final image
 FROM base as deps
@@ -25,10 +24,8 @@ FROM base as deps
 RUN apt-get update -qq && \
     apt-get install -y build-essential pkg-config python-is-python3
 
-COPY .yarn .yarn
-
 # Install node modules
-COPY --link .yarnrc.yml package.json yarn.lock tsconfig.json tsconfig.compile.json .barrelsby.json ./
+COPY --link .yarnrc.yml package.json yarn.lock ./
 
 ARG YARN_VERSION=3.6.4
 
@@ -37,7 +34,8 @@ RUN yarn install --immutable
 FROM deps as build
 
 # Copy application code
-COPY --link . .
+COPY --link .babelrc webpack.config.js tsconfig.json tsconfig.compile.json .barrelsby.json ./
+COPY --link src src
 
 RUN yarn bundle
 
