@@ -1,32 +1,36 @@
-import { Service} from "@tsed/di";
+import { Inject, Service} from "@tsed/di";
 import { Class } from "estree";
 import { createClient } from "redis";
 import { config } from "src/config";
 
-@Service()
-export class RedisService {
-  public readonly client
+import {Configuration, registerProvider} from "@tsed/di";
 
-  constructor() {
-    this.client = createClient({
+const CONNECTION = Symbol.for("CONNECTION");
+
+registerProvider({
+  provide: CONNECTION,
+  deps: [Configuration],
+  async useAsyncFactory(settings: Configuration) {
+    const options = settings.get("myOptions");
+    const connection = createClient({
       url:config.options.redisUrl
     })
+
+    await connection.connect();
+
+    return connection;
   }
+});
 
-  public get json() {
-    return this.client.json
-  }
+@Service()
+export class RedisService {
+  public readonly client = createClient({
+      url:config.options.redisUrl
+    })
 
-  public jset(typ:Class) {
-
-  }
-
-  public get jget() {
-    return this.client.json.get
-  }
-
-  public get jnumIncrBy() {
-    return this.client.json.numIncrBy
+  constructor(@Inject(CONNECTION) connection: any) {
+    this.client = connection
   }
 
 }
+

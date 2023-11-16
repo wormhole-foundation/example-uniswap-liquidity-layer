@@ -4,6 +4,12 @@ const tradeParameterAbi = parseAbi([
   `function start((bytes32,address,address,address,address,address,uint256,uint256)) returns (address,uint16,uint64)` as const,
 ])
 
+export const porticoEventsAbi = parseAbi([
+  `event PorticoSwapStart(uint64 indexed sequence, uint16 indexed chainId)`,
+  `event LogMessagePublished(address indexed sender, uint64 sequence, uint32 nonce, bytes payload, uint8 consistencyLevel)`,
+  `event TransferRedeemed(uint16 indexed emitterChainId,bytes32 indexed emitterAddress,uint64 indexed sequence)`
+])
+
 export const encodeStartData = (
 flagSet: Hex,
 startTokenAddress: Address,

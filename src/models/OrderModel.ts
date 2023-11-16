@@ -18,27 +18,23 @@ export class OrderMetadata {
   @Integer()
   wormholeOriginChain?: number;
 
+  @Required()
+  sequence: string;
+
   @Integer()
   wormholeTargetChain?: number;
 }
 
 export class BridgeStatus {
-  @Required()
-  hash: string;
-
-  @Required()
-  id: string;
-
-  @Integer()
-  sigsRequired: number;
-
-  @Integer()
-  sigsObtained: number;
-
   @Pattern(/0x[a-f0-9]*/)
   @Any("string")
   @Optional()
   VAA?: Hex
+
+  @Pattern(/0x[a-f0-9]{40}/)
+  @Any("string")
+  @Optional()
+  target: Hex
 }
 
 
@@ -50,10 +46,10 @@ export class OriginTxn {
   chainId: number;
 
   @Integer()
-  wormholeChainId: number;
+  wormholeChainId?: number;
 
   @Required()
-  data: TxnData
+  data: Partial<TxnData>
 }
 
 export class OrderModel {
@@ -76,7 +72,10 @@ export class OrderModel {
   bridgeStatus?: BridgeStatus
 
   @Property()
-  receipientTxnData?: TxnData
+  receipientTxnData?: Partial<TxnData>
+
+  @Optional()
+  reason?: string
 
 
 }

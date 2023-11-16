@@ -1,10 +1,14 @@
 import { Service} from "@tsed/di";
 import { MultiRpcService } from "./RpcServices";
 import { BadRequest } from "@tsed/exceptions";
-import { OrderStatus } from "src/models";
-import { Hex} from "viem";
+import { OrderModel, OrderStatus } from "src/models";
+import { Address, Hex, decodeEventLog, encodeEventTopics, getAddress, toHex} from "viem";
 import { TxnData } from "src/types";
 import { RedisService } from "./RedisService";
+import { RolodexService } from "./RolodexService";
+import { porticoEventsAbi } from "src/web3";
+import { getEmitterAddressEth, parseTokenTransferPayload, parseTransferPayload, parseVaa } from "@certusone/wormhole-sdk";
+import { WormholeService } from "./WormholeService";
 
 @Service()
 export class OrderService {
@@ -12,58 +16,233 @@ export class OrderService {
   constructor(
     private readonly rpcService: MultiRpcService,
     private readonly redisService: RedisService,
+    private readonly rolodexService: RolodexService,
+    private readonly wormholeService: WormholeService,
   ) {
   }
-  private async getTxData(transactionHash:Hex, chainId: number):Promise<TxnData | undefined> {
+  private async getTxData(transactionHash:Hex, chainId: number):Promise<Partial<TxnData> | undefined> {
     const provider = this.rpcService.getProvider(chainId)
     if(!provider) {
       throw new BadRequest("invalid chain id")
     }
+
+    const txData: Partial<TxnData> = {}
     try {
       const m = await provider.getTransaction({hash:transactionHash})
-      const r = await provider.getTransactionReceipt({hash:transactionHash})
-      return  {
-        data: m.input,
-        transactionHash: r.transactionHash,
-        contractAddress: r.contractAddress || undefined,
-        logs: r.logs,
-        status: r.status,
-        to: r.to || undefined,
-        from: r.from,
-        blockNumber: Number(r.blockNumber),
-      }
+      txData.data =  m.input
+      txData.to =  m.to || undefined
     } catch {
-      // couldn't find the receipt, which means should just return undefined
       return undefined
     }
+    try {
+      const r = await provider.getTransactionReceipt({hash:transactionHash})
+      txData.transactionHash =  r.transactionHash
+      txData.contractAddress =  r.contractAddress || undefined
+      txData.logs = r.logs as any
+      txData.status =  r.status
+      txData.from =  r.from
+      txData.blockNumber =  Number(r.blockNumber)
+    } catch {
+    }
+
+    return txData
   }
 
-  public async getOrder(transactionHash:Hex, chainId: number) {
+  private async findFinishTransfer(sequence: string, wormholeChainId: number, emitterAddress: Hex ,chainId: number) {
+    const provider = this.rpcService.getProvider(chainId)
+    if(!provider) {
+      throw new BadRequest("invalid chain id")
+    }
+
+    const tokenBridge = this.rolodexService.getTokenBridge(chainId)
+    if(!tokenBridge) {
+      throw new BadRequest("no token bridge on receiver chain")
+    }
+
+    const eventKey = `portico_receipt:${tokenBridge}:${sequence}:${emitterAddress}:${wormholeChainId}`
+
+    try {
+      const cachedResult = await this.redisService.client.get(eventKey)
+      if(cachedResult) {
+        const parsed = JSON.parse(cachedResult)
+        if(parsed) {
+          return parsed
+        }
+      }
+    } catch {
+    }
+
+    const args = {
+        sequence: BigInt(sequence),
+        emitterChainId: wormholeChainId,
+      }
+
+
+    console.log(args, tokenBridge)
+    const events = await provider.getContractEvents({
+      address: tokenBridge,
+      abi: porticoEventsAbi,
+      eventName: "TransferRedeemed",
+      fromBlock: await provider.getBlockNumber() - 500n,
+      toBlock: await provider.getBlockNumber(),
+      args: args,
+    })
+    console.log("got", events.length, events)
+    const event = events.pop()
+    if (event) {
+      const txData = await this.getTxData(event.transactionHash, chainId)
+      // cache for one hour,
+      await this.redisService.client.set(eventKey, JSON.stringify(txData), {
+        EX: 60 * 60,
+      })
+      return txData
+    }
+    return undefined
+  }
+
+
+  public async getOrder(transactionHash:Hex, chainId: number): Promise<OrderModel> {
     const receipt = await this.getTxData(transactionHash, chainId)
+    const id = `${transactionHash}_${chainId}`
     if(!receipt) {
       return {
-        id: `${transactionHash}_${chainId}`,
+        id,
+        status: OrderStatus.INFLIGHT,
+      }
+    }
+    const startingPorticoAddress = this.rolodexService.getPortico(chainId)
+    if(!startingPorticoAddress) {
+      throw new BadRequest(`unsupported chain ${chainId}`)
+    }
+    const porticoSwapStartTopic = encodeEventTopics({
+      abi: porticoEventsAbi,
+      eventName: "PorticoSwapStart",
+    })
+    const startEvent = receipt.logs?.filter((x=>{
+      return x.topics[0] === porticoSwapStartTopic[0]
+    })).pop()
+
+    const logPublishedEventTopic = encodeEventTopics({
+      abi: porticoEventsAbi,
+      eventName: "LogMessagePublished",
+    })
+    const logPublishedEvent = receipt.logs?.filter((x=>{
+      return x.topics[0] === logPublishedEventTopic[0]
+    })).pop()
+
+    // if there is no "PorticoSwapStart" event, we return not found
+    if(!startEvent || !logPublishedEvent) {
+      return {
+        id,
         status: OrderStatus.NOTFOUND,
+        reason: `wrong portico. want ${startingPorticoAddress.toLowerCase()}, got ${receipt.to?.toLowerCase()}`
       }
     }
     if(receipt.status == "reverted") {
       return {
-        id: `${transactionHash}_${chainId}`,
+        id,
         status: OrderStatus.REVERTED,
-        receipt: receipt,
+        originTxnData: {
+          hash: transactionHash,
+          chainId: chainId,
+          data: receipt,
+        }
       }
     }
 
-    // TODO: look at the bridge to see when the bridge is done bridging
-    // this is just an eth_call to the contract
+
+
+    const decodedStartLog = decodeEventLog({
+      abi: porticoEventsAbi,
+      eventName: "PorticoSwapStart",
+      topics: startEvent.topics as any,
+      data: startEvent.data,
+    })
+    // now grab the emitter
+    const decodedLogPublish =  decodeEventLog({
+      abi: porticoEventsAbi,
+      eventName: "LogMessagePublished",
+      topics: logPublishedEvent.topics as any,
+      data: logPublishedEvent.data,
+    })
+    const originTxnData =  {
+      hash: transactionHash,
+      chainId: chainId,
+      data: receipt,
+      wormholeChainId: decodedStartLog.args.chainId,
+    }
+    const emitterAddress = decodedLogPublish.args.sender.replace("0x","00".repeat(12))
+    const bridgeInfo = await this.wormholeService.getBridgeInfo(
+      emitterAddress,
+      decodedStartLog.args.chainId,
+      decodedLogPublish.args.sequence.toString(10),
+    )
+    if (!bridgeInfo) {
+      return {
+        id,
+        status: OrderStatus.PENDING,
+        originTxnData,
+      }
+    }
+
+    const parsedVaa = parseVaa(bridgeInfo.vaaBytes)
+    const tokenTransferPayload = parseTokenTransferPayload(parsedVaa.payload)
 
     // TODO: look at the destination Portico to see if the receiving txn has been finished.
     // this is a getLogs filter to locate the transaction to then do a getTxData
-    return {
-      id: `${transactionHash}_${chainId}`,
-      status: OrderStatus.INFLIGHT,
-      transactionReceipt: receipt,
+
+    const metadata =  {
+      wormholeOriginChain: decodedStartLog.args.chainId,
+      sequence: decodedStartLog.args.sequence.toString(10),
+      wormholeTargetChain:  tokenTransferPayload.toChain,
     }
+
+    const bridgeStatus = {
+      VAA: toHex(bridgeInfo.vaaBytes),
+      target: getAddress(toHex(tokenTransferPayload.to).replace("0x"+"00".repeat(12), "0x")),
+    }
+
+    const destinationEvmChainId = this.rolodexService.getEvmChainId(tokenTransferPayload.toChain)
+    if (!destinationEvmChainId) {
+      return {
+        id,
+        status: OrderStatus.LEGGED,
+        reason: "not a valid destination chain",
+        bridgeStatus,
+        metadata,
+        originTxnData,
+
+      }
+    }
+
+    // try to get the log on the corresponding chain
+    const finishTransfer = await this.findFinishTransfer(
+      metadata.sequence,
+      decodedStartLog.args.chainId,
+      decodedLogPublish.args.sender,
+      destinationEvmChainId,
+    )
+
+    if(!finishTransfer) {
+      return {
+        id,
+        status: OrderStatus.CONFIRMED,
+        bridgeStatus,
+        metadata,
+        originTxnData,
+      }
+    }
+
+    return {
+      id,
+      status: OrderStatus.CONFIRMED,
+      receipientTxnData: finishTransfer,
+      bridgeStatus,
+      metadata,
+      originTxnData,
+
+    }
+
   }
 
 }

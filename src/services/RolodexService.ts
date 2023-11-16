@@ -3,6 +3,7 @@ import { MultiRpcService } from "./RpcServices";
 import { RedisService } from "./RedisService";
 import { arbitrum, base, mainnet, optimism, polygon } from "viem/chains";
 import { Address } from "viem";
+import { v5 } from "uuid";
 
 interface lut {[key:string]:{[key:string]:string}}
 
@@ -23,10 +24,10 @@ const canonAssetTable = withFlip({
     "0xd8369c2eda18dd6518eabb1f85bd60606deb39ec": "eth",
   },
   [polygon.id] : {
-    "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619": "eth",
+    "0x11CD37bb86F65419713f30673A480EA33c826872": "eth",
   },
   [base.id]: {
-    "0x11CD37bb86F65419713f30673A480EA33c826872": "eth",
+    "0x71b35ecb35104773537f849fbc353f81303a5860": "eth",
   },
   [optimism.id]: {
     "0xb47bC3ed6D70F04fe759b2529c9bc7377889678f": "eth",
@@ -65,10 +66,39 @@ export class RolodexService {
     return {
       [mainnet.id]: "",
       [arbitrum.id]: "0x2dB08783F13c4225A1963b2437f0D459a5BCB4D8",
-      [polygon.id] : "0x87aC3f21A5335286cCC1785f66d39847Be6Bfed9",
+      [polygon.id] : "0x87aC3f21A5335286cCC1785f6ed39847Be6Bfed9",
       [base.id]: "",
       [optimism.id]: "0xB8177A860A3c9A4c02bcDa00799c9548ec0181c8",
     }[chainId] as (Address | undefined)
+  }
+
+  getTokenBridge(chainId: number): (Address | undefined) {
+    return {
+      [mainnet.id]: "0x3ee18B2214AFF97000D974cf647E7C347E8fa585",
+      [arbitrum.id]: "0x0b2402144Bb366A632D14B83F244D2e0e21bD39c",
+      [polygon.id] : "0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE",
+      [base.id]: "0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627",
+      [optimism.id]: "0x1D68124e65faFC907325e3EDbF8c4d84499DAa8b",
+    }[chainId] as (Address | undefined)
+  }
+
+  getWormholeChainId(chainId: number): number| undefined {
+    return {
+      [mainnet.id]: 2,
+      [arbitrum.id]: 23,
+      [polygon.id] : 5,
+      [base.id]: 30,
+      [optimism.id]: 24,
+    }[chainId] as (number | undefined)
+  }
+  getEvmChainId(wormholeChainId: number): number| undefined {
+    return {
+      [2]: mainnet.id,
+      [23]: arbitrum.id,
+      [5]: polygon.id,
+      [30]:base.id,
+      [24]: optimism.id,
+    }[wormholeChainId] as (number | undefined)
   }
   getCanonTokenForTokenName(chainId: number, token:string) {
     const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]

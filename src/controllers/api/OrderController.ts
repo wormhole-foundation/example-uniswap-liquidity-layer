@@ -6,7 +6,7 @@ import { OrderModel, OrderStatus } from "src/models";
 import { OrderService, RolodexService } from "src/services";
 import { CreateOrderRequest, CreateOrderResponse, CreateQuoteRequest} from "src/types";
 import { encodeFlagSet, encodeStartData } from "src/web3";
-import { Address, isAddress, toHex } from "viem";
+import { Address, Hex, checksumAddress, getAddress, isAddress, toHex } from "viem";
 
 @Controller("/order")
 export class OrderController {
@@ -23,24 +23,20 @@ export class OrderController {
     @PathParams("chainId") chainId: number, /* the evm chain id*/
     @PathParams("transactionHash") @Pattern(/0x[a-f0-9]{64}/) transactionHash: string
   ) {
-
-
-    const orderId = `${chainId}_${transactionHash}`
-    const orderStatus = OrderStatus.NOTFOUND
-
-    return {
-      id: orderId,
-      status: orderStatus,
-    }
-
+    return this.orderService.getOrder(transactionHash as Hex, chainId)
   }
 
   @Post("/create")
   @Returns(200, CreateOrderResponse)
   create(@BodyParams() req: CreateOrderRequest) {
-    const canonToken = this.rolodexService.getCanonTokenForToken(req.startingChainId, req.destinationToken)
+    const canonToken = this.rolodexService.getCanonTokenForToken(req.startingChainId, req.startingToken)
     if(!canonToken) {
       throw new BadRequest("no route found")
+    }
+
+    const wormholeDestinationChainId = this.rolodexService.getWormholeChainId(req.destinationChainId)
+    if(!wormholeDestinationChainId) {
+      throw new BadRequest("bad destination chain")
     }
 
     let destinationPorticoAddress = this.rolodexService.getPortico(req.destinationChainId)
@@ -51,10 +47,11 @@ export class OrderController {
       throw new BadRequest("no destination portico found for chain")
     }
 
+
     const startDataParams: Parameters<typeof encodeStartData> = [
      encodeFlagSet(
-        req.destinationChainId,
-        req.bridgeNonce,
+        wormholeDestinationChainId,
+        req.bridgeNonce || new Date().valueOf(),
         req.feeTierStart,
         req.feeTierEnd,
         req.slippageStart,
@@ -62,11 +59,11 @@ export class OrderController {
         req.shouldWrapNative ||  false,
         req.shouldUnwrapNative || false,
       ),
-      req.startingToken,
-      canonToken as Address,
-      req.destinationToken,
-      req.destinationAddress,
-      destinationPorticoAddress,
+      getAddress(req.startingToken),
+      getAddress(canonToken),
+      getAddress(req.destinationToken),
+      getAddress(req.destinationAddress),
+      getAddress(destinationPorticoAddress),
       BigInt(req.startingTokenAmount),
       BigInt(req.relayerFee),
     ]
@@ -81,10 +78,9 @@ export class OrderController {
     if(!porticoAddress) {
       throw new BadRequest("no portico found for chain")
     }
-
     return {
       transactionData,
-      transactionTarget: porticoAddress,
+      transactionTarget: getAddress(porticoAddress),
       transactionValue: req.shouldWrapNative ? toHex(BigInt(req.startingTokenAmount)) : undefined,
       startParameters: startDataParams.map(x=>x.toString()),
     }

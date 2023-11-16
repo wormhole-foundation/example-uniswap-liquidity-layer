@@ -8,7 +8,7 @@ export class Log {
   data: Hex
 
   @Property()
-  topics: string[]
+  topics: [string, ...string[]]
 
   @Pattern(/0x[a-f0-9]{40}/)
   @Any("string")

@@ -52,6 +52,14 @@ contract PorticoBase {
     return address(uint160(uint256(whFormatAddress)));
   }
 
+  function isContract(address _addr) private view returns (bool value){
+    uint32 size;
+    assembly {
+      size := extcodesize(_addr)
+    }
+    return (size > 0);
+  }
+
   ///@notice if tokenIn == token0 then slippage is in the negative, and vice versa
   ///@param maxSlippage is in BIPS
   function calculateSlippage(
@@ -63,6 +71,9 @@ contract PorticoBase {
     PoolAddress.PoolKey memory key = PoolAddress.getPoolKey(tokenIn, tokenOut, fee);
     //compute pool
     IV3Pool pool = IV3Pool(PoolAddress.computeAddress(ROUTERV3.factory(), key));
+    if(!isContract(address(pool))) {
+      return 0;
+    }
     //get current tick via slot0
     uint160 sqrtPriceX96 = sqrtPrice(pool);
     uint160 buffer = (maxSlippage * sqrtPriceX96) / 10000;
@@ -86,10 +97,10 @@ contract PorticoBase {
       uint8 /*feeProtocol*/,
       bool /*unlocked*/
     ) {
-      return sqrtPriceX96;
-    } catch {
-      return 0;
-    }
+        return sqrtPriceX96;
+      } catch {
+        return 0;
+      }
   }
 }
 
