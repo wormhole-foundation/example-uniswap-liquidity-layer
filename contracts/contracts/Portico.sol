@@ -63,6 +63,10 @@ contract PorticoBase {
     return (size > 0);
   }
 
+  ///note sqrtPriceX96 == impact, so the max the price is allowed to change
+  ///so if it would change more than this with the given input amount,
+  ///it will just stop the swap at that point, and the actual input amount is reduced, rather than reverting
+  ///I think...
   ///@notice if tokenIn == token0 then slippage is in the negative, and vice versa
   ///@param maxSlippage is in BIPS
   function calculateSlippage(
@@ -71,24 +75,22 @@ contract PorticoBase {
     address tokenOut,
     uint24 fee
   ) internal view returns (uint160 sqrtPriceLimitX96) {
-    console.log("CalculateSlippage: ", maxSlippage);
     PoolAddress.PoolKey memory key = PoolAddress.getPoolKey(tokenIn, tokenOut, fee);
     //compute pool
     IV3Pool pool = IV3Pool(PoolAddress.computeAddress(ROUTERV3.factory(), key));
     if (!isContract(address(pool))) {
       return 0;
     }
-    console.log("Pool: ", address(pool));
 
     //get current tick via slot0
     uint160 sqrtPriceX96 = sqrtPrice(pool);
-    uint160 buffer = (maxSlippage * sqrtPriceX96) / 10000;
+    uint160 buffer = (maxSlippage * sqrtPriceX96) / 1000;//this is the right scale I think
     if (tokenIn == key.token0) {
       if (sqrtPriceX96 > buffer) {
-        sqrtPriceLimitX96 = sqrtPriceX96 + buffer;
+        sqrtPriceLimitX96 = sqrtPriceX96 - buffer;
       }
     } else {
-      sqrtPriceLimitX96 = sqrtPriceX96 - buffer;
+      sqrtPriceLimitX96 = sqrtPriceX96 + buffer;
     }
   }
 
@@ -298,10 +300,14 @@ abstract contract PorticoFinish is PorticoBase {
     try ROUTERV3.exactInputSingle(swapParams) returns (uint256 /*amountOut*/) {
       swapCompleted = true;
       console.log(swapCompleted);
-      console.log("Tokens Received: ", address(params.finalTokenAddress));
-      console.log("Amount Received: ", params.finalTokenAddress.balanceOf(address(this)));
-
-    } catch Error(string memory e){
+      console.log("Input Remaining: ", bridgeInfo.tokenReceived.balanceOf(address(this)));
+      calculateSlippage(
+        uint16(params.flags.maxSlippageFinish()),
+        address(bridgeInfo.tokenReceived),
+        address(params.finalTokenAddress),
+        params.flags.feeTierFinish()
+      );
+    } catch Error(string memory e) {
       console.log("Swap Fail: ", e);
       bridgeInfo.tokenReceived.transfer(params.recipientAddress, bridgeInfo.amountReceived);
       swapCompleted = false;

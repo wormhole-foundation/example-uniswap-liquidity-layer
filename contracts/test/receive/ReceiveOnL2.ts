@@ -64,6 +64,9 @@ describe("Receive On L2", () => {
 
     expect(s.Portico.address).to.not.eq("0x0000000000000000000000000000000000000000", "Start Deployed")
 
+    const balance = await s.xETH.balanceOf(xEthHolder)
+    s.L2WETH_AMOUNT = balance
+    showBody("xETH had: ", await toNumber(balance))
     await stealMoney(xEthHolder, s.Portico.address, o.wormWeth, s.L2WETH_AMOUNT)
 
     //completeTransferWithPayload just needs to not revert
@@ -160,7 +163,7 @@ describe("Receive On L2", () => {
   it("Slippage Test", async () => {
 
     expectedVAA = {
-      flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, 300, 10000, false, true),
+      flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, 300, 5000, false, true),
       canonAssetAddress: o.wormWeth,
       finalTokenAddress: o.wethAddress,
       recipientAddress: s.Bob.address,
@@ -187,8 +190,18 @@ describe("Receive On L2", () => {
     //wrappedAsset should return the xeth
     await s.fakeTokenBridge.wrappedAsset.returns(o.wormWeth)
 
+    const startEthBalance = await ethers.provider.getBalance(s.Bob.address)
+
+
     //input data doesn't matter, we spoof the returns
     await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x")
+
+    const endEthBalance = await ethers.provider.getBalance(s.Bob.address)
+    const ethDelta = await toNumber(endEthBalance.sub(startEthBalance))
+
+    showBody("DLTA: ", ethDelta)
+    const impact = ((await toNumber(s.L2WETH_AMOUNT) - ethDelta) / ethDelta) * 100
+    showBody("Impact: ", impact)
 
 
   })
