@@ -123,8 +123,8 @@ describe("Send", function () {
     //send
     await s.Portico.connect(s.Bob).start(params)
 
-    console.log("End Bob Weth: ", await toNumber(await s.WETH.balanceOf(s.Bob.address)))
-    console.log("End Ptc Weth: ", await toNumber(await s.WETH.balanceOf(s.Portico.address)))
+    //console.log("End Bob Weth: ", await toNumber(await s.WETH.balanceOf(s.Bob.address)))
+    //console.log("End Ptc Weth: ", await toNumber(await s.WETH.balanceOf(s.Portico.address)))
 
 
   })

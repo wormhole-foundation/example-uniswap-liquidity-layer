@@ -13,7 +13,6 @@ import "./uniswap/ISwapRouter.sol";
 import "./uniswap/IV3Pool.sol";
 import "./uniswap/PoolAddress.sol";
 
-import "./lib/PRBMathSD59x18.sol";
 
 //testing
 import "hardhat/console.sol";
@@ -22,7 +21,6 @@ using PorticoFlagSetAccess for PorticoFlagSet;
 
 contract PorticoBase {
   using PorticoFlagSetAccess for PorticoFlagSet;
-  using PRBMathSD59x18 for *;
 
   ISwapRouter public immutable ROUTERV3;
   ITokenBridge public immutable TOKENBRIDGE;
@@ -74,7 +72,7 @@ contract PorticoBase {
     uint24 fee
   ) internal view returns (uint256 minAmoutReceived) {
     PoolAddress.PoolKey memory key = PoolAddress.getPoolKey(tokenIn, tokenOut, fee);
-    
+
     //compute pool
     IV3Pool pool = IV3Pool(PoolAddress.computeAddress(ROUTERV3.factory(), key));
     if (!isContract(address(pool))) {
@@ -83,7 +81,7 @@ contract PorticoBase {
 
     //10000 bips == 100% slippage is allowed
     uint16 MAX_BIPS = 10000;
-    if(maxSlippage >= MAX_BIPS){
+    if (maxSlippage >= MAX_BIPS) {
       return 0;
     }
 
@@ -91,7 +89,8 @@ contract PorticoBase {
     uint256 exchangeRate = getExchangeRate(sqrtPrice(pool));
 
     //invert exchange rate if needed
-    if (tokenIn != key.token0) {//todo is this right?
+    if (tokenIn != key.token0) {
+      //todo is this right?
       exchangeRate = divide(1e18, exchangeRate, 18);
     }
 
@@ -101,21 +100,11 @@ contract PorticoBase {
     maxSlippage = MAX_BIPS - maxSlippage;
 
     minAmoutReceived = (expectedAmount * maxSlippage) / MAX_BIPS;
-
   }
 
-  //price == (sqrtPriceX96 / 2**96) ** 2
-  ///@dev this works as of block 18594975
+  ///@return exchangeRate == (sqrtPriceX96 / 2**96) ** 2
   function getExchangeRate(uint160 sqrtPriceX96) internal pure returns (uint256 exchangeRate) {
-    int256 intSqrtPrice = int256(uint256(sqrtPriceX96));
-    exchangeRate = uint256(intSqrtPrice.div(2 ** 96) ** 2) / 1e18;
-  }
-
-  ///@notice get the percent deviation from a => b as a decimal e18
-  function percentChange(uint256 a, uint256 b) public pure returns (uint256 delta) {
-    uint256 max = a > b ? a : b;
-    uint256 min = b != max ? b : a;
-    delta = divide((max - min), min, 18);
+    return (divide(uint256(sqrtPriceX96), (2 ** 96), 18) ** 2) / 1e18;
   }
 
   ///@notice floating point division at @param factor scale
