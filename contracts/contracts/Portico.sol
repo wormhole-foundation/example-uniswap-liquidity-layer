@@ -203,7 +203,7 @@ abstract contract PorticoStart is PorticoBase {
       params.flags.recipientChain(),
       padAddress(params.recipientPorticoAddress),
       params.flags.bridgeNonce(),
-      abi.encode(decodedVAA)
+     abi.encode(decodedVAA)
     );
     chainId = wormholeChainId;
     emitterAddress = address(TOKENBRIDGE);
@@ -238,14 +238,11 @@ abstract contract PorticoFinish is PorticoBase {
     );
     bridgeInfo.amountReceived = transfer.amount;
 
-    /**
-    //note this is wrong
      // if there are more than 8 decimals, we need to denormalize
     uint8 decimals = bridgeInfo.tokenReceived.decimals();
     if (decimals > 8) {
       bridgeInfo.amountReceived *= uint256(10) ** (decimals - 8);
     }
-     */
 
     // ensure that the to address is this address
     require(unpadAddress(transfer.to) == address(this) && transfer.toChain == wormholeChainId, "Token was not sent to this address");
