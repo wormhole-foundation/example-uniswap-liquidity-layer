@@ -13,6 +13,8 @@ import "./uniswap/ISwapRouter.sol";
 import "./uniswap/IV3Pool.sol";
 import "./uniswap/PoolAddress.sol";
 
+import "./lib/PRBMathSD59x18.sol";
+
 //testing
 import "hardhat/console.sol";
 
@@ -20,6 +22,7 @@ using PorticoFlagSetAccess for PorticoFlagSet;
 
 contract PorticoBase {
   using PorticoFlagSetAccess for PorticoFlagSet;
+  using PRBMathSD59x18 for *;
 
   ISwapRouter public immutable ROUTERV3;
   ITokenBridge public immutable TOKENBRIDGE;
@@ -71,14 +74,14 @@ contract PorticoBase {
     address tokenOut,
     uint24 fee
   ) internal view returns (uint160 sqrtPriceLimitX96) {
-    console.log("CalculateSlippage: ", maxSlippage);
+    //console.log("CalculateSlippage: ", maxSlippage);
     PoolAddress.PoolKey memory key = PoolAddress.getPoolKey(tokenIn, tokenOut, fee);
     //compute pool
     IV3Pool pool = IV3Pool(PoolAddress.computeAddress(ROUTERV3.factory(), key));
     if (!isContract(address(pool))) {
       return 0;
     }
-    console.log("Pool: ", address(pool));
+    //console.log("Pool: ", address(pool));
 
     //get current tick via slot0
     uint160 sqrtPriceX96 = sqrtPrice(pool);
@@ -90,6 +93,78 @@ contract PorticoBase {
     } else {
       sqrtPriceLimitX96 = sqrtPriceX96 - buffer;
     }
+  }
+
+  function calcMinAmount(
+    uint256 amountIn,
+    uint16 maxSlippage,
+    address tokenIn,
+    address tokenOut,
+    uint24 fee
+  ) internal view returns (uint256 minAmoutReceived) {
+    console.log("calcMinAmount");
+    PoolAddress.PoolKey memory key = PoolAddress.getPoolKey(tokenIn, tokenOut, fee);
+    
+    //compute pool
+    IV3Pool pool = IV3Pool(PoolAddress.computeAddress(ROUTERV3.factory(), key));
+    if (!isContract(address(pool))) {
+      return 0;
+    }
+
+    //10000 bips == 100% slippage is allowed
+    uint16 MAX_BIPS = 10000;
+    if(maxSlippage >= MAX_BIPS){
+      return 0;
+    }
+
+    //get exchange rate
+    uint256 exchangeRate = getExchangeRate(sqrtPrice(pool));
+
+    //invert exchange rate if needed
+    if (tokenIn != key.token0) {//todo is this right?
+      exchangeRate = divide(1e18, exchangeRate, 18);
+    }
+
+    //compute expected amount received with no slippage
+    uint256 expectedAmount = (amountIn * exchangeRate) / 1e18;
+
+    maxSlippage = MAX_BIPS - maxSlippage;
+
+    minAmoutReceived = (expectedAmount * maxSlippage) / MAX_BIPS;
+
+  }
+
+  //price == (sqrtPriceX96 / 2**96) ** 2
+  ///@dev this works as of block 18594975
+  function getExchangeRate(uint160 sqrtPriceX96) internal pure returns (uint256 exchangeRate) {
+    console.log("Get exchange rate: ", sqrtPriceX96);
+    //return (uint256(sqrtPriceX96) * (uint256(sqrtPriceX96)) * (1e18)) >> (96 * 2);
+    //return (mul(mul(uint256(sqrtPriceX96),uint256(sqrtPriceX96)), 1e18)) >> (96 * 2);
+    /**
+    int256 intSqrtPrice = int256(uint256(sqrtPriceX96));
+    int256 data = intSqrtPrice.div(2**96) ** 2;
+    uint256 result = uint256(data) / 1e18;
+     */
+
+    //todo adjust for decimals?
+
+    int256 intSqrtPrice = int256(uint256(sqrtPriceX96));
+    exchangeRate = uint256(intSqrtPrice.div(2 ** 96) ** 2) / 1e18;
+  }
+
+  ///@notice get the percent deviation from a => b as a decimal e18
+  function percentChange(uint256 a, uint256 b) public pure returns (uint256 delta) {
+    uint256 max = a > b ? a : b;
+    uint256 min = b != max ? b : a;
+    delta = divide((max - min), min, 18);
+  }
+
+  ///@notice floating point division at @param factor scale
+  function divide(uint256 numerator, uint256 denominator, uint256 factor) internal pure returns (uint256 result) {
+    uint256 q = (numerator / denominator) * 10 ** factor;
+    uint256 r = ((numerator * 10 ** factor) / denominator) % 10 ** factor;
+
+    return q + r;
   }
 
   function sqrtPrice(IV3Pool pool) internal view returns (uint160) {
@@ -114,6 +189,15 @@ abstract contract PorticoStart is PorticoBase {
   function _start_v3swap(PorticoStructs.TradeParameters memory params, uint256 actualAmount) internal returns (uint256 amount) {
     // TODO: need sanity checks for token balances?
     require(params.startTokenAddress.approve(address(ROUTERV3), uint256(params.amountSpecified)), "Approve fail");
+
+    uint256 minAmountOut = calcMinAmount(
+      uint256(params.amountSpecified),
+      uint16(params.flags.maxSlippageFinish()),
+      address(params.startTokenAddress),
+      address(params.canonAssetAddress),
+      params.flags.feeTierStart()
+    );
+
     ROUTERV3.exactInputSingle(
       ISwapRouter.ExactInputSingleParams(
         address(params.startTokenAddress), // tokenIn
@@ -122,16 +206,12 @@ abstract contract PorticoStart is PorticoBase {
         address(this), //recipient
         block.timestamp + 10, //deadline
         actualAmount, //amountIn
-        0, //use slippage instead of minAmountReceived
-        calculateSlippage(
-          uint16(params.flags.maxSlippageStart()),
-          address(params.startTokenAddress),
-          address(params.canonAssetAddress),
-          params.flags.feeTierStart()
-        )
+        minAmountOut, //minAmountReceived
+        0
       )
     );
     amount = params.canonAssetAddress.balanceOf(address(this));
+    console.log("ACTUAL AMOUNT RECEIVED: ", amount);
   }
 
   event PorticoSwapStart(uint64 indexed sequence, uint16 indexed chainId);
@@ -277,12 +357,14 @@ abstract contract PorticoFinish is PorticoBase {
   ) internal returns (bool swapCompleted) {
     bridgeInfo.tokenReceived.approve(address(ROUTERV3), bridgeInfo.amountReceived);
 
-    uint160 sqrtPriceLimit = calculateSlippage(
+    uint256 minAmountOut = calcMinAmount(
+      bridgeInfo.amountReceived,
       uint16(params.flags.maxSlippageFinish()),
       address(bridgeInfo.tokenReceived),
       address(params.finalTokenAddress),
       params.flags.feeTierFinish()
     );
+
     // set swap options with user params
     ISwapRouter.ExactInputSingleParams memory swapParams = ISwapRouter.ExactInputSingleParams({
       tokenIn: address(bridgeInfo.tokenReceived),
@@ -291,18 +373,14 @@ abstract contract PorticoFinish is PorticoBase {
       recipient: address(this), // we need to receive the token in order to correctly split the fee. tragic.
       deadline: block.timestamp + 10,
       amountIn: bridgeInfo.amountReceived,
-      amountOutMinimum: 0,
-      sqrtPriceLimitX96: sqrtPriceLimit
+      amountOutMinimum: minAmountOut,
+      sqrtPriceLimitX96: 0 //sqrtPriceLimit
     });
 
     try ROUTERV3.exactInputSingle(swapParams) returns (uint256 /*amountOut*/) {
       swapCompleted = true;
       console.log(swapCompleted);
-      console.log("Tokens Received: ", address(params.finalTokenAddress));
-      console.log("Amount Received: ", params.finalTokenAddress.balanceOf(address(this)));
-
-    } catch Error(string memory e){
-      console.log("Swap Fail: ", e);
+    } catch /**Error(string memory e) */ {
       bridgeInfo.tokenReceived.transfer(params.recipientAddress, bridgeInfo.amountReceived);
       swapCompleted = false;
     }

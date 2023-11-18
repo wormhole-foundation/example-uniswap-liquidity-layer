@@ -112,6 +112,8 @@ describe("Send", function () {
       relayerFee: s.ethRelayerFee
     }
 
+    
+
     //fund
     await stealMoney(s.Bank, s.Bob.address, e.usdcAddress, USDC_AMOUNT)
 

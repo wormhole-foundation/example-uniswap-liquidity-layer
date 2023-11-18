@@ -160,7 +160,7 @@ describe("Receive On L2", () => {
   it("Slippage Test", async () => {
 
     expectedVAA = {
-      flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, 300, 10000, false, true),
+      flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, 300, 500, false, true),
       canonAssetAddress: o.wormWeth,
       finalTokenAddress: o.wethAddress,
       recipientAddress: s.Bob.address,
