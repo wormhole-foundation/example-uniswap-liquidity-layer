@@ -66,35 +66,6 @@ contract PorticoBase {
     return (size > 0);
   }
 
-  ///@notice if tokenIn == token0 then slippage is in the negative, and vice versa
-  ///@param maxSlippage is in BIPS
-  function calculateSlippage(
-    uint16 maxSlippage,
-    address tokenIn,
-    address tokenOut,
-    uint24 fee
-  ) internal view returns (uint160 sqrtPriceLimitX96) {
-    //console.log("CalculateSlippage: ", maxSlippage);
-    PoolAddress.PoolKey memory key = PoolAddress.getPoolKey(tokenIn, tokenOut, fee);
-    //compute pool
-    IV3Pool pool = IV3Pool(PoolAddress.computeAddress(ROUTERV3.factory(), key));
-    if (!isContract(address(pool))) {
-      return 0;
-    }
-    //console.log("Pool: ", address(pool));
-
-    //get current tick via slot0
-    uint160 sqrtPriceX96 = sqrtPrice(pool);
-    uint160 buffer = (maxSlippage * sqrtPriceX96) / 10000;
-    if (tokenIn == key.token0) {
-      if (sqrtPriceX96 > buffer) {
-        sqrtPriceLimitX96 = sqrtPriceX96 + buffer;
-      }
-    } else {
-      sqrtPriceLimitX96 = sqrtPriceX96 - buffer;
-    }
-  }
-
   function calcMinAmount(
     uint256 amountIn,
     uint16 maxSlippage,
@@ -102,7 +73,6 @@ contract PorticoBase {
     address tokenOut,
     uint24 fee
   ) internal view returns (uint256 minAmoutReceived) {
-    console.log("calcMinAmount");
     PoolAddress.PoolKey memory key = PoolAddress.getPoolKey(tokenIn, tokenOut, fee);
     
     //compute pool
@@ -137,17 +107,6 @@ contract PorticoBase {
   //price == (sqrtPriceX96 / 2**96) ** 2
   ///@dev this works as of block 18594975
   function getExchangeRate(uint160 sqrtPriceX96) internal pure returns (uint256 exchangeRate) {
-    console.log("Get exchange rate: ", sqrtPriceX96);
-    //return (uint256(sqrtPriceX96) * (uint256(sqrtPriceX96)) * (1e18)) >> (96 * 2);
-    //return (mul(mul(uint256(sqrtPriceX96),uint256(sqrtPriceX96)), 1e18)) >> (96 * 2);
-    /**
-    int256 intSqrtPrice = int256(uint256(sqrtPriceX96));
-    int256 data = intSqrtPrice.div(2**96) ** 2;
-    uint256 result = uint256(data) / 1e18;
-     */
-
-    //todo adjust for decimals?
-
     int256 intSqrtPrice = int256(uint256(sqrtPriceX96));
     exchangeRate = uint256(intSqrtPrice.div(2 ** 96) ** 2) / 1e18;
   }
@@ -211,7 +170,6 @@ abstract contract PorticoStart is PorticoBase {
       )
     );
     amount = params.canonAssetAddress.balanceOf(address(this));
-    console.log("ACTUAL AMOUNT RECEIVED: ", amount);
   }
 
   event PorticoSwapStart(uint64 indexed sequence, uint16 indexed chainId);
@@ -379,7 +337,6 @@ abstract contract PorticoFinish is PorticoBase {
 
     try ROUTERV3.exactInputSingle(swapParams) returns (uint256 /*amountOut*/) {
       swapCompleted = true;
-      console.log(swapCompleted);
     } catch /**Error(string memory e) */ {
       bridgeInfo.tokenReceived.transfer(params.recipientAddress, bridgeInfo.amountReceived);
       swapCompleted = false;
