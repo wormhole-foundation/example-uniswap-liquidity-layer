@@ -37,7 +37,7 @@ library PorticoFlagSetAccess {
   }
 
   // bytes 12,13 is the max slippage for the start path
-  // in BPS - 100 = 1% slippage. negative values = get more than put in
+  // in BPS - 100 = 1% slippage.
   function maxSlippageStart(PorticoFlagSet flagset) internal pure returns (int16 ans) {
     assembly {
       ans := add(byte(12, flagset), shl(8, byte(13, flagset)))
@@ -45,7 +45,7 @@ library PorticoFlagSetAccess {
   }
 
   // bytes 14,15 is the max slippage for the start path
-  // in BPS - 100 = 1% slippage. negative values = get more than put in
+  // in BPS - 100 = 1% slippage.
   function maxSlippageFinish(PorticoFlagSet flagset) internal pure returns (int16 ans) {
     assembly {
       ans := add(byte(14, flagset), shl(8, byte(15, flagset)))
@@ -104,7 +104,6 @@ library PorticoStructs {
   //268,041 158,788
   struct DecodedVAA {
     PorticoFlagSet flags;
-    IERC20 canonAssetAddress;//todo don't need cannon asset in VAA unless we want to check the token received (currently don't)
     IERC20 finalTokenAddress;
     // the person to receive the token
     address recipientAddress;

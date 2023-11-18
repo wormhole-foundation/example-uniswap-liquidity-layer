@@ -62,6 +62,7 @@ describe("Deploy", function () {
 
 describe("Send", function () {
 
+
   it("send mainnet tx => op with weth", async () => {
 
     const params: TradeParameters = {
@@ -102,7 +103,7 @@ describe("Send", function () {
     const USDC_AMOUNT = BN("500e6")
 
     const params: TradeParameters = {
-      flags: encodeFlagSet(w.CID.polygon, 2, 3000, 100, s.slippage, s.slippage, false, true),
+      flags: encodeFlagSet(w.CID.polygon, 2, 3000, 100, s.slippage, s.slippage, false, false),
       startTokenAddress: e.usdcAddress,
       canonAssetAddress: e.wethAddress,
       finalTokenAddress: o.wethAddress,
@@ -112,7 +113,7 @@ describe("Send", function () {
       relayerFee: s.ethRelayerFee
     }
 
-    
+
 
     //fund
     await stealMoney(s.Bank, s.Bob.address, e.usdcAddress, USDC_AMOUNT)
@@ -129,11 +130,59 @@ describe("Send", function () {
 
   })
 
+  it("Invert the swap from the previous test", async () => {
+    //this test proves that the slippage works as intended in both directions
+
+    const ethAmount = BN("25e16")
+
+    const params: TradeParameters = {
+      flags: encodeFlagSet(w.CID.polygon, 3, 3000, 100, s.slippage, s.slippage, true, false),
+      startTokenAddress: e.wethAddress,
+      canonAssetAddress: e.usdcAddress,
+      finalTokenAddress: o.wethAddress,
+      recipientAddress: s.Carol.address,
+      recipientPorticoAddress: p.polyPortico,
+      amountSpecified: ethAmount,
+      relayerFee: s.ethRelayerFee
+    }
+
+    const startBobEther = await ethers.provider.getBalance(s.Bob.address)
+    const startPorticoWeth = await s.WETH.balanceOf(s.Portico.address)
+    const startBobWeth = await s.WETH.balanceOf(s.Bob.address)
+
+    expect(startBobWeth).to.eq(0, "Bob has no and weth")
+    expect(startPorticoWeth).to.be.lt(BN("1e10"), "Wormhole txs round to 1e8")
+    expect(await ethers.provider.getBalance(s.Bob.address)).to.be.gt(ethAmount, "Bob has enough ETH")
+    const gas = await getGas(await s.Portico.connect(s.Bob).start(params, { value: ethAmount }))
+    showBodyCyan("Gas to start + wrap: ", gas)
+
+    const endBobEther = await ethers.provider.getBalance(s.Bob.address)
+    const etherDelta = startBobEther.sub(endBobEther)
+    expect(await toNumber(etherDelta)).to.be.closeTo(await toNumber(ethAmount), 0.01, "ETHER sent is correct + gas")
+
+  })
+
+  it("weth => usdc slippage too low", async () => {
+    const ethAmount = BN("25e16")
+
+    const tooLowSlippage = 1
+
+    const params: TradeParameters = {
+      flags: encodeFlagSet(w.CID.polygon, 3, 3000, 100, tooLowSlippage, s.slippage, true, false),
+      startTokenAddress: e.wethAddress,
+      canonAssetAddress: e.usdcAddress,
+      finalTokenAddress: o.wethAddress,
+      recipientAddress: s.Carol.address,
+      recipientPorticoAddress: p.polyPortico,
+      amountSpecified: ethAmount,
+      relayerFee: s.ethRelayerFee
+    }
+  })
 
   it("Send mainnet tx => op wrapping native eth", async () => {
 
     const params: TradeParameters = {
-      flags: encodeFlagSet(w.CID.optimism, 3, 100, 100, s.slippage, s.slippage, true, true),
+      flags: encodeFlagSet(w.CID.optimism, 4, 100, 100, s.slippage, s.slippage, true, true),
       startTokenAddress: e.wethAddress,
       canonAssetAddress: e.wethAddress,
       finalTokenAddress: o.wethAddress,

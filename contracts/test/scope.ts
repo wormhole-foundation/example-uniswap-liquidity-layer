@@ -85,7 +85,6 @@ export type TradeParameters = {
 
 export type DecodedVAA = {
     flags: BytesLike,
-    canonAssetAddress: string,
     finalTokenAddress: string,
     recipientAddress: string,
     canonAssetAmount: BigNumber,

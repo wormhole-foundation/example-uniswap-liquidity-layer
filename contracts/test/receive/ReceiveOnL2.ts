@@ -71,11 +71,10 @@ describe("Receive On L2", () => {
 
   })
 
-  /**
+
   it("receipt of xchain tx", async () => {
     expectedVAA = {
       flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, 300, 300, false, true),
-      canonAssetAddress: o.wormWeth,
       finalTokenAddress: o.wethAddress,
       recipientAddress: s.Bob.address,
       canonAssetAmount: s.L2WETH_AMOUNT,
@@ -93,7 +92,7 @@ describe("Receive On L2", () => {
       toChain: w.CID.optimism,
       fromAddress: adddr2Bytes(p.polyPortico),
       payload: abi.encode(
-        ["tuple(bytes32 flags, address canonAssetAddress, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 relayerFee)"],
+        ["tuple(bytes32 flags, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 relayerFee)"],
         [expectedVAA]
       )
     })
@@ -115,11 +114,11 @@ describe("Receive On L2", () => {
     expect(ethDelta).to.be.closeTo(await toNumber(s.L2WETH_AMOUNT), 0.001, "Eth received")
   })
 
+
   it("Failed swap, pool doesn't exist", async () => {
 
     expectedVAA = {
       flags: encodeFlagSet(w.CID.optimism, 1, 100, 12345, 300, 300, false, true),
-      canonAssetAddress: o.wormWeth,
       finalTokenAddress: o.wethAddress,
       recipientAddress: s.Bob.address,
       canonAssetAmount: s.L2WETH_AMOUNT,
@@ -140,7 +139,7 @@ describe("Receive On L2", () => {
       toChain: w.CID.optimism,
       fromAddress: adddr2Bytes(p.polyPortico),
       payload: abi.encode(
-        ["tuple(bytes32 flags, address canonAssetAddress, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 relayerFee)"],
+        ["tuple(bytes32 flags, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 relayerFee)"],
         [expectedVAA]
       )
     })
@@ -155,13 +154,12 @@ describe("Receive On L2", () => {
     expect(await s.xETH.balanceOf(s.Portico.address)).to.eq(0, "No xETH remaining on Portico")
 
   })
-   */
+
 
   it("Slippage Test", async () => {
 
     expectedVAA = {
       flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, 300, 500, false, true),
-      canonAssetAddress: o.wormWeth,
       finalTokenAddress: o.wethAddress,
       recipientAddress: s.Bob.address,
       canonAssetAmount: s.L2WETH_AMOUNT,
@@ -179,7 +177,7 @@ describe("Receive On L2", () => {
       toChain: w.CID.optimism,
       fromAddress: adddr2Bytes(p.polyPortico),
       payload: abi.encode(
-        ["tuple(bytes32 flags, address canonAssetAddress, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 relayerFee)"],
+        ["tuple(bytes32 flags, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 relayerFee)"],
         [expectedVAA]
       )
     })
@@ -190,7 +188,7 @@ describe("Receive On L2", () => {
     //input data doesn't matter, we spoof the returns
     await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x")
 
-
   })
+
 })
 

@@ -60,6 +60,23 @@ describe("Deploy", function () {
 
 describe("Send", function () {
 
+  it("Slippage too low", async () => {
+    const lowSlippageBips = 1
+    const params: TradeParameters = {
+      flags: encodeFlagSet(w.CID.polygon, 1, 100, 100, lowSlippageBips, 321, false, false),
+      startTokenAddress: o.wethAddress,
+      canonAssetAddress: o.wormWeth,
+      finalTokenAddress: p.wethAddress,
+      recipientAddress: s.Carol.address,
+      recipientPorticoAddress: p.polyPortico,
+      amountSpecified: s.L2WETH_AMOUNT,
+      relayerFee: s.L2relayerFee
+    }
+
+    await s.WETH.connect(s.Bob).approve(s.Portico.address, s.L2WETH_AMOUNT)
+    expect(s.Portico.connect(s.Bob).start(params)).to.be.revertedWith("Too little received")
+  })
+
   it("send op tx => polygon with weth", async () => {
 
     const params: TradeParameters = {
@@ -94,6 +111,8 @@ describe("Send", function () {
     expect(endBobWeth).to.eq(0, "Ending wETH is correct")
 
   })
+
+  
 
   it("Send mainnet tx => op wrapping native eth", async () => {
 

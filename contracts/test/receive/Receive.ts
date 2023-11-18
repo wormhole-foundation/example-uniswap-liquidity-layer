@@ -33,7 +33,6 @@ describe("Receive", () => {
       ["tuple(bytes32 flags, address canonAssetAddress, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 relayerFee)"],
       [{
         flags: params.flags,
-        canonAssetAddress: params.canonAssetAddress,
         finalTokenAddress: params.finalTokenAddress,
         recipientAddress: params.recipientAddress,
         canonAssetAmount: params.canonAssetAmount,

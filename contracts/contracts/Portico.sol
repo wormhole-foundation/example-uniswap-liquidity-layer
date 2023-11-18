@@ -13,7 +13,6 @@ import "./uniswap/ISwapRouter.sol";
 import "./uniswap/IV3Pool.sol";
 import "./uniswap/PoolAddress.sol";
 
-
 //testing
 import "hardhat/console.sol";
 
@@ -71,17 +70,16 @@ contract PorticoBase {
     address tokenOut,
     uint24 fee
   ) internal view returns (uint256 minAmoutReceived) {
-    PoolAddress.PoolKey memory key = PoolAddress.getPoolKey(tokenIn, tokenOut, fee);
-
-    //compute pool
-    IV3Pool pool = IV3Pool(PoolAddress.computeAddress(ROUTERV3.factory(), key));
-    if (!isContract(address(pool))) {
+    //10000 bips == 100% slippage is allowed
+    uint16 MAX_BIPS = 10000;
+    if (maxSlippage >= MAX_BIPS || maxSlippage == 0) {
       return 0;
     }
 
-    //10000 bips == 100% slippage is allowed
-    uint16 MAX_BIPS = 10000;
-    if (maxSlippage >= MAX_BIPS) {
+    //compute pool
+    PoolAddress.PoolKey memory key = PoolAddress.getPoolKey(tokenIn, tokenOut, fee);
+    IV3Pool pool = IV3Pool(PoolAddress.computeAddress(ROUTERV3.factory(), key));
+    if (!isContract(address(pool))) {
       return 0;
     }
 
@@ -90,7 +88,6 @@ contract PorticoBase {
 
     //invert exchange rate if needed
     if (tokenIn != key.token0) {
-      //todo is this right?
       exchangeRate = divide(1e18, exchangeRate, 18);
     }
 
@@ -135,8 +132,7 @@ contract PorticoBase {
 
 abstract contract PorticoStart is PorticoBase {
   function _start_v3swap(PorticoStructs.TradeParameters memory params, uint256 actualAmount) internal returns (uint256 amount) {
-    // TODO: need sanity checks for token balances?
-    require(params.startTokenAddress.approve(address(ROUTERV3), uint256(params.amountSpecified)), "Approve fail");
+    require(params.startTokenAddress.approve(address(ROUTERV3), params.startTokenAddress.balanceOf(address(this))), "Approve fail");
 
     uint256 minAmountOut = calcMinAmount(
       uint256(params.amountSpecified),
@@ -145,6 +141,7 @@ abstract contract PorticoStart is PorticoBase {
       address(params.canonAssetAddress),
       params.flags.feeTierStart()
     );
+
 
     ROUTERV3.exactInputSingle(
       ISwapRouter.ExactInputSingleParams(
@@ -190,25 +187,23 @@ abstract contract PorticoStart is PorticoBase {
 
     // allow the token bridge to do its token bridge things
     IERC20(params.canonAssetAddress).approve(address(TOKENBRIDGE), amount);
+
     // now we need to produce the payload we are sending
     PorticoStructs.DecodedVAA memory decodedVAA = PorticoStructs.DecodedVAA(
       params.flags,
-      params.canonAssetAddress,
       params.finalTokenAddress,
       params.recipientAddress,
       amount,
       params.relayerFee
     );
-    bytes memory encodedVaa = abi.encode(decodedVAA);
 
-    // question: what happens when the asset is not an xasset. will this just fail? ans - nope
     sequence = TOKENBRIDGE.transferTokensWithPayload{ value: wormhole.messageFee() }(
       address(params.canonAssetAddress),
       amount,
       params.flags.recipientChain(),
       padAddress(params.recipientPorticoAddress),
       params.flags.bridgeNonce(),
-      encodedVaa
+      abi.encode(decodedVAA)
     );
     chainId = wormholeChainId;
     emitterAddress = address(TOKENBRIDGE);
@@ -235,7 +230,6 @@ abstract contract PorticoFinish is PorticoBase {
     // decode the payload3 we sent into the decodedVAA struct
     message = abi.decode(transfer.payload, (PorticoStructs.DecodedVAA));
 
-    //todo confirm this logic is correct
     // get the address for the token on this address
     bridgeInfo.tokenReceived = IERC20(
       transfer.tokenChain == wormholeChainId
@@ -245,7 +239,7 @@ abstract contract PorticoFinish is PorticoBase {
     bridgeInfo.amountReceived = transfer.amount;
 
     /**
-    //todo this is wrong
+    //note this is wrong
      // if there are more than 8 decimals, we need to denormalize
     uint8 decimals = bridgeInfo.tokenReceived.decimals();
     if (decimals > 8) {
@@ -266,7 +260,6 @@ abstract contract PorticoFinish is PorticoBase {
     bool swapCompleted = finish(message, bridgeInfo);
 
     // simply emit the raw data bytes. it should be trivial to parse.
-    // TODO: consider what fields to index here
     emit PorticoSwapFinish(swapCompleted, message);
   }
 
@@ -279,8 +272,7 @@ abstract contract PorticoFinish is PorticoBase {
     if ((params.finalTokenAddress) == bridgeInfo.tokenReceived) {
       // this means that we don't need to do a swap, aka, we received the canon asset.
       payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, bridgeInfo.relayerFeeAmount);
-      //question return false for accounting as no swap was actually completed?
-      return true;
+      return false;
     } else {
       //do the swap, resulting aset is sent to this address
       swapCompleted = _finish_v3swap(params, bridgeInfo);
@@ -336,7 +328,7 @@ abstract contract PorticoFinish is PorticoBase {
   ///@notice this should always be called UNLESS swap fails, in which case payouts happen there
   function payOut(bool unwrap, IERC20 finalToken, address recipient, uint256 relayerFeeAmount) internal {
     //square up balances with what we actually have, don't trust reporting from the bridge
-    //prioritize relayer fee?
+    //user gets total - relayer fee
     uint256 finalUserAmount = finalToken.balanceOf(address(this)) - relayerFeeAmount;
 
     if (unwrap) {
@@ -361,36 +353,6 @@ abstract contract PorticoFinish is PorticoBase {
         require(finalToken.transfer(_msgSender(), relayerFeeAmount), "STF");
       }
     }
-  }
-
-  //https://github.com/wormhole-foundation/example-token-bridge-relayer/blob/8132e8cc0589cd5cf739bae012c42321879cfd4e/evm/src/token-bridge-relayer/TokenBridgeRelayer.sol#L714C5-L717C6
-  function bytes32ToAddress(bytes32 address_) internal pure returns (address) {
-    require(bytes12(address_) == 0, "invalid EVM address");
-    return address(uint160(uint256(address_)));
-  }
-
-  //https://github.com/wormhole-foundation/example-token-bridge-relayer/blob/8132e8cc0589cd5cf739bae012c42321879cfd4e/evm/src/libraries/BytesLib.sol#L385C5-L394C6
-  function toBytes32(bytes memory _bytes, uint256 _start) internal pure returns (bytes32) {
-    require(_bytes.length >= _start + 32, "toBytes32_outOfBounds");
-    bytes32 tempBytes32;
-
-    assembly {
-      tempBytes32 := mload(add(add(_bytes, 0x20), _start))
-    }
-
-    return tempBytes32;
-  }
-
-  //https://github.com/wormhole-foundation/example-token-bridge-relayer/blob/8132e8cc0589cd5cf739bae012c42321879cfd4e/evm/src/libraries/BytesLib.sol#L319C5-L328C6
-  function toUint16(bytes memory _bytes, uint256 _start) internal pure returns (uint16) {
-    require(_bytes.length >= _start + 2, "toUint16_outOfBounds");
-    uint16 tempUint;
-
-    assembly {
-      tempUint := mload(add(add(_bytes, 0x2), _start))
-    }
-
-    return tempUint;
   }
 }
 
