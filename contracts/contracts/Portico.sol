@@ -214,6 +214,24 @@ abstract contract PorticoStart is PorticoBase {
 abstract contract PorticoFinish is PorticoBase {
   event PorticoSwapFinish(bool swapCompleted, PorticoStructs.DecodedVAA data);
 
+  // receiveMessageAndSwap is the entrypoint for finishing the swap
+  function receiveMessageAndSwap(bytes calldata encodedTransferMessage) external payable {
+    // start by calling _completeTransfer, submitting the VAA to the token bridge
+    (
+      PorticoStructs.DecodedVAA memory message,
+      PorticoStructs.BridgeInfo memory bridgeInfo
+    ) = _completeTransfer(encodedTransferMessage);
+    // we modify the message to set the relayerFee to 0 if the msgSender is the fee recipient.
+    bridgeInfo.relayerFeeAmount = (_msgSender() == message.recipientAddress) ? 0 : message.relayerFee;
+
+    //now process
+    bool swapCompleted = finish(message, bridgeInfo);
+
+    // simply emit the raw data bytes. it should be trivial to parse.
+    emit PorticoSwapFinish(swapCompleted, message);
+  }
+
+  // _completeTransfer takes the vaa for a payload3 token transfer, redeems it with the token bridge, and returns the decoded vaa payload
   function _completeTransfer(
     bytes calldata encodedTransferMessage
   ) internal returns (PorticoStructs.DecodedVAA memory message, PorticoStructs.BridgeInfo memory bridgeInfo) {
@@ -224,21 +242,22 @@ abstract contract PorticoFinish is PorticoBase {
      */
     bytes memory transferPayload = TOKENBRIDGE.completeTransferWithPayload(encodedTransferMessage);
 
-    // parse the wormhole message payload into the `TransferWithPayload` struct
+    // parse the wormhole message payload into the `TransferWithPayload` struct, a payload3 token transfer
     ITokenBridge.TransferWithPayload memory transfer = TOKENBRIDGE.parseTransferWithPayload(transferPayload);
 
-    // decode the payload3 we sent into the decodedVAA struct
+    // decode the payload3 we originally sent into the decodedVAA struct.
     message = abi.decode(transfer.payload, (PorticoStructs.DecodedVAA));
 
-    // get the address for the token on this address
+    // get the address for the token on this address.
     bridgeInfo.tokenReceived = IERC20(
       transfer.tokenChain == wormholeChainId
         ? unpadAddress(transfer.tokenAddress)
         : TOKENBRIDGE.wrappedAsset(transfer.tokenChain, transfer.tokenAddress)
     );
+    // put the transfer amount into amountReceived, knowing we may need to change it in a sec
     bridgeInfo.amountReceived = transfer.amount;
 
-     // if there are more than 8 decimals, we need to denormalize
+    // if there are more than 8 decimals, we need to denormalize. wormhole token bridge truncates tokens of more than 8 decimals to 8 decimals.
     uint8 decimals = bridgeInfo.tokenReceived.decimals();
     if (decimals > 8) {
       bridgeInfo.amountReceived *= uint256(10) ** (decimals - 8);
@@ -248,45 +267,34 @@ abstract contract PorticoFinish is PorticoBase {
     require(unpadAddress(transfer.to) == address(this) && transfer.toChain == wormholeChainId, "Token was not sent to this address");
   }
 
-  //https://github.com/wormhole-foundation/example-token-bridge-relayer/blob/8132e8cc0589cd5cf739bae012c42321879cfd4e/evm/src/token-bridge-relayer/TokenBridgeRelayer.sol#L496
-  function receiveMessageAndSwap(bytes calldata encodedTransferMessage) external payable {
-    (PorticoStructs.DecodedVAA memory message, PorticoStructs.BridgeInfo memory bridgeInfo) = _completeTransfer(encodedTransferMessage);
-    bridgeInfo.relayerFeeAmount = (_msgSender() == message.recipientAddress) ? 0 : message.relayerFee;
-
-    //now process
-    bool swapCompleted = finish(message, bridgeInfo);
-
-    // simply emit the raw data bytes. it should be trivial to parse.
-    emit PorticoSwapFinish(swapCompleted, message);
-  }
-
   ///@notice determines we need to swap and/or unwrap, does those things if needed, and sends tokens to user & pays relayer fee
   function finish(
     PorticoStructs.DecodedVAA memory params,
     PorticoStructs.BridgeInfo memory bridgeInfo
   ) internal returns (bool swapCompleted) {
+    // see if the unwrap flag is set, and that the finalTokenAddress is the address we have set on deploy as our native weth9 address
     bool shouldUnwrap = params.flags.shouldUnwrapNative() && address(params.finalTokenAddress) == address(WETH);
     if ((params.finalTokenAddress) == bridgeInfo.tokenReceived) {
       // this means that we don't need to do a swap, aka, we received the canon asset.
       payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, bridgeInfo.relayerFeeAmount);
       return false;
-    } else {
-      //do the swap, resulting aset is sent to this address
-      swapCompleted = _finish_v3swap(params, bridgeInfo);
-      //if swap fails, relayer and user have already been paid in canon asset, so we are done
-      if (!swapCompleted) {
-        return swapCompleted;
-      }
-      payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, bridgeInfo.relayerFeeAmount);
     }
+    //if we are here, if means we need to do the swap, resulting aset is sent to this address
+    swapCompleted = _finish_v3swap(params, bridgeInfo);
+    //if swap fails, relayer and user have already been paid in canon asset, so we are done
+    if (!swapCompleted) {
+      return swapCompleted;
+    }
+    // we must call payout if the swap was completed
+    payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, bridgeInfo.relayerFeeAmount);
   }
 
-  //https://github.com/wormhole-foundation/example-nativeswap-usdc/blob/ff9a0bd73ddba0cd7b377f57f13aac63a747f881/contracts/contracts/CrossChainSwapV3.sol#L228
   // if swap fails, we don't pay fees to the relayer
   // the reason is because that typically, the swap fails because of bad market conditions
   // in this case, it is in the best interest of the mev/relayer to NOT relay this message until conditions are good
   // the user of course, who if they self relay, does not pay a fee, does not have this problem, so they can force this if they wish
   // swap failed - return canon asset to recipient
+  // it will return true if the swap was completed, indicating that funds need to be sent from this contract to the recipient
   function _finish_v3swap(
     PorticoStructs.DecodedVAA memory params,
     PorticoStructs.BridgeInfo memory bridgeInfo
@@ -313,9 +321,12 @@ abstract contract PorticoFinish is PorticoBase {
       sqrtPriceLimitX96: 0 //sqrtPriceLimit
     });
 
+    // try to do the swap
     try ROUTERV3.exactInputSingle(swapParams) returns (uint256 /*amountOut*/) {
       swapCompleted = true;
     } catch /**Error(string memory e) */ {
+      // if the swap fails, we just transfer the amount we received from the token bridge to the recipientAddress.
+      // we also mark swapCompleted to be false, so that we don't try to payout to the recipient
       bridgeInfo.tokenReceived.transfer(params.recipientAddress, bridgeInfo.amountReceived);
       swapCompleted = false;
     }
