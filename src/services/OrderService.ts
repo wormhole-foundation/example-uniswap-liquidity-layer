@@ -48,7 +48,7 @@ export class OrderService {
     return txData
   }
 
-  private async findFinishTransfer(sequence: string, wormholeChainId: number, emitterAddress: Hex ,chainId: number) {
+  private async findFinishTransfer(sequence: string, wormholeChainId: number, emitterAddress: string,chainId: number) {
     const provider = this.rpcService.getProvider(chainId)
     if(!provider) {
       throw new BadRequest("invalid chain id")
@@ -59,45 +59,17 @@ export class OrderService {
       throw new BadRequest("no token bridge on receiver chain")
     }
 
-    const eventKey = `portico_receipt:${tokenBridge}:${sequence}:${emitterAddress}:${wormholeChainId}`
-
     try {
-      const cachedResult = await this.redisService.client.get(eventKey)
-      if(cachedResult) {
-        const parsed = JSON.parse(cachedResult)
-        if(parsed) {
-          return parsed
-        }
-      }
+    const res = await fetch(`https://api.wormholescan.io/api/v1/global-tx/${wormholeChainId}/${emitterAddress}/${sequence}`)
+    const resp = await res.json()
+      console.log(resp)
+
+    const txData = this.getTxData(resp.destinationTx.txHash, chainId)
+
+    return txData
     } catch {
+      return undefined
     }
-
-    const args = {
-        sequence: BigInt(sequence),
-        emitterChainId: wormholeChainId,
-      }
-
-
-    console.log(args, tokenBridge)
-    const events = await provider.getContractEvents({
-      address: tokenBridge,
-      abi: porticoEventsAbi,
-      eventName: "TransferRedeemed",
-      fromBlock: await provider.getBlockNumber() - 500n,
-      toBlock: await provider.getBlockNumber(),
-      args: args,
-    })
-    console.log("got", events.length, events)
-    const event = events.pop()
-    if (event) {
-      const txData = await this.getTxData(event.transactionHash, chainId)
-      // cache for one hour,
-      await this.redisService.client.set(eventKey, JSON.stringify(txData), {
-        EX: 60 * 60,
-      })
-      return txData
-    }
-    return undefined
   }
 
 
@@ -200,6 +172,7 @@ export class OrderService {
     const bridgeStatus = {
       VAA: toHex(bridgeInfo.vaaBytes),
       target: getAddress(toHex(tokenTransferPayload.to).replace("0x"+"00".repeat(12), "0x")),
+      targetChainId: this.rolodexService.getEvmChainId(tokenTransferPayload.toChain) || 0 ,
     }
 
     const destinationEvmChainId = this.rolodexService.getEvmChainId(tokenTransferPayload.toChain)
@@ -219,14 +192,14 @@ export class OrderService {
     const finishTransfer = await this.findFinishTransfer(
       metadata.sequence,
       decodedStartLog.args.chainId,
-      decodedLogPublish.args.sender,
+      decodedLogPublish.args.sender.replace("0x","00".repeat(12)),
       destinationEvmChainId,
     )
 
     if(!finishTransfer) {
       return {
         id,
-        status: OrderStatus.CONFIRMED,
+        status: OrderStatus.WORKING,
         bridgeStatus,
         metadata,
         originTxnData,

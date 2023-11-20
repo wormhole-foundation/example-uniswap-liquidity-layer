@@ -35,6 +35,9 @@ export class BridgeStatus {
   @Any("string")
   @Optional()
   target: Hex
+
+  @Required()
+  targetChainId: number
 }
 
 

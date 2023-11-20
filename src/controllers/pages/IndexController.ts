@@ -26,4 +26,11 @@ export class IndexController {
       })
     };
   }
+
+  @Get("/demo")
+  @View("demo.ejs")
+  @(Returns(200, String).ContentType("text/html"))
+  getDemo() {
+    return {}
+  }
 }
