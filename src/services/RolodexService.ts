@@ -66,9 +66,9 @@ export class RolodexService {
     return {
       [mainnet.id]: "",
       [arbitrum.id]: "0x2dB08783F13c4225A1963b2437f0D459a5BCB4D8",
-      [polygon.id] : "0x87aC3f21A5335286cCC1785f6ed39847Be6Bfed9",
+      [polygon.id] : "0xe02C64A02AFCc9841C2b25d082F9dD69DF442447",
       [base.id]: "",
-      [optimism.id]: "0xB8177A860A3c9A4c02bcDa00799c9548ec0181c8",
+      [optimism.id]: "0x094EDb57fF2E56AD2d5a7Ceb8E6aF1781864d3C7",
     }[chainId] as (Address | undefined)
   }
 

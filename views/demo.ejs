@@ -57,18 +57,27 @@ Object.assign(window, {web3modal, ethereumClient, WagmiCore})
             return Number(window.ethereum.chainId)
         }
 
+        const getAllowance = async (token, owner, spender) => {
+            return WagmiCore.readContract({
+                address: token,
+                abi: WagmiCore.erc20ABI,
+                functionName: "allowance",
+                args: [owner, spender],
+            })
+        }
+
+
         const executeQuote = async () => {
             if(!lastQuoteResult || !lastQuoteRequest) {
                 return
             }
-            console.log("sending transaction", lastQuoteResult)
+            console.log("sending transaction", lastQuoteRequest, lastQuoteResult)
             const account = ethereumClient.getAccount()
             if(!account) {
                 window.alert("must connect account to execute")
                 return
             }
             console.log("transaction account", account)
-
 
             while(true){
                 const chainId = (await ethereumClient.getNetwork()).chain.id
@@ -80,11 +89,27 @@ Object.assign(window, {web3modal, ethereumClient, WagmiCore})
                     break
                 }
             }
+            console.log("asking for allowance")
+            if(await getAllowance(lastQuoteRequest.startingToken, account.address, lastQuoteResult.transactionTarget) < BigInt(lastQuoteRequest.startingTokenAmount)) {
+                const txn = await WagmiCore.writeContract({
+                    address: lastQuoteRequest.startingToken,
+                    abi: WagmiCore.erc20ABI,
+                    functionName: "approve",
+                    args: [lastQuoteResult.transactionTarget, BigInt(lastQuoteRequest.startingTokenAmount)],
+                })
+                await txn.wait()
+            }
+
             console.log("sending transaction", lastQuoteResult)
             const transactionResult = await WagmiCore.sendTransaction({
                 to: lastQuoteResult.transactionTarget,
                 data: lastQuoteResult.transactionData,
             })
+
+            if(transactionResult.hash) {
+                u("#transactionHash").first().value(transactionResult.hash)
+                u("#transactionChainId").first().value(lastQuoteRequest.startingChainId)
+            }
             setSuccess(transactionResult)
         }
 
@@ -96,15 +121,34 @@ Object.assign(window, {web3modal, ethereumClient, WagmiCore})
             u("#errorHolder").text(JSON.stringify(x, null, 4))
             u("#successHolder").text("")
         }
+
+        const checkHash = async() => {
+            try {
+                const startChainId = Number(u("#transactionChainId").first().value.trim())
+                const transactionHash = u("#transactionHash").first().value
+                const ans = await (await fetch(`/api/order/status/${startChainId}/${transactionHash}`, {
+                    method:"GET",
+                })).json()
+                if(ans.errors) {
+                    setError(ans)
+                    return
+                }
+                setSuccess(ans)
+            }catch(e) {
+                setError(e)
+            }
+
+        }
         const sendQuote = async ()=>{
             u("#errorHolder").text("")
+            const account = ethereumClient.getAccount()
             const startChainId = Number(u("#startChainId").first().value.trim())
             const payload = {
                 "startingChainId": startChainId,
                 "startingToken": u("#startToken").first().value.trim(),
                 "startingTokenAmount": parseNumber(u("#startAmount").first().value.trim()),
                 "destinationToken": u("#destinationToken").first().value.trim(),
-                "destinationAddress": u("#destinationAddress").first().value.trim(),
+                "destinationAddress": account?.address || "0x0000000000000000000000000000000000000000",
                 "destinationChainId": Number(u("#destinationChainId").first().value.trim()),
                 "relayerFee": "0",
                 "slippageStart": 50,
@@ -140,25 +184,32 @@ Object.assign(window, {web3modal, ethereumClient, WagmiCore})
     </script>
     <body>
         <w3m-core-button></w3m-core-button>
-        <div  class="container md mx-auto" >
-            <div class="flex gap-2 flex-col">
-                <div class="flex flex-row gap-2" ><span>startChainId    </span> <input id="startChainId" value="137"/></div>
-                <div class="flex flex-row gap-2" ><span>startToken      </span> <input id="startToken" value="0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619" /></div>
-                <div class="flex flex-row gap-2" ><span>startTokenAmount</span> <input id="startAmount" value="10,000,000,000"/></div>
-                <div class="flex flex-row gap-2" ><span>destChainId     </span> <input id="destinationChainId" value="10"/></div>
-                <div class="flex flex-row gap-2" ><span>destToken       </span> <input id="destinationToken" value="0x4200000000000000000000000000000000000006"/></div>
-                <div class="flex flex-row gap-2" ><span>destAddr        </span> <input id="destinationAddress" value=""/></div>
-                <div>
-                    <button class="text-white bg-blue-500 px-4 py-2 rounded-xl" onclick="sendQuote()">Quote</button>
-                    <button class="text-white bg-green-500 px-4 py-2 rounded-xl" onclick="executeQuote()">Execute</button>
-                </div>
-            </div>
-            <div>
-                <div class="bg-red-100" id="errorHolder"> </div>
-                <div class="overflow-x-scroll bg-gray-100 lg">
-                    <div class="whitespace-pre" id="successHolder"/>
+        <div class="container flex">
+            <div  class="container md mx-auto" >
+                <div class="flex gap-2 flex-col">
+                    <div class="flex flex-row gap-2" ><span>startChainId    </span> <input id="startChainId" value="137"/></div>
+                    <div class="flex flex-row gap-2" ><span>startToken      </span> <input id="startToken" value="0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619" /></div>
+                    <div class="flex flex-row gap-2" ><span>startTokenAmount</span> <input id="startAmount" value="10,000,000,000"/></div>
+                    <div class="flex flex-row gap-2" ><span>destChainId     </span> <input id="destinationChainId" value="10"/></div>
+                    <div class="flex flex-row gap-2" ><span>destToken       </span> <input id="destinationToken" value="0x4200000000000000000000000000000000000006"/></div>
+                    <div>
+                        <button class="text-white bg-blue-500 px-4 py-2 rounded-xl" onclick="sendQuote()">Quote</button>
+                        <button class="text-white bg-green-500 px-4 py-2 rounded-xl" onclick="executeQuote()">Execute</button>
                     </div>
                 </div>
             </div>
+            <div  class="container md mx-auto" >
+                <div class="flex flex-row gap-2" ><span>transactionChainId    </span> <input id="transactionChainId" value="137"/></div>
+                <div class="flex flex-row gap-2" ><span>transactionHash</span> <input id="transactionHash" value=""/></div>
+                <button class="text-white bg-blue-500 px-4 py-2 rounded-xl" onclick="checkHash()">Check</button>
+            </div>
+        </div>
+        <div>
+            <div class="bg-red-100" id="errorHolder"> </div>
+            <div class="overflow-x-scroll bg-gray-100 lg">
+                <div class="whitespace-pre" id="successHolder"/>
+                </div>
+            </div>
+        </div>
     </body>
 </html>
