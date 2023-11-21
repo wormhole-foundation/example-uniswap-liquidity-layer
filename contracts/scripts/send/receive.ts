@@ -1,5 +1,5 @@
 import hre, { ethers, network } from "hardhat";
-import { currentBlock, resetCurrent, resetCurrentArb, resetCurrentPoly } from "../../util/block";
+import { currentBlock, resetCurrent, resetCurrentArb, resetCurrentOP, resetCurrentPoly } from "../../util/block";
 import { a, e, o, p, w } from "../../util/addresser";
 import { IERC20, IERC20__factory, ITokenBridge__factory, Portico, Portico__factory } from "../../typechain-types";
 import { TradeParameters } from "../../test/scope";
@@ -25,11 +25,9 @@ const MAINNET_GUARDIAN_RPC: string[] = [
 
 
 //change these
-const emittingChainid = w.CID.arbitrum
-const emitter = "0000000000000000000000000b2402144bb366a632d14b83f244d2e0e21bd39c"
-const sequence = 21953
-const url = `${MAINNET_GUARDIAN_RPC[0]}/v1/signed_vaa/${emittingChainid}/${emitter}/${sequence}`
-
+const emittingChainid = w.CID.optimism
+const emitter = "0000000000000000000000001d68124e65fafc907325e3edbf8c4d84499daa8b"
+const sequence = 6677
 //which network on which to receive when testing
 const testNetwork = "mainnet"
 const testNetworks = [
@@ -39,6 +37,11 @@ const testNetworks = [
     "base",
     "mainnet"
 ]
+
+
+const url = `${MAINNET_GUARDIAN_RPC[0]}/v1/signed_vaa/${emittingChainid}/${emitter}/${sequence}`
+
+
 let portico: Portico
 let networkName: string
 let WETH: IERC20
@@ -70,16 +73,7 @@ async function main() {
     if (networkName == "hardhat" || networkName == "localhost") {
         await network.provider.send("evm_setAutomine", [true])
 
-        if (testNetwork == testNetworks[2]) {
-            await resetCurrentArb()
-
-            portico = Portico__factory.connect(a.portico, user)
-            WETH = IERC20__factory.connect(a.wethAddress, user)
-
-            console.log("TEST TX ON ARB @ ", await (await currentBlock()).number)
-
-
-        } else if (testNetwork == testNetworks[0]) {
+        if (testNetwork == testNetworks[0]) {
 
             await resetCurrentPoly()
 
@@ -88,7 +82,25 @@ async function main() {
 
             console.log("TEST TX ON POLYGON @ ", await (await currentBlock()).number)
 
-        }else if (testNetwork == testNetworks[4]) {
+        } else if (testNetwork == testNetworks[1]) {
+            await resetCurrentOP()
+
+            portico = Portico__factory.connect(o.portico, user)
+            WETH = IERC20__factory.connect(o.wethAddress, user)
+
+            console.log("TEST TX ON OP @ ", await (await currentBlock()).number)
+
+
+        } else if (testNetwork == testNetworks[2]) {
+            await resetCurrentArb()
+
+            portico = Portico__factory.connect(a.portico, user)
+            WETH = IERC20__factory.connect(a.wethAddress, user)
+
+            console.log("TEST TX ON ARB @ ", await (await currentBlock()).number)
+
+
+        } else if (testNetwork == testNetworks[4]) {
 
             await resetCurrent()
 
@@ -107,18 +119,16 @@ async function main() {
         console.log("USER ADDR: ", user.address)
 
         if (networkName == "op") {
-            portico = Portico__factory.connect(o.opPortico, user)
+            portico = Portico__factory.connect(o.portico, user)
             WETH = IERC20__factory.connect(o.wethAddress, user)
 
         } else if (networkName == "polygon") {
             portico = Portico__factory.connect(p.portico, user)
             WETH = IERC20__factory.connect(p.wethAddress, user)
 
-
         } else if (networkName == "arbitrum") {
             portico = Portico__factory.connect(a.portico, user)
             WETH = IERC20__factory.connect(a.wethAddress, user)
-
 
         } else if (networkName == "base") {
             console.log("TODO")
