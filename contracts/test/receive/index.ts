@@ -1,2 +1,1 @@
-export * from "./Deploy"
-export * from "./Receive"
+export * from "./ReceiveOnL2"
