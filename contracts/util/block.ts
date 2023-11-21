@@ -99,6 +99,18 @@ export const resetCurrentArb = async () => {
     });
 }
 
+export const resetCurrentBase = async () => {
+    await network.provider.request({
+        method: "hardhat_reset",
+        params: [
+            {
+                forking: {
+                    jsonRpcUrl: process.env.BASE_URL!
+                },
+            },
+        ],
+    });
+}
 export const resetCurrentGo = async () => {
     await network.provider.request({
         method: "hardhat_reset",

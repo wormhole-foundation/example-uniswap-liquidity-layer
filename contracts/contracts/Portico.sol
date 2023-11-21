@@ -13,8 +13,6 @@ import "./uniswap/ISwapRouter.sol";
 import "./uniswap/IV3Pool.sol";
 import "./uniswap/PoolAddress.sol";
 
-//testing
-import "hardhat/console.sol";
 
 using PorticoFlagSetAccess for PorticoFlagSet;
 
