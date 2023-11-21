@@ -6,11 +6,11 @@ import { adddr2Bytes, encodeFlagSet, getGas, toNumber } from "../../util/msc"
 import { start } from "repl";
 import { stealMoney } from "../../util/money";
 import { DecodedVAA, TokenReceived, TradeParameters, TransferWithPayload, s } from "../scope"
-import { currentBlock, resetCurrent, resetCurrentOP } from "../../util/block";
+import { currentBlock, resetCurrent, resetCurrentBase, resetCurrentOP } from "../../util/block";
 import { ethers } from "hardhat";
 import { IERC20__factory, ITokenBridge__factory, IWormhole__factory, PorticoUniRouter__factory, Portico__factory } from "../../typechain-types";
 import { DeployContract } from "../../util/deploy";
-import { w, o, e, p } from "../../util/addresser";
+import { w, b, e, p } from "../../util/addresser";
 
 /**
  * Send from OP to Polygon
@@ -18,8 +18,8 @@ import { w, o, e, p } from "../../util/addresser";
 describe("Deploy", function () {
 
   it("Setup", async () => {
-    await resetCurrentOP()
-    console.log("Testing on OP @ block ", (await currentBlock())!.number)
+    await resetCurrentBase()
+    console.log("Testing on BASE @ block ", (await currentBlock())!.number)
 
     //connect to signers
     let accounts = await ethers.getSigners();
@@ -34,9 +34,8 @@ describe("Deploy", function () {
   })
 
   it("Connect to contracts", async () => {
-    s.WETH = IERC20__factory.connect(o.wethAddress, s.Frank)
-    s.USDC = IERC20__factory.connect(o.usdcAddress, s.Frank)
-    s.TokenBridge = ITokenBridge__factory.connect(o.opTokenBridge, s.Frank)
+    s.WETH = IERC20__factory.connect(b.wethAddress, s.Frank)
+    s.TokenBridge = ITokenBridge__factory.connect(b.tokenBridge, s.Frank)
   })
 
   it("Deploy the things", async () => {
@@ -44,7 +43,7 @@ describe("Deploy", function () {
     s.Portico = await DeployContract(
       new PorticoUniRouter__factory(s.Frank),
       s.Frank,
-      o.uniRouter, o.opTokenBridge, o.wethAddress
+      b.uniRouter, b.tokenBridge, b.wethAddress
     )
 
     expect(s.Portico.address).to.not.eq("0x0000000000000000000000000000000000000000", "Start Deployed")
@@ -52,8 +51,9 @@ describe("Deploy", function () {
   })
 
   it("Fund participants", async () => {
+    const whale = "0x428AB2BA90Eba0a4Be7aF34C9Ac451ab061AC010"
 
-    await stealMoney(s.OpBank, s.Bob.address, o.wethAddress, s.L2WETH_AMOUNT)
+    await stealMoney(whale, s.Bob.address, b.wethAddress, s.L2WETH_AMOUNT)
 
   })
 })
@@ -64,8 +64,8 @@ describe("Send", function () {
     const lowSlippageBips = 1
     const params: TradeParameters = {
       flags: encodeFlagSet(w.CID.polygon, 1, 100, 100, lowSlippageBips, 321, false, false),
-      startTokenAddress: o.wethAddress,
-      canonAssetAddress: o.wormWeth,
+      startTokenAddress: b.wethAddress,
+      canonAssetAddress: b.wormWeth,
       finalTokenAddress: p.wethAddress,
       recipientAddress: s.Carol.address,
       recipientPorticoAddress: p.polyPortico,
@@ -77,27 +77,38 @@ describe("Send", function () {
     expect(s.Portico.connect(s.Bob).start(params)).to.be.revertedWith("Too little received")
   })
 
-  it("send op tx => polygon with weth", async () => {
+  it("send base tx => polygon with weth", async () => {
 
     const params: TradeParameters = {
       flags: encodeFlagSet(w.CID.polygon, 1, 100, 100, s.slippage, s.slippage, false, false),
-      startTokenAddress: o.wethAddress,
-      canonAssetAddress: o.wormWeth,
+      startTokenAddress: b.wethAddress,
+      canonAssetAddress: b.wormWeth,
       finalTokenAddress: p.wethAddress,
       recipientAddress: s.Carol.address,
       recipientPorticoAddress: p.polyPortico,
       amountSpecified: s.L2WETH_AMOUNT,
       relayerFee: s.L2relayerFee
-    }
+    } 
+
+    console.log("Checking balances")
+
+    console.log("WETH :", s.WETH.address)
+    console.log("TEST: ", await s.WETH.decimals())
 
     //confirm starting balances
     const startPorticoWeth = await s.WETH.balanceOf(s.Portico.address)
     const startBobWeth = await s.WETH.balanceOf(s.Bob.address)
 
+    console.log("Checked balances")
+
+
     expect(startPorticoWeth).to.eq(0, "No weth at start")
     expect(startBobWeth).to.eq(s.L2WETH_AMOUNT, "Bob wETH is correct")
 
+    console.log("Approving...")
+
     await s.WETH.connect(s.Bob).approve(s.Portico.address, s.L2WETH_AMOUNT)
+    console.log("Sending...")
     const result = await s.Portico.connect(s.Bob).start(params)
     const gas = await getGas(result)
     showBodyCyan("GAS TO START: ", gas)
@@ -114,12 +125,12 @@ describe("Send", function () {
 
   
 
-  it("Send mainnet tx => op wrapping native eth", async () => {
+  it("Send mainnet tx => base wrapping native eth", async () => {
 
     const params: TradeParameters = {
       flags: encodeFlagSet(w.CID.optimism, 2, 100, 100, s.slippage, s.slippage, true, false),
-      startTokenAddress: o.wethAddress,
-      canonAssetAddress: o.wormWeth,
+      startTokenAddress: b.wethAddress,
+      canonAssetAddress: b.wormWeth,
       finalTokenAddress: p.wethAddress,
       recipientAddress: s.Carol.address,
       recipientPorticoAddress: p.polyPortico,

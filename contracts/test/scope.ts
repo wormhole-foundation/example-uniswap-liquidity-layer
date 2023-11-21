@@ -1,4 +1,4 @@
-import { IERC20, ITokenBridge, IWormhole, Portico, } from "../typechain-types"
+import { IERC20, ITokenBridge, IWormhole, Portico, PorticoUniRouter, } from "../typechain-types"
 import { BN } from "../util/number"
 import { BigNumber, Bytes, BytesLike } from "ethers";
 import { e, o, p } from "../util/addresser"
@@ -46,7 +46,7 @@ export class TestScope {
 
     slippage = 200 //BIPS = 200 => 2% slippage
 
-    Portico!: Portico
+    Portico!: PorticoUniRouter
 
 
     e = e //eth addrs

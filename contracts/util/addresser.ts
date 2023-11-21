@@ -70,7 +70,7 @@ export class ArbAddresses{
 }
 
 export class BaseAddresses {
-    readonly swapRouter: string = "0x2626664c2603336E57B271c5C0b26F421741e481"
+    readonly uniRouter: string = "0x2626664c2603336E57B271c5C0b26F421741e481"
     readonly tokenBridge: string = "0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627"
     readonly wethAddress: string = "0x4200000000000000000000000000000000000006"
     readonly wormWeth: string = "0x71b35ECb35104773537f849FBC353F81303A5860"
@@ -103,6 +103,7 @@ export class OptimisimAddresses {
     readonly wormWeth: string = "0xb47bC3ed6D70F04fe759b2529c9bc7377889678f"
 
     readonly swapRouter: string = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
+    readonly uniRouter: string = "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45"
     readonly opSwapRouter: string = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
     readonly opTokenBridge: string = "0x1D68124e65faFC907325e3EDbF8c4d84499DAa8b"
     readonly opRelayerAddress: string = "0x27428DD2d3DD32A4D7f7C497eAaa23130d894911"
