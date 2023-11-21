@@ -74,7 +74,7 @@ export class BaseAddresses {
     readonly tokenBridge: string = "0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627"
     readonly wethAddress: string = "0x4200000000000000000000000000000000000006"
     readonly wormWeth: string = "0x71b35ECb35104773537f849FBC353F81303A5860"
-    readonly portico: string = "0x05498574BD0Fa99eeCB01e1241661E7eE58F8a85"
+    readonly portico: string = "0xBdCF0bb40eb8642f907133bDB5Fcc681D81f0651"//"0x05498574BD0Fa99eeCB01e1241661E7eE58F8a85"
 
 }
 

@@ -9,7 +9,7 @@ import "./IWETH.sol";
 
 //uniswap
 import "./uniswap/TickMath.sol";
-import "./uniswap/ISwapRouter.sol";
+import "./uniswap/ISwapRouter02.sol";
 import "./uniswap/IV3Pool.sol";
 import "./uniswap/PoolAddress.sol";
 
@@ -139,14 +139,13 @@ abstract contract PorticoStart is PorticoBase {
       params.flags.feeTierStart()
     );
 
-
+    //no deadline
     ROUTERV3.exactInputSingle(
       ISwapRouter.ExactInputSingleParams(
         address(params.startTokenAddress), // tokenIn
         address(params.canonAssetAddress), //tokenOut
         params.flags.feeTierStart(), //fee
         address(this), //recipient
-        block.timestamp + 10, //deadline
         actualAmount, //amountIn
         minAmountOut, //minAmountReceived
         0
@@ -307,12 +306,12 @@ abstract contract PorticoFinish is PorticoBase {
     );
 
     // set swap options with user params
+    //no deadline
     ISwapRouter.ExactInputSingleParams memory swapParams = ISwapRouter.ExactInputSingleParams({
       tokenIn: address(bridgeInfo.tokenReceived),
       tokenOut: address(params.finalTokenAddress),
       fee: params.flags.feeTierFinish(),
       recipient: address(this), // we need to receive the token in order to correctly split the fee. tragic.
-      deadline: block.timestamp + 10,
       amountIn: bridgeInfo.amountReceived,
       amountOutMinimum: minAmountOut,
       sqrtPriceLimitX96: 0 //sqrtPriceLimit

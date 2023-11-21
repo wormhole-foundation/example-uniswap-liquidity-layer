@@ -1,7 +1,7 @@
 import hre, { ethers, network } from "hardhat";
 import { currentBlock, resetCurrent, resetCurrentArb, resetCurrentBase, resetCurrentOP, resetCurrentPoly } from "../../util/block";
 import { a, b, e, o, p, w } from "../../util/addresser";
-import { IERC20, IERC20__factory, ITokenBridge__factory, Portico, Portico__factory } from "../../typechain-types";
+import { IERC20, IERC20__factory, ITokenBridge__factory, Portico, PorticoBase, Portico__factory } from "../../typechain-types";
 import { TradeParameters, s } from "../../test/scope";
 import { adddr2Bytes, encodeFlagSet, getEvent, getGas } from "../../util/msc";
 import { BN } from "../../util/number";
@@ -32,8 +32,7 @@ const testNetworks = [
     "mainnet"
 ]
 
-
-let portico: Portico
+let portico: PorticoBase//Portico
 let networkName: string
 let WETH: IERC20
 let localCannonAsset: string
@@ -92,7 +91,6 @@ const send = async (user: SignerWithAddress, mainnet: boolean) => {
 
         result = await portico.connect(user).start(inputData, { value: amount })
     }
-
 
 
     const event = await getEvent(result, "PorticoSwapStart")
