@@ -16,7 +16,7 @@ describe("Deploy", function () {
 
   it("Setup", async () => {
     await resetCurrent()
-    console.log("Testing @ block ", (await currentBlock())!.number)
+    console.log("Testing on MAINNET @ block ", (await currentBlock())!.number)
 
     //connect to signers
     let accounts = await ethers.getSigners();
@@ -37,8 +37,6 @@ describe("Deploy", function () {
     s.TokenBridge = ITokenBridge__factory.connect(s.mainnetTokenBridge, s.Frank)
     s.WH = IWormhole__factory.connect(await s.TokenBridge.wormhole(), s.Frank)
 
-    console.log("wormweth: ", await s.TokenBridge.wrappedAsset(2, adddr2Bytes(e.wethAddress)))
-
   })
 
   it("Deploy the things", async () => {
@@ -46,7 +44,7 @@ describe("Deploy", function () {
     s.Portico = await DeployContract(
       new Portico__factory(s.Frank),
       s.Frank,
-      s.swapRouterAddr, s.tokenBridgeAddr, e.wethAddress
+      e.uniRouter, s.tokenBridgeAddr, e.wethAddress
     )
 
     expect(s.Portico.address).to.not.eq("0x0000000000000000000000000000000000000000", "Start Deployed")

@@ -9,16 +9,18 @@ import "./IWETH.sol";
 
 //uniswap
 import "./uniswap/TickMath.sol";
-import "./uniswap/ISwapRouter.sol";
+import "./uniswap/ISwapRouter02.sol";
 import "./uniswap/IV3Pool.sol";
 import "./uniswap/PoolAddress.sol";
+
+import "hardhat/console.sol";
 
 using PorticoFlagSetAccess for PorticoFlagSet;
 
 contract PorticoBase {
   using PorticoFlagSetAccess for PorticoFlagSet;
 
-  ISwapRouter public immutable ROUTERV3;
+  ISwapRouter02 public immutable ROUTERV3;
   ITokenBridge public immutable TOKENBRIDGE;
   IWETH public immutable WETH;
 
@@ -26,7 +28,7 @@ contract PorticoBase {
 
   uint16 public immutable wormholeChainId;
 
-  constructor(ISwapRouter _routerV3, ITokenBridge _bridge, IWETH _weth) {
+  constructor(ISwapRouter02 _routerV3, ITokenBridge _bridge, IWETH _weth) {
     ROUTERV3 = _routerV3;
     TOKENBRIDGE = _bridge;
     wormhole = _bridge.wormhole();
@@ -76,6 +78,7 @@ contract PorticoBase {
     //compute pool
     PoolAddress.PoolKey memory key = PoolAddress.getPoolKey(tokenIn, tokenOut, fee);
     IV3Pool pool = IV3Pool(PoolAddress.computeAddress(ROUTERV3.factory(), key));
+
     if (!isContract(address(pool))) {
       return 0;
     }
@@ -139,14 +142,13 @@ abstract contract PorticoStart is PorticoBase {
       params.flags.feeTierStart()
     );
 
-
+    //no deadline
     ROUTERV3.exactInputSingle(
-      ISwapRouter.ExactInputSingleParams(
+      ISwapRouter02.ExactInputSingleParams(
         address(params.startTokenAddress), // tokenIn
         address(params.canonAssetAddress), //tokenOut
         params.flags.feeTierStart(), //fee
         address(this), //recipient
-        block.timestamp + 10, //deadline
         actualAmount, //amountIn
         minAmountOut, //minAmountReceived
         0
@@ -200,7 +202,7 @@ abstract contract PorticoStart is PorticoBase {
       params.flags.recipientChain(),
       padAddress(params.recipientPorticoAddress),
       params.flags.bridgeNonce(),
-     abi.encode(decodedVAA)
+      abi.encode(decodedVAA)
     );
     chainId = wormholeChainId;
     emitterAddress = address(TOKENBRIDGE);
@@ -214,16 +216,12 @@ abstract contract PorticoFinish is PorticoBase {
   // receiveMessageAndSwap is the entrypoint for finishing the swap
   function receiveMessageAndSwap(bytes calldata encodedTransferMessage) external payable {
     // start by calling _completeTransfer, submitting the VAA to the token bridge
-    (
-      PorticoStructs.DecodedVAA memory message,
-      PorticoStructs.BridgeInfo memory bridgeInfo
-    ) = _completeTransfer(encodedTransferMessage);
+    (PorticoStructs.DecodedVAA memory message, PorticoStructs.BridgeInfo memory bridgeInfo) = _completeTransfer(encodedTransferMessage);
     // we modify the message to set the relayerFee to 0 if the msgSender is the fee recipient.
     bridgeInfo.relayerFeeAmount = (_msgSender() == message.recipientAddress) ? 0 : message.relayerFee;
 
     //now process
     bool swapCompleted = finish(message, bridgeInfo);
-
     // simply emit the raw data bytes. it should be trivial to parse.
     emit PorticoSwapFinish(swapCompleted, message);
   }
@@ -244,6 +242,7 @@ abstract contract PorticoFinish is PorticoBase {
 
     // decode the payload3 we originally sent into the decodedVAA struct.
     message = abi.decode(transfer.payload, (PorticoStructs.DecodedVAA));
+
 
     // get the address for the token on this address.
     bridgeInfo.tokenReceived = IERC20(
@@ -306,20 +305,21 @@ abstract contract PorticoFinish is PorticoBase {
       params.flags.feeTierFinish()
     );
 
+
     // set swap options with user params
-    ISwapRouter.ExactInputSingleParams memory swapParams = ISwapRouter.ExactInputSingleParams({
+    //no deadline
+    ISwapRouter02.ExactInputSingleParams memory swapParams = ISwapRouter02.ExactInputSingleParams({
       tokenIn: address(bridgeInfo.tokenReceived),
       tokenOut: address(params.finalTokenAddress),
       fee: params.flags.feeTierFinish(),
       recipient: address(this), // we need to receive the token in order to correctly split the fee. tragic.
-      deadline: block.timestamp + 10,
       amountIn: bridgeInfo.amountReceived,
       amountOutMinimum: minAmountOut,
       sqrtPriceLimitX96: 0 //sqrtPriceLimit
     });
 
     // try to do the swap
-    try ROUTERV3.exactInputSingle(swapParams) returns (uint256 /*amountOut*/) {
+    try ROUTERV3.exactInputSingle(swapParams) {
       swapCompleted = true;
     } catch /**Error(string memory e) */ {
       // if the swap fails, we just transfer the amount we received from the token bridge to the recipientAddress.
@@ -362,5 +362,5 @@ abstract contract PorticoFinish is PorticoBase {
 }
 
 contract Portico is PorticoFinish, PorticoStart {
-  constructor(ISwapRouter _routerV3, ITokenBridge _bridge, IWETH _weth) PorticoBase(_routerV3, _bridge, _weth) {}
+  constructor(ISwapRouter02 _routerV3, ITokenBridge _bridge, IWETH _weth) PorticoBase(_routerV3, _bridge, _weth) {}
 }

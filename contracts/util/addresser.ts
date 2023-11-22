@@ -31,6 +31,7 @@ export class MainnetAddresses {
     readonly rethAddress: string = "0xae78736Cd615f374D3085123A210448E74Fc6393"
     readonly tokenBridge: string = "0x3ee18B2214AFF97000D974cf647E7C347E8fa585"
     readonly portico: string = "0xf4c22e13414bcC2FaB827D62De33C05E9B3955F7"
+    readonly uniRouter: string = "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45"
 }
 
 export class WormholeConstants {
@@ -43,7 +44,8 @@ export class WormholeConstants {
 
     readonly WHaddrs = {
         poly: "0x7A4B5a56256163F07b2C80A7cA55aBE66c4ec4d7",
-        op: "0xEe91C335eab126dF5fDB3797EA9d6aD93aeC9722"
+        op: "0xEe91C335eab126dF5fDB3797EA9d6aD93aeC9722",
+        ethereum: "0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B"
     }
 }
 
@@ -54,6 +56,8 @@ export class PolygonAddresses{
     readonly polyPortico: string = "0x87aC3f21A5335286cCC1785f66d39847Be6Bfed9"//testing deploy
     readonly portico:string =  "0xE1442bA08e330967Dab4fd4Fc173835e9730bff6"
     readonly polySwapRouter: string = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
+    readonly uniRouter: string = "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45"
+
     readonly polyTokenBridge: string = "0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE"
     readonly polyRelayerAddress: string = "0x27428DD2d3DD32A4D7f7C497eAaa23130d894911"
 

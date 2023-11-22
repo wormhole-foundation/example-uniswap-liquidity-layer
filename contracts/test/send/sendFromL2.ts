@@ -42,7 +42,7 @@ describe("Deploy", function () {
   it("Deploy the things", async () => {
 
     s.Portico = await DeployContract(
-      new PorticoUniRouter__factory(s.Frank),
+      new Portico__factory(s.Frank),
       s.Frank,
       o.uniRouter, o.opTokenBridge, o.wethAddress
     )

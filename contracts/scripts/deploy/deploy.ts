@@ -69,7 +69,7 @@ async function main() {
     await resetCurrentBase()
     mainnet = false
     console.log("TEST DEPLOYMENT ON BASE @ ", await (await currentBlock()).number)
-    swapRouter = b.swapRouter
+    swapRouter = b.uniRouter
     tokenBridge = b.tokenBridge
     weth = b.wethAddress
 
