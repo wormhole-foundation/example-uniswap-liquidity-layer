@@ -96,6 +96,9 @@ export class CreateOrderResponse {
 
   @Required()
   startParameters: Array<string>
+
+  @Required()
+  estimatedAmountOut: string
 }
 
 export class GetOrderRequest {

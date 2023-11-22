@@ -28,26 +28,15 @@ export class OrderController {
 
   @Post("/create")
   @Returns(200, CreateOrderResponse)
-  create(@BodyParams() req: CreateOrderRequest) {
+  async create(@BodyParams() req: CreateOrderRequest) {
     const canonToken = this.rolodexService.getCanonTokenForToken(req.startingChainId, req.startingToken)
-    if(!canonToken) {
-      throw new BadRequest("no route found")
-    }
 
     const wormholeDestinationChainId = this.rolodexService.getWormholeChainId(req.destinationChainId)
-    if(!wormholeDestinationChainId) {
-      throw new BadRequest("bad destination chain")
-    }
 
     let destinationPorticoAddress = this.rolodexService.getPortico(req.destinationChainId)
     if(req.destinationPorticoAddress && req.destinationPorticoAddress.length == 42) {
       destinationPorticoAddress = req.destinationPorticoAddress
     }
-    if(!destinationPorticoAddress) {
-      throw new BadRequest("no destination portico found for chain")
-    }
-
-
     const startDataParams: Parameters<typeof encodeStartData> = [
      encodeFlagSet(
         wormholeDestinationChainId,
@@ -75,14 +64,27 @@ export class OrderController {
     if(req.porticoAddress && req.porticoAddress.length == 42) {
       porticoAddress = req.porticoAddress
     }
-    if(!porticoAddress) {
-      throw new BadRequest("no portico found for chain")
+    // quoting logic
+
+    let estimatedAmountOut = 0n
+
+    try {
+      // first try to quote from the start asset to the canon asset
+      const firstQuote = await this.orderService.quoteTrade(req.startingChainId, getAddress(req.startingToken), getAddress(canonToken), BigInt(req.startingTokenAmount), req.feeTierStart)
+      // now find the canon asset on the destination chain
+      const destinationCanonAsset = this.rolodexService.getCanonTokenForToken(req.destinationChainId, req.destinationToken)
+      const secondQuote = await this.orderService.quoteTrade(req.destinationChainId, getAddress(destinationCanonAsset), getAddress(req.destinationToken), firstQuote ,req.feeTierEnd)
+      estimatedAmountOut = secondQuote
+    }catch {
+      estimatedAmountOut = 0n
     }
+
     return {
       transactionData,
       transactionTarget: getAddress(porticoAddress),
       transactionValue: req.shouldWrapNative ? toHex(BigInt(req.startingTokenAmount)) : undefined,
       startParameters: startDataParams.map(x=>x.toString()),
+      estimatedAmountOut: estimatedAmountOut.toString(10),
     }
   }
 

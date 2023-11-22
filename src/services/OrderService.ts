@@ -9,6 +9,7 @@ import { RolodexService } from "./RolodexService";
 import { porticoEventsAbi } from "src/web3";
 import { getEmitterAddressEth, parseTokenTransferPayload, parseTransferPayload, parseVaa } from "@certusone/wormhole-sdk";
 import { WormholeService } from "./WormholeService";
+import { quoterAbi } from "src/web3/SwapRouter";
 
 @Service()
 export class OrderService {
@@ -20,12 +21,31 @@ export class OrderService {
     private readonly wormholeService: WormholeService,
   ) {
   }
+
+  public async quoteTrade(chainId:number, startToken:Hex, endToken:Hex, amount: bigint, fee: number):Promise<bigint> {
+    if(startToken==endToken) {
+      return amount
+    }
+    const provider = this.rpcService.getProvider(chainId)
+    const quoter = this.rolodexService.getQuoterV2(chainId)
+    const result = await provider.readContract({
+      abi: quoterAbi,
+      functionName: "quoteExactInputSingle",
+      address: quoter,
+      args: [
+        [
+          startToken,
+          endToken,
+          amount,
+          fee,
+          0n
+        ]
+      ],
+    })
+    return result[0]
+  }
   private async getTxData(transactionHash:Hex, chainId: number):Promise<Partial<TxnData> | undefined> {
     const provider = this.rpcService.getProvider(chainId)
-    if(!provider) {
-      throw new BadRequest("invalid chain id")
-    }
-
     const txData: Partial<TxnData> = {}
     try {
       const m = await provider.getTransaction({hash:transactionHash})
@@ -50,23 +70,19 @@ export class OrderService {
 
   private async findFinishTransfer(sequence: string, wormholeChainId: number, emitterAddress: string,chainId: number) {
     const provider = this.rpcService.getProvider(chainId)
-    if(!provider) {
-      throw new BadRequest("invalid chain id")
-    }
-
     const tokenBridge = this.rolodexService.getTokenBridge(chainId)
     if(!tokenBridge) {
       throw new BadRequest("no token bridge on receiver chain")
     }
 
     try {
-    const res = await fetch(`https://api.wormholescan.io/api/v1/global-tx/${wormholeChainId}/${emitterAddress}/${sequence}`)
-    const resp = await res.json()
+      const res = await fetch(`https://api.wormholescan.io/api/v1/global-tx/${wormholeChainId}/${emitterAddress}/${sequence}`)
+      const resp = await res.json()
       console.log(resp)
 
-    const txData = this.getTxData(resp.destinationTx.txHash, chainId)
+      const txData = this.getTxData(resp.destinationTx.txHash, chainId)
 
-    return txData
+      return txData
     } catch {
       return undefined
     }
