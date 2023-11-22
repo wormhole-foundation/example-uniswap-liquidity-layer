@@ -100,8 +100,6 @@ describe("Receive On Mainnet", () => {
     const startEthBalance = await ethers.provider.getBalance(s.Bob.address)
     expect(await ethers.provider.getBalance(s.Portico.address)).to.eq(0, "0 ETH on Portico")
 
-    console.log("Sending TX...")
-
     //input data doesn't matter, we spoof the returns
     await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x")
 
