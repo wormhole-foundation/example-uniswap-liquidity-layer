@@ -9,7 +9,7 @@ import { DecodedVAA, TokenReceived, TradeParameters, TransferWithPayload, s } fr
 import { AbiCoder } from "ethers/lib/utils";
 import { currentBlock, resetCurrent, resetCurrentOP, resetCurrentPoly } from "../../util/block";
 import { ethers } from "hardhat";
-import { IERC20, IERC20__factory, ITokenBridge__factory, IWormhole__factory, PorticoUniRouter__factory, Portico__factory } from "../../typechain-types";
+import { IERC20, IERC20__factory, ITokenBridge__factory, IWormhole__factory, Portico__factory } from "../../typechain-types";
 import { smock } from "@defi-wonderland/smock";
 import { DeployContract } from "../../util/deploy"
 import { o, p, w } from "../../util/addresser";
@@ -55,7 +55,7 @@ describe("Receive On OP", () => {
     await s.fakeWormHole.chainId.returns(w.CID.optimism)
 
     s.Portico = await DeployContract(
-      new PorticoUniRouter__factory(s.Frank),
+      new Portico__factory(s.Frank),
       s.Frank,
       o.uniRouter, s.fakeTokenBridge.address, o.wethAddress
     )

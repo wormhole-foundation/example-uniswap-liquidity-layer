@@ -1,1 +1,1 @@
-export * from "./ReceiveOnL2"
+export * from "./ReceiveOnMainnet"
