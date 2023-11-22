@@ -1,9 +1,10 @@
 import { Service} from "@tsed/di";
 import { MultiRpcService } from "./RpcServices";
 import { RedisService } from "./RedisService";
-import { arbitrum, base, mainnet, optimism, polygon } from "viem/chains";
-import { Address } from "viem";
+import { arbitrum, base, bsc, mainnet, optimism, polygon } from "viem/chains";
+import { Address, getAddress } from "viem";
 import { v5 } from "uuid";
+import { BadRequest } from "@tsed/exceptions";
 
 interface lut {[key:string]:{[key:string]:string}}
 
@@ -53,8 +54,6 @@ const nativeAssetTable = withFlip({
 })
 
 
-
-
 @Service()
 export class RolodexService {
   constructor(
@@ -62,62 +61,116 @@ export class RolodexService {
     private readonly redisService: RedisService,
   ) {
   }
-  getPortico(chainId: number): Address | undefined {
-    return {
-      [mainnet.id]: "",
-      [arbitrum.id]: "0x2dB08783F13c4225A1963b2437f0D459a5BCB4D8",
-      [polygon.id] : "0xe02C64A02AFCc9841C2b25d082F9dD69DF442447",
-      [base.id]: "",
-      [optimism.id]: "0x094EDb57fF2E56AD2d5a7Ceb8E6aF1781864d3C7",
-    }[chainId] as (Address | undefined)
+
+  getQuoterV2(chainId: number): Address {
+    const ans = {
+      [mainnet.id]: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
+      [arbitrum.id]: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
+      [polygon.id] : "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
+      [optimism.id]: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
+      [base.id]: "0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a",
+    //  [bsc.id]: "0x78D78E420Da98ad378D7799bE8f4AF69033EB077",
+    }[chainId]
+    if(!ans) {
+      throw new BadRequest("no portico found for chain")
+    }
+    return getAddress(ans)
   }
 
-  getTokenBridge(chainId: number): (Address | undefined) {
-    return {
+  getSwapRouter(chainId: number): Address {
+    const ans = {
+      [mainnet.id]: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
+      [arbitrum.id]: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
+      [polygon.id] : "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
+      [base.id]: "0x33128a8fC17869897dcE68Ed026d694621f6FDfD",
+      [optimism.id]: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
+    //  [bsc.id]: "0xdB1d10011AD0Ff90774D0C6Bb92e5C5c8b4461F7",
+    }[chainId]
+    if(!ans) {
+      throw new BadRequest("no portico found for chain")
+    }
+    return getAddress(ans)
+  }
+  getPortico(chainId: number): Address {
+    const ans = {
+      [mainnet.id]: "0x",
+      [arbitrum.id]: "0x2dB08783F13c4225A1963b2437f0D459a5BCB4D8",
+      [polygon.id] : "0xe02C64A02AFCc9841C2b25d082F9dD69DF442447",
+      [base.id]: "0x",
+      [optimism.id]: "0x094EDb57fF2E56AD2d5a7Ceb8E6aF1781864d3C7",
+    }[chainId]
+    if(!ans) {
+      throw new BadRequest("no portico found for chain")
+    }
+    return getAddress(ans)
+  }
+
+  getTokenBridge(chainId: number): Address {
+    const ans = {
       [mainnet.id]: "0x3ee18B2214AFF97000D974cf647E7C347E8fa585",
       [arbitrum.id]: "0x0b2402144Bb366A632D14B83F244D2e0e21bD39c",
       [polygon.id] : "0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE",
       [base.id]: "0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627",
       [optimism.id]: "0x1D68124e65faFC907325e3EDbF8c4d84499DAa8b",
-    }[chainId] as (Address | undefined)
+    }[chainId]
+    if(!ans) {
+      throw new BadRequest(`chain ${chainId} not supported`)
+    }
+    return getAddress(ans)
   }
 
-  getWormholeChainId(chainId: number): number| undefined {
-    return {
+  getWormholeChainId(chainId: number): number {
+    const ans = {
       [mainnet.id]: 2,
       [arbitrum.id]: 23,
       [polygon.id] : 5,
       [base.id]: 30,
       [optimism.id]: 24,
-    }[chainId] as (number | undefined)
+    }[chainId]
+    if(!ans)  {
+      throw new BadRequest(`chain ${chainId} not supported`)
+    }
+    return ans
   }
-  getEvmChainId(wormholeChainId: number): number| undefined {
-    return {
+  getEvmChainId(wormholeChainId: number): number{
+    const ans = {
       [2]: mainnet.id,
       [23]: arbitrum.id,
       [5]: polygon.id,
       [30]:base.id,
       [24]: optimism.id,
     }[wormholeChainId] as (number | undefined)
+    if(!ans) {
+      throw new BadRequest(`no support for wormhole chain ${wormholeChainId}`)
+    }
+    return ans
   }
   getCanonTokenForTokenName(chainId: number, token:string) {
     const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]
     if(!(ct && nt)) {
-      return undefined
+      throw new BadRequest(`no support for chain ${chainId}`)
     }
-    return ct[token]
+    const ans = ct[token]
+    if(!ans) {
+      throw new BadRequest(`no canon token for ${token} on ${chainId}`)
+    }
+    return ans
   }
   getNativeTokenForTokenName(chainId: number, token:string) {
     const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]
     if(!(ct && nt)) {
-      return undefined
+      throw new BadRequest(`no support for chain ${chainId}`)
     }
-    return nt[token]
+    const ans = nt[token]
+    if(!ans) {
+      throw new BadRequest(`no native token for ${token} on ${chainId}`)
+    }
+    return  ans
   }
   getCanonTokenForToken(chainId: number, token:string) {
     const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]
     if(!(ct && nt)) {
-      return undefined
+      throw new BadRequest(`no support for chain ${chainId}`)
     }
     // if the token is the canon token, then just return it, no need to swap
     if(ct[token]) {
@@ -127,9 +180,17 @@ export class RolodexService {
     // for instance, if the input is native polygon weth, it will return "eth"
     const tokenName = nt[token]
     // now get the canon asset on the chain for that name.
-    return ct[tokenName]
+    const ans = ct[tokenName]
+    if(!ans) {
+      throw new BadRequest(`no canon token for ${token} on ${chainId}`)
+    }
+    return ans
   }
   getWeth(chainId: number) {
-    return nativeAssetTable[chainId]["eth"];
+    const ans = nativeAssetTable[chainId]["eth"];
+    if(!ans) {
+      throw new BadRequest(`no weth on ${chainId}`)
+    }
+    return ans
   }
 }
