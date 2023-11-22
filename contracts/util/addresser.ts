@@ -27,7 +27,10 @@ export class MainnetAddresses {
     readonly balancerAddress: string = "0xba100000625a3754423978a60c9317c58a424e3D"
     readonly BalancerVault: string = "0xBA12222222228d8Ba445958a75a0704d566BF2C8"
     readonly UniV3Router: string = "0xe592427a0aece92de3edee1f18e0157c05861564"
+    readonly swapRouter: string = this.UniV3Router
     readonly rethAddress: string = "0xae78736Cd615f374D3085123A210448E74Fc6393"
+    readonly tokenBridge: string = "0x3ee18B2214AFF97000D974cf647E7C347E8fa585"
+    readonly portico: string = "0xf4c22e13414bcC2FaB827D62De33C05E9B3955F7"
 }
 
 export class WormholeConstants {
@@ -48,7 +51,8 @@ export class PolygonAddresses{
     readonly wethAddress: string = "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619"
     readonly wormWeth: string = "0x11CD37bb86F65419713f30673A480EA33c826872"
     readonly usdcAddress: string = "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359"
-    readonly polyPortico: string = "0x87aC3f21A5335286cCC1785f66d39847Be6Bfed9"
+    readonly polyPortico: string = "0x87aC3f21A5335286cCC1785f66d39847Be6Bfed9"//testing deploy
+    readonly portico:string =  "0xE1442bA08e330967Dab4fd4Fc173835e9730bff6"
     readonly polySwapRouter: string = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
     readonly polyTokenBridge: string = "0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE"
     readonly polyRelayerAddress: string = "0x27428DD2d3DD32A4D7f7C497eAaa23130d894911"
@@ -56,10 +60,21 @@ export class PolygonAddresses{
 }
 
 export class ArbAddresses{
-    readonly portico: string = "0x2dB08783F13c4225A1963b2437f0D459a5BCB4D8"
+    readonly portico: string = "0x7C1Caa71943Ef43e9b203B02678000755a4eCdE9"
     readonly wethAddress: string = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1"
+    readonly wormWeth: string = "0xD8369C2EDA18dD6518eABb1F85BD60606dEb39Ec"
+
     readonly swapRouter: string = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
     readonly tokenBridge: string = "0x0b2402144Bb366A632D14B83F244D2e0e21bD39c"
+
+}
+
+export class BaseAddresses {
+    readonly swapRouter: string = "0x2626664c2603336E57B271c5C0b26F421741e481"
+    readonly tokenBridge: string = "0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627"
+    readonly wethAddress: string = "0x4200000000000000000000000000000000000006"
+    readonly wormWeth: string = "0x71b35ECb35104773537f849FBC353F81303A5860"
+    readonly portico: string = "0xBdCF0bb40eb8642f907133bDB5Fcc681D81f0651"//"0x05498574BD0Fa99eeCB01e1241661E7eE58F8a85"
 
 }
 
@@ -82,9 +97,12 @@ export class OptimisimAddresses {
     readonly UniV3Factory: string = "0x1F98431c8aD98523631AE4a59f267346ea31F984"
     readonly BalancerVault: string = "0xBA12222222228d8Ba445958a75a0704d566BF2C8"
     readonly ChainlinkRegistry: string = "0x75c0530885F385721fddA23C539AF3701d6183D4"
-    readonly opPortico: string = "0xB8177A860A3c9A4c02bcDa00799c9548ec0181c8"
+    readonly opPortico: string = "0xB8177A860A3c9A4c02bcDa00799c9548ec0181c8"//test deploy
+    readonly portico: string = "0xCF2FCd9B87113139E809d5F9Ea6f4D571BB1C12a"
+    
     readonly wormWeth: string = "0xb47bC3ed6D70F04fe759b2529c9bc7377889678f"
 
+    readonly swapRouter: string = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
     readonly opSwapRouter: string = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
     readonly opTokenBridge: string = "0x1D68124e65faFC907325e3EDbF8c4d84499DAa8b"
     readonly opRelayerAddress: string = "0x27428DD2d3DD32A4D7f7C497eAaa23130d894911"
@@ -123,9 +141,10 @@ export class OptimisimAddresses {
 
 }
 
-export const w = new WormholeConstants()
 
 export const a = new ArbAddresses()
+
+export const b = new BaseAddresses()
 
 export const e = new MainnetAddresses()
 
@@ -133,3 +152,4 @@ export const o = new OptimisimAddresses()
 
 export const p = new PolygonAddresses()
 
+export const w = new WormholeConstants()

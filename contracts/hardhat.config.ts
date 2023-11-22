@@ -70,6 +70,15 @@ const config: HardhatUserConfig = {
       ],
       minGasPrice: 32000000000,
       chainId: 5
+    },
+    base: {
+      url: process.env.BASE_URL ? process.env.BASE_URL : zaddr,
+      accounts: [
+        process.env.MAINNET_PRIVATE_KEY
+          ? process.env.MAINNET_PRIVATE_KEY
+          : zaddr
+      ],
+      chainId: 8453
     }
   },
   solidity: {
@@ -97,8 +106,19 @@ const config: HardhatUserConfig = {
       goerli: process.env.API_KEY!,
       polygon: process.env.ETHERSCAN_POLYGON_KEY!,
       optimisticEthereum: process.env.OP_KEY!,
-      arbitrumOne: process.env.ARB_API_KEY!
+      arbitrumOne: process.env.ARB_API_KEY!,
+      base: process.env.BASE_API_KEY!
     },
+    customChains: [
+      {
+        network: "base",
+        chainId: 8453,
+        urls: {
+          apiURL: process.env.BASE_URL!,
+          browserURL: "https://basescan.org/api"
+        }
+      }
+    ]
   },
   typechain: {
     outDir: "typechain-types",

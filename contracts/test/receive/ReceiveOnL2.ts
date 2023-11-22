@@ -64,10 +64,13 @@ describe("Receive On L2", () => {
 
     expect(s.Portico.address).to.not.eq("0x0000000000000000000000000000000000000000", "Start Deployed")
 
+    s.L2WETH_AMOUNT = await s.xETH.balanceOf(xEthHolder)
     await stealMoney(xEthHolder, s.Portico.address, o.wormWeth, s.L2WETH_AMOUNT)
 
     //completeTransferWithPayload just needs to not revert
     await s.fakeTokenBridge.completeTransferWithPayload.returns("0x")
+
+    console.log("Before Each Done")
 
   })
 
@@ -103,8 +106,10 @@ describe("Receive On L2", () => {
     const startEthBalance = await ethers.provider.getBalance(s.Bob.address)
     expect(await ethers.provider.getBalance(s.Portico.address)).to.eq(0, "0 ETH on Portico")
 
+    console.log("Sending")
     //input data doesn't matter, we spoof the returns
     await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x")
+    console.log("Sent")
 
     expect(await s.xETH.balanceOf(s.Portico.address)).to.eq(0, "0 XETH on Portico after swap")
     expect(await s.WETH.balanceOf(s.Portico.address)).to.eq(0, "0 WETH on Portico after swap")
