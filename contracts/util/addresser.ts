@@ -55,6 +55,7 @@ export class PolygonAddresses{
     readonly usdcAddress: string = "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359"
     readonly polyPortico: string = "0x87aC3f21A5335286cCC1785f66d39847Be6Bfed9"//testing deploy
     readonly portico:string =  "0xE1442bA08e330967Dab4fd4Fc173835e9730bff6"
+    readonly portico02:string = "0x69F3d75Fa1eaA2a46005D566Ec784FE9059bb04B"
     readonly polySwapRouter: string = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
     readonly uniRouter: string = "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45"
 
@@ -69,6 +70,7 @@ export class ArbAddresses{
     readonly wormWeth: string = "0xD8369C2EDA18dD6518eABb1F85BD60606dEb39Ec"
 
     readonly swapRouter: string = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
+    readonly uniRouter: string = "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45	"
     readonly tokenBridge: string = "0x0b2402144Bb366A632D14B83F244D2e0e21bD39c"
 
 }
@@ -103,7 +105,7 @@ export class OptimisimAddresses {
     readonly ChainlinkRegistry: string = "0x75c0530885F385721fddA23C539AF3701d6183D4"
     readonly opPortico: string = "0xB8177A860A3c9A4c02bcDa00799c9548ec0181c8"//test deploy
     readonly portico: string = "0xCF2FCd9B87113139E809d5F9Ea6f4D571BB1C12a"
-    
+    readonly portico02: string = "0x7558Bc5d000bD1a7Fd68E23d5d6C9220c987C228"
     readonly wormWeth: string = "0xb47bC3ed6D70F04fe759b2529c9bc7377889678f"
 
     readonly swapRouter: string = "0xE592427A0AEce92De3Edee1F18E0157C05861564"

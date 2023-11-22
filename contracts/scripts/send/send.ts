@@ -14,7 +14,7 @@ const abi = new AbiCoder()
 
 //change these
 const destChainID = w.CID.polygon
-const feeIn = 10000
+const feeIn = 100
 const feeOut = 100
 const slippage = 5000
 const wrapIn = false
@@ -23,7 +23,7 @@ const amount = BN("20000000000")
 const relayerFee = BN("80000000")
 
 //which network to send from when testing
-const testNetwork = "base"
+const testNetwork = "op"
 const testNetworks = [
     "polygon",
     "op",
@@ -57,11 +57,11 @@ const send = async (user: SignerWithAddress, mainnet: boolean) => {
     //set dest addrs
     if (destChainID == w.CID.polygon) {
         inputData.finalTokenAddress = p.wethAddress
-        inputData.recipientPorticoAddress = p.portico
+        inputData.recipientPorticoAddress = p.portico02
     }
     if (destChainID == w.CID.optimism) {
         inputData.finalTokenAddress = o.wethAddress
-        inputData.recipientPorticoAddress = o.portico
+        inputData.recipientPorticoAddress = o.portico02
     }
     if (destChainID == w.CID.arbitrum) {
         inputData.finalTokenAddress = a.wethAddress
@@ -119,7 +119,7 @@ async function main() {
             await resetCurrentPoly()
 
             //set chain specifics
-            portico = Portico__factory.connect(p.portico, user)
+            portico = Portico__factory.connect(p.portico02, user)
             WETH = IERC20__factory.connect(p.wethAddress, user)
             const tb = ITokenBridge__factory.connect(p.polyTokenBridge, user)
             localCannonAsset = await tb.wrappedAsset(2, adddr2Bytes(e.wethAddress))
@@ -137,7 +137,7 @@ async function main() {
             await resetCurrentOP()
 
             //set chain specifics
-            portico = Portico__factory.connect(o.portico, user)
+            portico = Portico__factory.connect(o.portico02, user)
             WETH = IERC20__factory.connect(o.wethAddress, user)
             const tb = ITokenBridge__factory.connect(o.opTokenBridge, user)
             localCannonAsset = await tb.wrappedAsset(2, adddr2Bytes(e.wethAddress))
@@ -221,7 +221,7 @@ async function main() {
             localCannonAsset = await tb.wrappedAsset(2, adddr2Bytes(e.wethAddress))
 
         } else if (networkName == "polygon") {
-            portico = Portico__factory.connect(p.portico, user)
+            portico = Portico__factory.connect(p.portico02, user)
             WETH = IERC20__factory.connect(p.wethAddress, user)
             const tb = ITokenBridge__factory.connect(p.polyTokenBridge, user)
             localCannonAsset = await tb.wrappedAsset(2, adddr2Bytes(e.wethAddress))

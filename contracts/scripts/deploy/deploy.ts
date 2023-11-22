@@ -61,7 +61,7 @@ async function main() {
     mainnet = false
     console.log("TEST DEPLOYMENT ON POLYGON @ ", await (await currentBlock()).number)
 
-    swapRouter = p.polySwapRouter
+    swapRouter = p.uniRouter
     tokenBridge = p.polyTokenBridge
     weth = p.wethAddress
      */
@@ -77,24 +77,24 @@ async function main() {
     console.log("DEPLOYING TO: ", networkName)
 
     if (networkName == "op") {
-      swapRouter = o.opSwapRouter
+      swapRouter = o.uniRouter
       tokenBridge = o.opTokenBridge
       weth = o.wethAddress
     } else if (networkName == "polygon") {
-      swapRouter = p.polySwapRouter
+      swapRouter = p.uniRouter
       tokenBridge = p.polyTokenBridge
       weth = p.wethAddress
     } else if (networkName == "arbitrum") {
-      swapRouter = a.swapRouter
+      swapRouter = a.uniRouter
       tokenBridge = a.tokenBridge
       weth = a.wethAddress
     }else if (networkName == "base") {
-      swapRouter = b.swapRouter
+      swapRouter = b.uniRouter
       tokenBridge = b.tokenBridge
       weth = b.wethAddress
     } else {
       //mainnet
-      swapRouter = e.swapRouter
+      swapRouter = e.uniRouter
       tokenBridge = e.tokenBridge
       weth = e.wethAddress
     }
@@ -117,12 +117,12 @@ main().catch((error) => {
 
 /**
 Deployer:  0x085909388fc0cE9E5761ac8608aF8f2F52cb8B89
-Portico Deployed:  0x05498574BD0Fa99eeCB01e1241661E7eE58F8a85
-swapRouter :  0x2626664c2603336E57B271c5C0b26F421741e481
-TokenBridge:  0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627
-Local weth :  0x4200000000000000000000000000000000000006
+Portico Deployed:  0x69F3d75Fa1eaA2a46005D566Ec784FE9059bb04B
+swapRouter :  0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45
+TokenBridge:  0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE
+Local weth :  0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619
 
-hh verify --network base 0x05498574BD0Fa99eeCB01e1241661E7eE58F8a85 "0x2626664c2603336E57B271c5C0b26F421741e481" "0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627" "0x4200000000000000000000000000000000000006"
+hh verify --network polygon 0x69F3d75Fa1eaA2a46005D566Ec784FE9059bb04B "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45" "0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE" "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619"
 
 
  */
