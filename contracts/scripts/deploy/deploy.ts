@@ -1,6 +1,6 @@
 import { formatEther, parseEther } from "viem";
 import hre, { ethers, network } from "hardhat";
-import { currentBlock, resetCurrent, resetCurrentBase, resetCurrentPoly } from "../../util/block";
+import { currentBlock, resetCurrent, resetCurrentArb, resetCurrentBase, resetCurrentPoly } from "../../util/block";
 import { a, b, e, o, p } from "../../util/addresser"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { Portico, Portico__factory } from "../../typechain-types";
@@ -44,9 +44,6 @@ const deploy = async (deployer: SignerWithAddress, mainnet: boolean) => {
     console.log("verified")
 
   }
-
-
-
 }
 
 async function main() {
@@ -66,12 +63,12 @@ async function main() {
     weth = p.wethAddress
      */
 
-    await resetCurrentBase()
+    await resetCurrentArb()
     mainnet = false
-    console.log("TEST DEPLOYMENT ON BASE @ ", await (await currentBlock()).number)
-    swapRouter = b.uniRouter
-    tokenBridge = b.tokenBridge
-    weth = b.wethAddress
+    console.log("TEST DEPLOYMENT @ ", await (await currentBlock()).number)
+    swapRouter = a.uniRouter
+    tokenBridge = a.tokenBridge
+    weth = a.wethAddress
 
   } else {
     console.log("DEPLOYING TO: ", networkName)
@@ -117,12 +114,12 @@ main().catch((error) => {
 
 /**
 Deployer:  0x085909388fc0cE9E5761ac8608aF8f2F52cb8B89
-Portico Deployed:  0x69F3d75Fa1eaA2a46005D566Ec784FE9059bb04B
+Portico Deployed:  0x0fe9a1cd02B6633A2c2084Ff87E3Ee75D3e2081d
 swapRouter :  0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45
-TokenBridge:  0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE
-Local weth :  0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619
+TokenBridge:  0x3ee18B2214AFF97000D974cf647E7C347E8fa585
+Local weth :  0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
 
-hh verify --network polygon 0x69F3d75Fa1eaA2a46005D566Ec784FE9059bb04B "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45" "0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE" "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619"
+hh verify --network mainnet 0x0fe9a1cd02B6633A2c2084Ff87E3Ee75D3e2081d "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45" "0x3ee18B2214AFF97000D974cf647E7C347E8fa585" "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
 
 
  */

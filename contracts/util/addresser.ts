@@ -31,6 +31,7 @@ export class MainnetAddresses {
     readonly rethAddress: string = "0xae78736Cd615f374D3085123A210448E74Fc6393"
     readonly tokenBridge: string = "0x3ee18B2214AFF97000D974cf647E7C347E8fa585"
     readonly portico: string = "0xf4c22e13414bcC2FaB827D62De33C05E9B3955F7"
+    readonly portico02: string = "0x0fe9a1cd02B6633A2c2084Ff87E3Ee75D3e2081d"
     readonly uniRouter: string = "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45"
 }
 
@@ -39,7 +40,8 @@ export class WormholeConstants {
         ethereum: 2,
         polygon: 5,
         optimism: 24,
-        arbitrum: 23
+        arbitrum: 23,
+        base: 30
     }
 
     readonly WHaddrs = {
@@ -66,11 +68,12 @@ export class PolygonAddresses{
 
 export class ArbAddresses{
     readonly portico: string = "0x7C1Caa71943Ef43e9b203B02678000755a4eCdE9"
+    readonly portico02: string = "0x610d4DFAC3EC32e0be98D18DDb280DACD76A1889"
     readonly wethAddress: string = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1"
     readonly wormWeth: string = "0xD8369C2EDA18dD6518eABb1F85BD60606dEb39Ec"
 
     readonly swapRouter: string = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
-    readonly uniRouter: string = "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45	"
+    readonly uniRouter: string = "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45"
     readonly tokenBridge: string = "0x0b2402144Bb366A632D14B83F244D2e0e21bD39c"
 
 }
@@ -81,7 +84,7 @@ export class BaseAddresses {
     readonly wethAddress: string = "0x4200000000000000000000000000000000000006"
     readonly wormWeth: string = "0x71b35ECb35104773537f849FBC353F81303A5860"
     readonly portico: string = "0xBdCF0bb40eb8642f907133bDB5Fcc681D81f0651"//"0x05498574BD0Fa99eeCB01e1241661E7eE58F8a85"
-
+    readonly portico02: string = "0xF352DC165783538A26e38A536e76DceF227d90F2"
 }
 
 export class OptimisimAddresses {

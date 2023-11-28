@@ -1,29 +1,28 @@
 import hre, { ethers, network } from "hardhat";
 import { currentBlock, resetCurrent, resetCurrentArb, resetCurrentBase, resetCurrentOP, resetCurrentPoly } from "../../util/block";
 import { a, b, e, o, p, w } from "../../util/addresser";
-import { IERC20, IERC20__factory, ITokenBridge__factory, Portico, PorticoBase, Portico__factory } from "../../typechain-types";
-import { TradeParameters, s } from "../../test/scope";
-import { adddr2Bytes, encodeFlagSet, getEvent, getGas } from "../../util/msc";
+import { IERC20, IERC20__factory, ITokenBridge__factory, Portico, Portico__factory } from "../../typechain-types";
+import { TradeParameters } from "../../test/scope";
+import { adddr2Bytes, encodeFlagSet, getEvent } from "../../util/msc";
 import { BN } from "../../util/number";
 import { stealMoney } from "../../util/money";
-import { showBodyCyan } from "../../util/format";
-import { AbiCoder, BytesLike } from "ethers/lib/utils";
+import { AbiCoder } from "ethers/lib/utils";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 const abi = new AbiCoder()
 
 
 //change these
-const destChainID = w.CID.polygon
+const destChainID = w.CID.base
 const feeIn = 100
 const feeOut = 100
 const slippage = 5000
-const wrapIn = false
-const wrapOut = false
+const wrapIn = true
+const wrapOut = true
 const amount = BN("20000000000")
 const relayerFee = BN("80000000")
 
 //which network to send from when testing
-const testNetwork = "op"
+const testNetwork = "mainnet"
 const testNetworks = [
     "polygon",
     "op",
@@ -32,7 +31,7 @@ const testNetworks = [
     "mainnet"
 ]
 
-let portico: PorticoBase//Portico
+let portico: Portico//Portico
 let networkName: string
 let WETH: IERC20
 let localCannonAsset: string
@@ -65,11 +64,15 @@ const send = async (user: SignerWithAddress, mainnet: boolean) => {
     }
     if (destChainID == w.CID.arbitrum) {
         inputData.finalTokenAddress = a.wethAddress
-        inputData.recipientPorticoAddress = a.portico
+        inputData.recipientPorticoAddress = a.portico02
     }
     if (destChainID == w.CID.ethereum) {
         inputData.finalTokenAddress = e.wethAddress
-        inputData.recipientPorticoAddress = e.portico
+        inputData.recipientPorticoAddress = e.portico02
+    }
+    if (destChainID == w.CID.base) {
+        inputData.finalTokenAddress = b.wethAddress
+        inputData.recipientPorticoAddress = b.portico02
     }
     
     console.log("Sending to Portico: ", portico.address)
@@ -82,6 +85,7 @@ const send = async (user: SignerWithAddress, mainnet: boolean) => {
 
         const approval = await WETH.connect(user).approve(portico.address, amount)
         await approval.wait()
+        console.log("APPROVED")
         result = await portico.connect(user).start(inputData)
 
 
@@ -102,7 +106,6 @@ const send = async (user: SignerWithAddress, mainnet: boolean) => {
 
 
 async function main() {
-
 
     const accounts = await ethers.getSigners();
     const user = accounts[0];
@@ -154,7 +157,7 @@ async function main() {
             await resetCurrentArb()
 
             //set chain specifics
-            portico = Portico__factory.connect(a.portico, user)
+            portico = Portico__factory.connect(a.portico02, user)
             WETH = IERC20__factory.connect(a.wethAddress, user)
             const tb = ITokenBridge__factory.connect(a.tokenBridge, user)
             localCannonAsset = await tb.wrappedAsset(2, adddr2Bytes(e.wethAddress))
@@ -171,7 +174,7 @@ async function main() {
             await resetCurrentBase()
 
             //set chain specifics
-            portico = Portico__factory.connect(b.portico, user)
+            portico = Portico__factory.connect(b.portico02, user)
             WETH = IERC20__factory.connect(b.wethAddress, user)
             const tb = ITokenBridge__factory.connect(b.tokenBridge, user)
             localCannonAsset = await tb.wrappedAsset(2, adddr2Bytes(e.wethAddress))
@@ -189,7 +192,7 @@ async function main() {
             await resetCurrent()
 
             //set chain specifics
-            portico = Portico__factory.connect(e.portico, user)
+            portico = Portico__factory.connect(e.portico02, user)
             WETH = IERC20__factory.connect(e.wethAddress, user)
             localCannonAsset = e.wethAddress
 
@@ -215,7 +218,7 @@ async function main() {
         console.log("USER ADDR: ", user.address)
 
         if (networkName == "op") {
-            portico = Portico__factory.connect(o.opPortico, user)
+            portico = Portico__factory.connect(o.portico02, user)
             WETH = IERC20__factory.connect(o.wethAddress, user)
             const tb = ITokenBridge__factory.connect(o.opTokenBridge, user)
             localCannonAsset = await tb.wrappedAsset(2, adddr2Bytes(e.wethAddress))
@@ -228,21 +231,21 @@ async function main() {
 
 
         } else if (networkName == "arbitrum") {
-            portico = Portico__factory.connect(a.portico, user)
+            portico = Portico__factory.connect(a.portico02, user)
             WETH = IERC20__factory.connect(a.wethAddress, user)
             const tb = ITokenBridge__factory.connect(a.tokenBridge, user)
             localCannonAsset = await tb.wrappedAsset(2, adddr2Bytes(e.wethAddress))
 
 
         } else if (networkName == "base") {
-            portico = Portico__factory.connect(b.portico, user)
+            portico = Portico__factory.connect(b.portico02, user)
             WETH = IERC20__factory.connect(b.wethAddress, user)
             const tb = ITokenBridge__factory.connect(b.tokenBridge, user)
             localCannonAsset = await tb.wrappedAsset(2, adddr2Bytes(e.wethAddress))
 
         } else {
             //mainnet
-            portico = Portico__factory.connect(e.portico, user)
+            portico = Portico__factory.connect(e.portico02, user)
             WETH = IERC20__factory.connect(e.wethAddress, user)
             localCannonAsset = e.wethAddress
         }
