@@ -1,4 +1,4 @@
-import { formatEther, parseEther } from "viem";
+import { formatEther, parseEther, zeroAddress } from "viem";
 import hre, { ethers, network } from "hardhat";
 import { currentBlock, resetCurrent, resetCurrentArb, resetCurrentBase, resetCurrentPoly } from "../../util/block";
 import { a, b, e, o, p } from "../../util/addresser"
@@ -18,7 +18,8 @@ const deploy = async (deployer: SignerWithAddress, mainnet: boolean) => {
     deployer,
     swapRouter,
     tokenBridge,
-    weth
+    weth,
+    zeroAddress,
   )
 
 
@@ -38,7 +39,8 @@ const deploy = async (deployer: SignerWithAddress, mainnet: boolean) => {
       constructorArguments: [
         swapRouter,
         tokenBridge,
-        weth
+        weth,
+        zeroAddress,
       ],
     })
     console.log("verified")
