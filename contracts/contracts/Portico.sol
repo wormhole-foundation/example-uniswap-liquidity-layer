@@ -21,17 +21,18 @@ contract PorticoBase {
   ISwapRouter02 public immutable ROUTERV3;
   ITokenBridge public immutable TOKENBRIDGE;
   IWETH public immutable WETH;
-
   IWormhole public immutable wormhole;
-
   uint16 public immutable wormholeChainId;
 
-  constructor(ISwapRouter02 _routerV3, ITokenBridge _bridge, IWETH _weth) {
+  address public FEE_RECIPIENT;
+
+  constructor(ISwapRouter02 _routerV3, ITokenBridge _bridge, IWETH _weth, address _feeRecipient) {
     ROUTERV3 = _routerV3;
     TOKENBRIDGE = _bridge;
     wormhole = _bridge.wormhole();
     WETH = _weth;
     wormholeChainId = wormhole.chainId();
+    FEE_RECIPIENT = _feeRecipient;
   }
 
   receive() external payable {}
@@ -334,6 +335,8 @@ abstract contract PorticoFinish is PorticoBase {
     //user gets total - relayer fee
     uint256 finalUserAmount = finalToken.balanceOf(address(this)) - relayerFeeAmount;
 
+    address feeRecipient = FEE_RECIPIENT == address(0) ? _msgSender() : FEE_RECIPIENT;
+
     if (unwrap) {
       WETH.withdraw(IERC20(address(WETH)).balanceOf(address(this)));
       //send to user
@@ -343,7 +346,7 @@ abstract contract PorticoFinish is PorticoBase {
       }
       if (relayerFeeAmount > 0) {
         //pay relayer fee
-        (bool sentToRelayer, ) = _msgSender().call{ value: relayerFeeAmount }("");
+        (bool sentToRelayer, ) = feeRecipient.call{ value: relayerFeeAmount }("");
         require(sentToRelayer, "Failed to send Ether");
       }
     } else {
@@ -353,12 +356,12 @@ abstract contract PorticoFinish is PorticoBase {
       }
       if (relayerFeeAmount > 0) {
         //pay relayer
-        require(finalToken.transfer(_msgSender(), relayerFeeAmount), "STF");
+        require(finalToken.transfer(feeRecipient, relayerFeeAmount), "STF");
       }
     }
   }
 }
 
 contract Portico is PorticoFinish, PorticoStart {
-  constructor(ISwapRouter02 _routerV3, ITokenBridge _bridge, IWETH _weth) PorticoBase(_routerV3, _bridge, _weth) {}
+  constructor(ISwapRouter02 _routerV3, ITokenBridge _bridge, IWETH _weth, address _feeRecipient) PorticoBase(_routerV3, _bridge, _weth, _feeRecipient) {}
 }

@@ -1,4 +1,4 @@
-import { formatEther, parseEther } from "viem";
+import { formatEther, parseEther, zeroAddress } from "viem";
 import hre, { ethers, network } from "hardhat";
 import { currentBlock, resetCurrent, resetCurrentArb, resetCurrentPoly } from "../util/block";
 import { a, o, p } from "../util/addresser"
@@ -20,7 +20,8 @@ const deploy = async (deployer: SignerWithAddress) => {
     deployer,
     swapRouter,
     tokenBridge,
-    weth
+    weth,
+    zeroAddress,
   )
 
 

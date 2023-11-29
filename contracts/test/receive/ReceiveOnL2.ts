@@ -13,6 +13,7 @@ import { IERC20, IERC20__factory, ITokenBridge__factory, IWormhole__factory, Por
 import { smock } from "@defi-wonderland/smock";
 import { DeployContract } from "../../util/deploy"
 import { o, p, w } from "../../util/addresser";
+import { zeroAddress } from "viem";
 const abi = new AbiCoder()
 
 
@@ -57,7 +58,7 @@ describe("Receive On OP", () => {
     s.Portico = await DeployContract(
       new Portico__factory(s.Frank),
       s.Frank,
-      o.uniRouter, s.fakeTokenBridge.address, o.wethAddress
+      o.uniRouter, s.fakeTokenBridge.address, o.wethAddress, zeroAddress
     )
 
     expect(s.Portico.address).to.not.eq("0x0000000000000000000000000000000000000000", "Start Deployed")
