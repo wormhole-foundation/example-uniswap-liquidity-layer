@@ -11,6 +11,7 @@ import { ethers } from "hardhat";
 import { IERC20__factory, ITokenBridge__factory, IWormhole__factory, Portico__factory } from "../../typechain-types";
 import { DeployContract } from "../../util/deploy";
 import { w, o, e, p } from "../../util/addresser";
+import { zeroAddress } from "viem";
 
 describe("Deploy", function () {
 
@@ -44,7 +45,7 @@ describe("Deploy", function () {
     s.Portico = await DeployContract(
       new Portico__factory(s.Frank),
       s.Frank,
-      e.uniRouter, s.tokenBridgeAddr, e.wethAddress
+      e.uniRouter, s.tokenBridgeAddr, e.wethAddress, zeroAddress,
     )
 
     expect(s.Portico.address).to.not.eq("0x0000000000000000000000000000000000000000", "Start Deployed")

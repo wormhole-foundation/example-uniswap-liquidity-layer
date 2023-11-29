@@ -11,6 +11,7 @@ import { ethers } from "hardhat";
 import { IERC20__factory, ITokenBridge__factory, IWormhole__factory, PorticoUniRouter__factory, Portico__factory } from "../../typechain-types";
 import { DeployContract } from "../../util/deploy";
 import { w, b, e, p } from "../../util/addresser";
+import { zeroAddress } from "viem";
 
 /**
  * Send from OP to Polygon
@@ -43,7 +44,7 @@ describe("Deploy", function () {
     s.Portico = await DeployContract(
       new Portico__factory(s.Frank),
       s.Frank,
-      b.uniRouter, b.tokenBridge, b.wethAddress
+      b.uniRouter, b.tokenBridge, b.wethAddress, zeroAddress,
     )
 
     expect(s.Portico.address).to.not.eq("0x0000000000000000000000000000000000000000", "Start Deployed")
@@ -88,7 +89,7 @@ describe("Send", function () {
       recipientPorticoAddress: p.polyPortico,
       amountSpecified: s.L2WETH_AMOUNT,
       relayerFee: s.L2relayerFee
-    } 
+    }
 
     console.log("Checking balances")
 
@@ -123,7 +124,7 @@ describe("Send", function () {
 
   })
 
-  
+
 
   it("Send mainnet tx => base wrapping native eth", async () => {
 
