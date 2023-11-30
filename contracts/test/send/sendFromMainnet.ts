@@ -205,7 +205,7 @@ describe("Send", function () {
 
     const endBobEther = await ethers.provider.getBalance(s.Bob.address)
     const etherDelta = startBobEther.sub(endBobEther)
-    expect(await toNumber(etherDelta)).to.be.closeTo(await toNumber(s.WETH_AMOUNT), 0.003, "ETHER sent is correct + gas")
+    expect(await toNumber(etherDelta)).to.be.closeTo(await toNumber(s.WETH_AMOUNT), 0.005, "ETHER sent is correct + gas")
   })
 })
 

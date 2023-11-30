@@ -23,7 +23,6 @@ const MAINNET_GUARDIAN_RPC: string[] = [
     "https://wormhole-v2-mainnet.01node.com",
 ]
 
-
 //change these
 const emittingChainid = w.CID.polygon
 const emitter = "0000000000000000000000005a58505a96d1dbf8df91cb21b54419fc36e93fde"

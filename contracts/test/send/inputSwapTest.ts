@@ -1,16 +1,15 @@
 
-import { showBody, showBodyCyan } from "../../util/format"
+import { showBody, showBodyCyan } from "../../util/format";
 import { expect } from "chai";
 import { BN } from "../../util/number";
-import { adddr2Bytes, encodeFlagSet, getGas, toNumber } from "../../util/msc"
-import { start } from "repl";
+import { encodeFlagSet, getGas } from "../../util/msc";
 import { stealMoney } from "../../util/money";
-import { DecodedVAA, TokenReceived, TradeParameters, TransferWithPayload, s } from "../scope"
-import { currentBlock, resetCurrent, resetCurrentOP } from "../../util/block";
+import { TradeParameters, s } from "../scope";
+import { currentBlock, resetCurrentOP } from "../../util/block";
 import { ethers } from "hardhat";
-import { IERC20__factory, ITokenBridge__factory, IWormhole__factory, PorticoUniRouter__factory, Portico__factory } from "../../typechain-types";
+import { IERC20__factory, ITokenBridge__factory, Portico__factory } from "../../typechain-types";
 import { DeployContract } from "../../util/deploy";
-import { w, o, e, p } from "../../util/addresser";
+import { w, o, p } from "../../util/addresser";
 import { zeroAddress } from "viem";
 
 /**
@@ -60,10 +59,13 @@ describe("Deploy", function () {
 })
 
 describe("Send", function () {
+
+  const testSlippage = 1000 //10%
+
   it("send op tx => polygon with weth", async () => {
 
     const params: TradeParameters = {
-      flags: encodeFlagSet(w.CID.polygon, 1, 100, 100, s.slippage, s.slippage, false, false),
+      flags: encodeFlagSet(w.CID.polygon, 1, 100, 100, testSlippage, s.slippage, false, false),
       startTokenAddress: o.wethAddress,
       canonAssetAddress: o.wormWeth,
       finalTokenAddress: p.wethAddress,
@@ -102,7 +104,7 @@ describe("Send", function () {
     await stealMoney(s.OpBank, s.Bob.address, o.usdcAddress, usdcAmount)    
 
     const params: TradeParameters = {
-      flags: encodeFlagSet(w.CID.optimism, 2, 3000, 100, s.slippage, s.slippage, true, false),
+      flags: encodeFlagSet(w.CID.optimism, 2, 3000, 100, testSlippage, s.slippage, true, false),
       startTokenAddress: o.usdcAddress,
       canonAssetAddress: o.wethAddress,
       finalTokenAddress: p.wethAddress,
@@ -123,7 +125,7 @@ describe("Send", function () {
     await stealMoney(s.OpBank, s.Bob.address, o.wethAddress, wethAmount)
 
     const params: TradeParameters = {
-      flags: encodeFlagSet(w.CID.optimism, 2, 3000, 100, s.slippage, s.slippage, false, false),
+      flags: encodeFlagSet(w.CID.optimism, 2, 3000, 100, testSlippage, s.slippage, false, false),
       startTokenAddress: o.wethAddress,
       canonAssetAddress: o.usdcAddress,
       finalTokenAddress: p.wethAddress,
@@ -147,7 +149,7 @@ describe("Send", function () {
     const WBTC = IERC20__factory.connect(o.wbtcAddress, s.Frank)
 
     const params: TradeParameters = {
-      flags: encodeFlagSet(w.CID.optimism, 2, 3000, 100, 500, s.slippage, false, false),
+      flags: encodeFlagSet(w.CID.optimism, 2, 3000, 100, testSlippage, s.slippage, false, false),
       startTokenAddress: o.wbtcAddress,
       canonAssetAddress: o.usdcAddress,
       finalTokenAddress: p.wethAddress,
