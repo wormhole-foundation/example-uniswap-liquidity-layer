@@ -172,6 +172,9 @@ abstract contract PorticoStart is PorticoBase {
       )
     );
     amount = params.canonAssetAddress.balanceOf(address(this));
+
+    //reset approval
+    require(params.startTokenAddress.approve(address(ROUTERV3), 0), "Approve fail");
   }
 
   event PorticoSwapStart(uint64 indexed sequence, uint16 indexed chainId);
