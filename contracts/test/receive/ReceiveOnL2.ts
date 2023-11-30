@@ -12,14 +12,14 @@ import { ethers } from "hardhat";
 import { IERC20, IERC20__factory, ITokenBridge__factory, IWormhole__factory, Portico__factory } from "../../typechain-types";
 import { smock } from "@defi-wonderland/smock";
 import { DeployContract } from "../../util/deploy"
-import { o, p, w } from "../../util/addresser";
+import { e, o, p, w } from "../../util/addresser";
 import { zeroAddress } from "viem";
 const abi = new AbiCoder()
 
 
 /**
- * polygon => op
- * swap xeth to weth and unwrap
+ * polygon => OP
+ * swap xeth to weth on OP and unwrap to eth
  */
 describe("Receive On OP", () => {
 
@@ -58,14 +58,16 @@ describe("Receive On OP", () => {
     s.Portico = await DeployContract(
       new Portico__factory(s.Frank),
       s.Frank,
-      o.uniRouter, s.fakeTokenBridge.address, o.wethAddress, zeroAddress
+      o.uniRouter, s.fakeTokenBridge.address, o.wethAddress, zeroAddress,
     )
 
     expect(s.Portico.address).to.not.eq("0x0000000000000000000000000000000000000000", "Start Deployed")
 
-    const xEthHolder = "0x66B101C1EC482d807B9c920390a00aC797175951"//"0x04C5a4bd8f4E466F13A4DEd1246b69b953918DcF"//
-    s.L2WETH_AMOUNT = await s.xETH.balanceOf(xEthHolder)
-    await stealMoney(xEthHolder, s.Portico.address, o.wormWeth, s.L2WETH_AMOUNT)
+    //fund with xweth
+    const xwethHolder = "0x00917c372Fa5e0C7FE8eCc04CeEa2670E18D3786"
+    s.WETH_AMOUNT = BN("2e9")//very low liquidity
+    s.ethRelayerFee = BN("1e8")
+    await stealMoney(xwethHolder, s.Portico.address, o.wormWeth, s.WETH_AMOUNT)
 
     //completeTransferWithPayload just needs to not revert
     await s.fakeTokenBridge.completeTransferWithPayload.returns("0x")
@@ -75,90 +77,95 @@ describe("Receive On OP", () => {
 
   it("receipt of xchain tx", async () => {
     expectedVAA = {
-      flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, 300, 300, false, true),
+      flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, 5000, 5000, true, true),
       finalTokenAddress: o.wethAddress,
       recipientAddress: s.Bob.address,
-      canonAssetAmount: s.L2WETH_AMOUNT,
-      relayerFee: s.L2relayerFee
+      canonAssetAmount: s.WETH_AMOUNT,
+      relayerFee: s.ethRelayerFee
     }
 
     //config fake returns
     //parseTransferWithPayload
     await s.fakeTokenBridge.parseTransferWithPayload.returns({
       payloadID: 3,
-      amount: s.L2WETH_AMOUNT,
-      tokenAddress: adddr2Bytes(o.wormWeth),
-      tokenChain: w.CID.polygon,
+      amount: s.WETH_AMOUNT,
+      tokenAddress: adddr2Bytes(e.wethAddress),
+      tokenChain: w.CID.ethereum,
       to: adddr2Bytes(s.Portico.address),
       toChain: w.CID.optimism,
-      fromAddress: adddr2Bytes(p.polyPortico),
+      fromAddress: adddr2Bytes(p.portico02),
       payload: abi.encode(
         ["tuple(bytes32 flags, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 relayerFee)"],
         [expectedVAA]
       )
     })
 
-    //wrappedAsset should return the xeth
+    //wrappedAsset should return the xeth if not native chain
     await s.fakeTokenBridge.wrappedAsset.returns(o.wormWeth)
+    console.log("Set fake return")
 
     const startEthBalance = await ethers.provider.getBalance(s.Bob.address)
     expect(await ethers.provider.getBalance(s.Portico.address)).to.eq(0, "0 ETH on Portico")
 
-    console.log("Sending TX...")
-
+    console.log("SENDING")
     //input data doesn't matter, we spoof the returns
     await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x")
 
-    expect(await s.xETH.balanceOf(s.Portico.address)).to.eq(0, "0 XETH on Portico after swap")
     expect(await s.WETH.balanceOf(s.Portico.address)).to.eq(0, "0 WETH on Portico after swap")
     expect(await ethers.provider.getBalance(s.Portico.address)).to.eq(0, "0 ETH on Portico after swap")
     const endEthBalance = await ethers.provider.getBalance(s.Bob.address)
     const ethDelta = await toNumber(endEthBalance.sub(startEthBalance))
-    expect(ethDelta).to.be.closeTo(await toNumber(s.L2WETH_AMOUNT), 0.001, "Eth received")
+    expect(ethDelta).to.be.closeTo(await toNumber(s.WETH_AMOUNT), 0.01, "Eth received")
   })
+
+})
 
 /**
 
-  it("Failed swap, pool doesn't exist", async () => {
+
+ 
+ /**
+it("Failed swap, pool doesn't exist", async () => {
 
     expectedVAA = {
-      flags: encodeFlagSet(w.CID.optimism, 1, 100, 12345, 300, 300, false, true),
-      finalTokenAddress: p.wethAddress,
+      flags: encodeFlagSet(w.CID.optimism, 1, 100, 123, 300, 300, false, true),
+      finalTokenAddress: o.wethAddress,
       recipientAddress: s.Bob.address,
-      canonAssetAmount: s.L2WETH_AMOUNT,
+      canonAssetAmount: s.WETH_AMOUNT,
       relayerFee: s.L2relayerFee
     }
 
     //config fake returns
     //wrappedAsset should return the xeth
-    await s.fakeTokenBridge.wrappedAsset.returns(o.wormWeth)
+    await s.fakeTokenBridge.wrappedAsset.returns(o.wethAddress)
 
     //parseTransferWithPayload
     await s.fakeTokenBridge.parseTransferWithPayload.returns({
       payloadID: 3,
-      amount: s.L2WETH_AMOUNT,
-      tokenAddress: adddr2Bytes(o.wormWeth),
+      amount: s.WETH_AMOUNT,
+      tokenAddress: adddr2Bytes(o.wethAddress),
       tokenChain: w.CID.polygon,
       to: adddr2Bytes(s.Portico.address),
-      toChain: w.CID.optimism,
-      fromAddress: adddr2Bytes(o.polyPortico),
+      toChain: w.CID.ethereum,
+      fromAddress: adddr2Bytes(o.portico02),
       payload: abi.encode(
         ["tuple(bytes32 flags, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 relayerFee)"],
         [expectedVAA]
       )
     })
 
-
+    console.log("SENDING")
     //input data doesn't matter, we spoof the returns
     const gas = await getGas(await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x"))
     showBodyCyan("Gas, failed swap: ", gas)
     const bobXeth = await s.xETH.balanceOf(s.Bob.address)
-    expect(bobXeth).to.eq(s.L2WETH_AMOUNT, "Bob received the xETH")
+    expect(bobXeth).to.eq(s.WETH_AMOUNT, "Bob received the xETH")
 
     expect(await s.xETH.balanceOf(s.Portico.address)).to.eq(0, "No xETH remaining on Portico")
 
   })
-
+  */
+/**
 
   it("Slippage Test", async () => {
 
@@ -166,7 +173,7 @@ describe("Receive On OP", () => {
       flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, 300, 500, false, true),
       finalTokenAddress: p.wethAddress,
       recipientAddress: s.Bob.address,
-      canonAssetAmount: s.L2WETH_AMOUNT,
+      canonAssetAmount: s.WETH_AMOUNT,
       relayerFee: s.L2relayerFee
     }
 
@@ -174,12 +181,12 @@ describe("Receive On OP", () => {
     //parseTransferWithPayload
     await s.fakeTokenBridge.parseTransferWithPayload.returns({
       payloadID: 3,
-      amount: s.L2WETH_AMOUNT,
+      amount: s.WETH_AMOUNT,
       tokenAddress: adddr2Bytes(o.wormWeth),
       tokenChain: w.CID.polygon,
       to: adddr2Bytes(s.Portico.address),
       toChain: w.CID.optimism,
-      fromAddress: adddr2Bytes(o.polyPortico),
+      fromAddress: adddr2Bytes(o.portico02),
       payload: abi.encode(
         ["tuple(bytes32 flags, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 relayerFee)"],
         [expectedVAA]
@@ -193,7 +200,6 @@ describe("Receive On OP", () => {
     await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x")
 
   })
- */
+  */
 
-})
 

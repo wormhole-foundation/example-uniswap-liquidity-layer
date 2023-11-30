@@ -122,8 +122,8 @@ export const encodeFlagSet = (
     + leSize(bridgeNonce, 4) // next four bridge nonce
     + leSize(feeTierStart, 3) // fee tier 3
     + leSize(feeTierFinish, 3)
-    + leSize(maxSlippageFinish, 2)
     + leSize(maxSlippageStart, 2) // slippage 2
+    + leSize(maxSlippageFinish, 2)
     + "0".repeat(15 * 2) // 16-30, so 15*2 zeros
     + leSize(bitSet, 1)
   return ans as Hex
