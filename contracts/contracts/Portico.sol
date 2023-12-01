@@ -192,6 +192,8 @@ abstract contract PorticoStart is PorticoBase {
       //we use balanceOf to lump this in with future txs
       amount = WETH.balanceOf(address(this));
     } else {
+      //ensure no eth needs to be refunded
+      require(msg.value == wormhole.messageFee(), "msg.value incorrect");
       // otherwise, just get the token we need to do the swap (if we are swapping, or just the token itself)
       require(params.startTokenAddress.transferFrom(_msgSender(), address(this), params.amountSpecified), "transfer fail");
       //Because wormhole rounds to 1e8, some dust may exist from previous txs
