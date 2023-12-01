@@ -17,7 +17,6 @@ import "./uniswap/PoolAddress.sol";
 import "./oz/Ownable.sol";
 import "./oz/ReentrancyGuard.sol";
 
-
 contract PorticoBase is Ownable, ReentrancyGuard {
   ISwapRouter02 public immutable ROUTERV3;
   ITokenBridge public immutable TOKENBRIDGE;
@@ -114,7 +113,6 @@ contract PorticoBase is Ownable, ReentrancyGuard {
     maxSlippage = MAX_BIPS - maxSlippage;
 
     minAmoutReceived = (expectedAmount * maxSlippage) / MAX_BIPS;
-
   }
 
   ///@return exchangeRate == (sqrtPriceX96 / 2**96) ** 2
@@ -184,10 +182,11 @@ abstract contract PorticoStart is PorticoBase {
     // always check for native wrapping logic
     if (address(params.startTokenAddress) == address(WETH) && params.flags.shouldWrapNative()) {
       // if we are wrapping a token, we call deposit for the user, assuming we have been send what we need.
-      WETH.deposit{ value: uint256(params.amountSpecified) }();
+      WETH.deposit{ value: msg.value }();
+      params.amountSpecified = WETH.balanceOf(address(this));
     } else {
       // otherwise, just get the token we need to do the swap (if we are swapping, or just the token itself)
-      require(params.startTokenAddress.transferFrom(_msgSender(), address(this), uint256(params.amountSpecified)), "transfer fail");
+      require(params.startTokenAddress.transferFrom(_msgSender(), address(this), params.amountSpecified), "transfer fail");
     }
 
     //Because wormhole rounds to 1e8, some dust may exist from previous txs
