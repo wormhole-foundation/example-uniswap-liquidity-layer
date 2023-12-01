@@ -182,8 +182,12 @@ abstract contract PorticoStart is PorticoBase {
     uint256 amount;
     // always check for native wrapping logic
     if (address(params.startTokenAddress) == address(WETH) && params.flags.shouldWrapNative()) {
+      //if wrapping, msg.value should be exactly amountSpecified + wormhole message fee
+      require(msg.value == params.amountSpecified + wormhole.messageFee(), "msg.value incorrect");
+
       // if we are wrapping a token, we call deposit for the user, assuming we have been send what we need.
-      WETH.deposit{ value: msg.value }();
+      WETH.deposit{ value: params.amountSpecified }();
+
       //Because wormhole rounds to 1e8, some dust may exist from previous txs
       //we use balanceOf to lump this in with future txs
       amount = WETH.balanceOf(address(this));
@@ -237,7 +241,7 @@ abstract contract PorticoFinish is PorticoBase {
   event PorticoSwapFinish(bool swapCompleted, PorticoStructs.DecodedVAA data);
 
   // receiveMessageAndSwap is the entrypoint for finishing the swap
-  function receiveMessageAndSwap(bytes calldata encodedTransferMessage) external payable nonReentrant {
+  function receiveMessageAndSwap(bytes calldata encodedTransferMessage) external nonReentrant {
     // start by calling _completeTransfer, submitting the VAA to the token bridge
     (PorticoStructs.DecodedVAA memory message, PorticoStructs.BridgeInfo memory bridgeInfo) = _completeTransfer(encodedTransferMessage);
     // we modify the message to set the relayerFee to 0 if the msgSender is the fee recipient.
