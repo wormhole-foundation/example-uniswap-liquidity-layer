@@ -179,22 +179,23 @@ abstract contract PorticoStart is PorticoBase {
   function start(
     PorticoStructs.TradeParameters memory params
   ) public payable nonReentrant returns (address emitterAddress, uint16 chainId, uint64 sequence) {
+    uint256 amount;
     // always check for native wrapping logic
     if (address(params.startTokenAddress) == address(WETH) && params.flags.shouldWrapNative()) {
       // if we are wrapping a token, we call deposit for the user, assuming we have been send what we need.
       WETH.deposit{ value: msg.value }();
-      params.amountSpecified = WETH.balanceOf(address(this));
+      //Because wormhole rounds to 1e8, some dust may exist from previous txs
+      //we use balanceOf to lump this in with future txs
+      amount = WETH.balanceOf(address(this));
     } else {
       // otherwise, just get the token we need to do the swap (if we are swapping, or just the token itself)
       require(params.startTokenAddress.transferFrom(_msgSender(), address(this), params.amountSpecified), "transfer fail");
+      //Because wormhole rounds to 1e8, some dust may exist from previous txs
+      //we use balanceOf to lump this in with future txs
+      amount = params.startTokenAddress.balanceOf(address(this));
+      //ensure we received enough
+      require(amount >= params.amountSpecified, "transfer insufficient");
     }
-
-    //Because wormhole rounds to 1e8, some dust may exist from previous txs
-    //we use balanceOf to lump this in with future txs
-    uint256 amount = params.startTokenAddress.balanceOf(address(this));
-
-    //ensure we received enough
-    require(amount >= uint256(params.amountSpecified), "transfer insufficient");
 
     // if the start token is the canon token, we don't need to swap
     if (params.startTokenAddress != params.canonAssetAddress) {
