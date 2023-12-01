@@ -92,8 +92,6 @@ contract PorticoBase is Ownable, ReentrancyGuard {
       return 0;
     }
 
-
-
     //compute pool
     PoolAddress.PoolKey memory key = PoolAddress.getPoolKey(tokenIn, tokenOut, fee);
     IV3Pool pool = IV3Pool(PoolAddress.computeAddress(ROUTERV3.factory(), key));
