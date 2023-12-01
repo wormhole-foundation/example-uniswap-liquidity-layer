@@ -15,11 +15,10 @@ import "./uniswap/PoolAddress.sol";
 
 //oz
 import "./oz/Ownable.sol";
+import "./oz/ReentrancyGuard.sol";
 
-//testing
-import "hardhat/console.sol";
 
-contract PorticoBase is Ownable {
+contract PorticoBase is Ownable, ReentrancyGuard {
   ISwapRouter02 public immutable ROUTERV3;
   ITokenBridge public immutable TOKENBRIDGE;
   IWETH public immutable WETH;
@@ -93,10 +92,7 @@ contract PorticoBase is Ownable {
       return 0;
     }
 
-    //console.log("Deciml In: ", IERC20(tokenIn).decimals());
-    //console.log("Deciml Ot: ", IERC20(tokenOut).decimals());
 
-    //console.log("Amount In: ", amountIn);
 
     //compute pool
     PoolAddress.PoolKey memory key = PoolAddress.getPoolKey(tokenIn, tokenOut, fee);
@@ -121,8 +117,6 @@ contract PorticoBase is Ownable {
 
     minAmoutReceived = (expectedAmount * maxSlippage) / MAX_BIPS;
 
-    //console.log("Expected Amount: ", expectedAmount);
-    //console.log("Minimum  Amount: ", minAmoutReceived);
   }
 
   ///@return exchangeRate == (sqrtPriceX96 / 2**96) ** 2
@@ -188,7 +182,7 @@ abstract contract PorticoStart is PorticoBase {
 
   function start(
     PorticoStructs.TradeParameters memory params
-  ) public payable returns (address emitterAddress, uint16 chainId, uint64 sequence) {
+  ) public payable nonReentrant returns (address emitterAddress, uint16 chainId, uint64 sequence) {
     // always check for native wrapping logic
     if (address(params.startTokenAddress) == address(WETH) && params.flags.shouldWrapNative()) {
       // if we are wrapping a token, we call deposit for the user, assuming we have been send what we need.
@@ -245,7 +239,7 @@ abstract contract PorticoFinish is PorticoBase {
   event PorticoSwapFinish(bool swapCompleted, PorticoStructs.DecodedVAA data);
 
   // receiveMessageAndSwap is the entrypoint for finishing the swap
-  function receiveMessageAndSwap(bytes calldata encodedTransferMessage) external payable {
+  function receiveMessageAndSwap(bytes calldata encodedTransferMessage) external payable nonReentrant {
     // start by calling _completeTransfer, submitting the VAA to the token bridge
     (PorticoStructs.DecodedVAA memory message, PorticoStructs.BridgeInfo memory bridgeInfo) = _completeTransfer(encodedTransferMessage);
     // we modify the message to set the relayerFee to 0 if the msgSender is the fee recipient.
@@ -299,19 +293,13 @@ abstract contract PorticoFinish is PorticoBase {
     PorticoStructs.DecodedVAA memory params,
     PorticoStructs.BridgeInfo memory bridgeInfo
   ) internal returns (bool swapCompleted) {
-    //console.log("FINISH");
-    //console.log("Unwrap? ", params.flags.shouldUnwrapNative());
-    //console.log("Final: ", address(params.finalTokenAddress));
-    //console.log("Weth : ", address(WETH));
     // see if the unwrap flag is set, and that the finalTokenAddress is the address we have set on deploy as our native weth9 address
     bool shouldUnwrap = params.flags.shouldUnwrapNative() && address(params.finalTokenAddress) == address(WETH);
     if ((params.finalTokenAddress) == bridgeInfo.tokenReceived) {
-      //console.log("No swap");
       // this means that we don't need to do a swap, aka, we received the canon asset.
       payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, bridgeInfo.relayerFeeAmount);
       return false;
     }
-    //console.log("Swapping?");
     //if we are here, if means we need to do the swap, resulting aset is sent to this address
     swapCompleted = _finish_v3swap(params, bridgeInfo);
     //if swap fails, relayer and user have already been paid in canon asset, so we are done
