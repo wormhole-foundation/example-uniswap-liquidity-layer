@@ -24,11 +24,11 @@ const MAINNET_GUARDIAN_RPC: string[] = [
 ]
 
 //change these
-const emittingChainid = w.CID.polygon
-const emitter = "0000000000000000000000005a58505a96d1dbf8df91cb21b54419fc36e93fde"
-const sequence = 132098
+const emittingChainid = w.CID.arbitrum
+const emitter = "0000000000000000000000000b2402144bb366a632d14b83f244d2e0e21bd39c"
+const sequence = 29475
 //which network on which to receive when testing
-const testNetwork = "polygon"
+const testNetwork = "op"
 const testNetworks = [
     "polygon",
     "op",

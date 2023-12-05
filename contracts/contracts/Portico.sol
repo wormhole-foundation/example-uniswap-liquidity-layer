@@ -180,10 +180,12 @@ abstract contract PorticoStart is PorticoBase {
     PorticoStructs.TradeParameters memory params
   ) public payable nonReentrant returns (address emitterAddress, uint16 chainId, uint64 sequence) {
     uint256 amount;
+    uint256 whMessageFee = wormhole.messageFee();
+    uint256 value = msg.value;
     // always check for native wrapping logic
     if (address(params.startTokenAddress) == address(WETH) && params.flags.shouldWrapNative()) {
       //if wrapping, msg.value should be exactly amountSpecified + wormhole message fee
-      require(msg.value == params.amountSpecified + wormhole.messageFee(), "msg.value incorrect");
+      require(value == params.amountSpecified + whMessageFee, "msg.value incorrect");
 
       // if we are wrapping a token, we call deposit for the user, assuming we have been send what we need.
       WETH.deposit{ value: params.amountSpecified }();
@@ -193,7 +195,7 @@ abstract contract PorticoStart is PorticoBase {
       amount = WETH.balanceOf(address(this));
     } else {
       //ensure no eth needs to be refunded
-      require(msg.value == wormhole.messageFee(), "msg.value incorrect");
+      require(value == whMessageFee, "msg.value incorrect");
       // otherwise, just get the token we need to do the swap (if we are swapping, or just the token itself)
       require(params.startTokenAddress.transferFrom(_msgSender(), address(this), params.amountSpecified), "transfer fail");
       //Because wormhole rounds to 1e8, some dust may exist from previous txs
@@ -222,7 +224,7 @@ abstract contract PorticoStart is PorticoBase {
       params.relayerFee
     );
 
-    sequence = TOKENBRIDGE.transferTokensWithPayload{ value: wormhole.messageFee() }(
+    sequence = TOKENBRIDGE.transferTokensWithPayload{ value: whMessageFee }(
       address(params.canonAssetAddress),
       amount,
       params.flags.recipientChain(),
