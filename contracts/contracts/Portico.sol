@@ -17,6 +17,9 @@ import "./uniswap/PoolAddress.sol";
 import "./oz/Ownable.sol";
 import "./oz/ReentrancyGuard.sol";
 
+//testing
+import "hardhat/console.sol";
+
 contract PorticoBase is Ownable, ReentrancyGuard {
   ISwapRouter02 public immutable ROUTERV3;
   ITokenBridge public immutable TOKENBRIDGE;
@@ -78,6 +81,8 @@ contract PorticoBase is Ownable, ReentrancyGuard {
     return (size > 0);
   }
 
+  ///@notice deduce the minAmountReceived based on slippage bips
+  ///@dev this should be decimal agnostic, as we deal with amounts rather than prices
   function calcMinAmount(
     uint256 amountIn,
     uint16 maxSlippage,
@@ -90,6 +95,8 @@ contract PorticoBase is Ownable, ReentrancyGuard {
     if (maxSlippage >= MAX_BIPS || maxSlippage == 0) {
       return 0;
     }
+
+    maxSlippage = MAX_BIPS - maxSlippage;
 
     //compute pool
     PoolAddress.PoolKey memory key = PoolAddress.getPoolKey(tokenIn, tokenOut, fee);
@@ -109,8 +116,6 @@ contract PorticoBase is Ownable, ReentrancyGuard {
 
     //compute expected amount received with no slippage
     uint256 expectedAmount = (amountIn * exchangeRate) / 1e18;
-
-    maxSlippage = MAX_BIPS - maxSlippage;
 
     minAmoutReceived = (expectedAmount * maxSlippage) / MAX_BIPS;
   }
@@ -286,8 +291,11 @@ abstract contract PorticoFinish is PorticoBase {
 
     // if there are more than 8 decimals, we need to denormalize. wormhole token bridge truncates tokens of more than 8 decimals to 8 decimals.
     uint8 decimals = bridgeInfo.tokenReceived.decimals();
+    console.log("Input amount: ", bridgeInfo.amountReceived);
+
     if (decimals > 8) {
       bridgeInfo.amountReceived *= uint256(10) ** (decimals - 8);
+      console.log("Alter amount: ", bridgeInfo.amountReceived);
     }
 
     // ensure that the to address is this address
@@ -347,11 +355,13 @@ abstract contract PorticoFinish is PorticoBase {
 
     //bridgeInfo.tokenReceived.approve(address(ROUTERV3), bridgeInfo.amountReceived);
     updateApproval(address(ROUTERV3), bridgeInfo.tokenReceived, bridgeInfo.amountReceived);
-
     // try to do the swap
     try ROUTERV3.exactInputSingle(swapParams) {
       swapCompleted = true;
-    } catch /**Error(string memory e) */ {
+      console.log("SUCCESS", swapCompleted);
+    } catch Error(string memory e) {
+      console.log("FAIL", e);
+
       // if the swap fails, we just transfer the amount we received from the token bridge to the recipientAddress.
       // we also mark swapCompleted to be false, so that we don't try to payout to the recipient
       bridgeInfo.tokenReceived.transfer(params.recipientAddress, bridgeInfo.amountReceived);
@@ -366,7 +376,7 @@ abstract contract PorticoFinish is PorticoBase {
     //user gets total - relayer fee
     uint256 finalUserAmount = finalToken.balanceOf(address(this)) - relayerFeeAmount;
 
-    address feeRecipient = FEE_RECIPIENT == address(0) ? _msgSender() : FEE_RECIPIENT;
+    address feeRecipient = FEE_RECIPIENT == address(0x0) ? _msgSender() : FEE_RECIPIENT;
 
     if (unwrap) {
       WETH.withdraw(WETH.balanceOf(address(this)));

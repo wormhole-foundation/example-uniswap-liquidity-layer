@@ -63,11 +63,6 @@ describe("Receive On OP", () => {
 
     expect(s.Portico.address).to.not.eq("0x0000000000000000000000000000000000000000", "Start Deployed")
 
-    //fund with xweth
-    const xwethHolder = "0x00917c372Fa5e0C7FE8eCc04CeEa2670E18D3786"
-    s.WETH_AMOUNT = BN("2e9")//very low liquidity
-    s.ethRelayerFee = BN("1e8")
-    await stealMoney(xwethHolder, s.Portico.address, o.wormWeth, s.WETH_AMOUNT)
 
     //completeTransferWithPayload just needs to not revert
     await s.fakeTokenBridge.completeTransferWithPayload.returns("0x")
@@ -76,6 +71,14 @@ describe("Receive On OP", () => {
 
 
   it("receipt of xchain tx", async () => {
+
+    //fund with xweth
+    const xwethHolder = "0x00917c372Fa5e0C7FE8eCc04CeEa2670E18D3786"
+    s.WETH_AMOUNT = BN("2e14")//very low liquidity
+    s.ethRelayerFee = BN("1e8")
+    await stealMoney(xwethHolder, s.Portico.address, o.wormWeth, s.WETH_AMOUNT)
+
+
     expectedVAA = {
       flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, 5000, 5000, true, true),
       finalTokenAddress: o.wethAddress,
@@ -83,12 +86,11 @@ describe("Receive On OP", () => {
       canonAssetAmount: s.WETH_AMOUNT,
       relayerFee: s.ethRelayerFee
     }
-
     //config fake returns
     //parseTransferWithPayload
     await s.fakeTokenBridge.parseTransferWithPayload.returns({
       payloadID: 3,
-      amount: s.WETH_AMOUNT,
+      amount: 20000,//modify by 1e8?
       tokenAddress: adddr2Bytes(e.wethAddress),
       tokenChain: w.CID.ethereum,
       to: adddr2Bytes(s.Portico.address),
@@ -102,14 +104,13 @@ describe("Receive On OP", () => {
 
     //wrappedAsset should return the xeth if not native chain
     await s.fakeTokenBridge.wrappedAsset.returns(o.wormWeth)
-    console.log("Set fake return")
 
     const startEthBalance = await ethers.provider.getBalance(s.Bob.address)
     expect(await ethers.provider.getBalance(s.Portico.address)).to.eq(0, "0 ETH on Portico")
 
-    console.log("SENDING")
+    showBody("SENDING")
     //input data doesn't matter, we spoof the returns
-    await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x")
+    await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x1234")
 
     expect(await s.WETH.balanceOf(s.Portico.address)).to.eq(0, "0 WETH on Portico after swap")
     expect(await ethers.provider.getBalance(s.Portico.address)).to.eq(0, "0 ETH on Portico after swap")
@@ -117,7 +118,6 @@ describe("Receive On OP", () => {
     const ethDelta = await toNumber(endEthBalance.sub(startEthBalance))
     expect(ethDelta).to.be.closeTo(await toNumber(s.WETH_AMOUNT), 0.01, "Eth received")
   })
-
 })
 
 /**

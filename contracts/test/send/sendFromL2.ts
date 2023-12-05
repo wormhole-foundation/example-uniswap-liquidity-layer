@@ -78,7 +78,7 @@ describe("Send", function () {
     expect(s.Portico.connect(s.Bob).start(params)).to.be.revertedWith("Too little received")
   })
 
-  it("send op tx => polygon with weth", async () => {
+  it("send with weth", async () => {
 
     const params: TradeParameters = {
       flags: encodeFlagSet(w.CID.polygon, 1, 100, 100, s.slippage, s.slippage, false, false),
@@ -115,7 +115,7 @@ describe("Send", function () {
 
 
 
-  it("Send mainnet tx => op wrapping native eth", async () => {
+  it("Send wrapping native eth", async () => {
 
     const params: TradeParameters = {
       flags: encodeFlagSet(w.CID.optimism, 2, 100, 100, s.slippage, s.slippage, true, false),
