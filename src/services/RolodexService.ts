@@ -19,10 +19,12 @@ const withFlip = (x:lut):lut => {
 
 const canonAssetTable = withFlip({
   [mainnet.id]: {
-    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2":"eth"
+    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2":"eth",
+    "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0":"wsteth"
   },
   [arbitrum.id]: {
     "0xd8369c2eda18dd6518eabb1f85bd60606deb39ec": "eth",
+    "0xf2717122Dfdbe988ae811E7eFB157aAa07Ff9D0F":"wsteth",
   },
   [polygon.id] : {
     "0x11CD37bb86F65419713f30673A480EA33c826872": "eth",
@@ -32,6 +34,7 @@ const canonAssetTable = withFlip({
   },
   [optimism.id]: {
     "0xb47bC3ed6D70F04fe759b2529c9bc7377889678f": "eth",
+    "0x855CFcEEe998c8ca34F9c914F584AbF72dC88B87": "wsteth",
   },
 })
 
@@ -41,15 +44,18 @@ const nativeAssetTable = withFlip({
   },
   [arbitrum.id]: {
     "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": "eth",
+    "0x5979D7b546E38E414F7E9822514be443A4800529": "wsteth",
   },
   [polygon.id] : {
     "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619": "eth",
+    "0x03b54A6e9a984069379fae1a4fC4dBAE93B3bCCD":"wsteth"
   },
   [base.id]: {
     "0x4200000000000000000000000000000000000006": "eth",
   },
   [optimism.id]: {
     "0x4200000000000000000000000000000000000006": "eth",
+    "0x1F32b1c2345538c0c6f582fCB022739c4A194Ebb": "wsteth"
   },
 })
 
@@ -69,7 +75,7 @@ export class RolodexService {
       [polygon.id] : "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
       [optimism.id]: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
       [base.id]: "0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a",
-    //  [bsc.id]: "0x78D78E420Da98ad378D7799bE8f4AF69033EB077",
+      //  [bsc.id]: "0x78D78E420Da98ad378D7799bE8f4AF69033EB077",
     }[chainId]
     if(!ans) {
       throw new BadRequest("no portico found for chain")
@@ -84,7 +90,7 @@ export class RolodexService {
       [polygon.id] : "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
       [base.id]: "0x33128a8fC17869897dcE68Ed026d694621f6FDfD",
       [optimism.id]: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
-    //  [bsc.id]: "0xdB1d10011AD0Ff90774D0C6Bb92e5C5c8b4461F7",
+      //  [bsc.id]: "0xdB1d10011AD0Ff90774D0C6Bb92e5C5c8b4461F7",
     }[chainId]
     if(!ans) {
       throw new BadRequest("no portico found for chain")
