@@ -89,22 +89,23 @@ contract PorticoBase is Ownable, ReentrancyGuard {
     address tokenIn,
     address tokenOut,
     uint24 fee
-  ) internal view returns (uint256 minAmoutReceived) {
-    //10000 bips == 100% slippage is allowed
-    uint16 MAX_BIPS = 10000;
-    if (maxSlippage >= MAX_BIPS || maxSlippage == 0) {
-      return 0;
-    }
-
-    maxSlippage = MAX_BIPS - maxSlippage;
-
+  ) internal view returns (uint256 minAmoutReceived, bool poolExists) {
     //compute pool
     PoolAddress.PoolKey memory key = PoolAddress.getPoolKey(tokenIn, tokenOut, fee);
     IV3Pool pool = IV3Pool(PoolAddress.computeAddress(ROUTERV3.factory(), key));
 
     if (!isContract(address(pool))) {
-      return 0;
+      console.log("Is not contract");
+      return (0, false);
     }
+    poolExists = true;
+
+    //10000 bips == 100% slippage is allowed
+    uint16 MAX_BIPS = 10000;
+    if (maxSlippage >= MAX_BIPS || maxSlippage == 0) {
+      return (0, poolExists);
+    }
+    maxSlippage = MAX_BIPS - maxSlippage;
 
     //get exchange rate
     uint256 exchangeRate = getExchangeRate(sqrtPrice(pool));
@@ -155,13 +156,15 @@ abstract contract PorticoStart is PorticoBase {
   using PorticoFlagSetAccess for PorticoFlagSet;
 
   function _start_v3swap(PorticoStructs.TradeParameters memory params, uint256 actualAmount) internal returns (uint256 amount) {
-    uint256 minAmountOut = calcMinAmount(
+    (uint256 minAmountOut, bool poolExists) = calcMinAmount(
       uint256(params.amountSpecified),
       uint16(params.flags.maxSlippageStart()),
       address(params.startTokenAddress),
       address(params.canonAssetAddress),
       params.flags.feeTierStart()
     );
+
+    require(poolExists, "Pool does not exist");
 
     updateApproval(address(ROUTERV3), params.startTokenAddress, params.startTokenAddress.balanceOf(address(this)));
 
@@ -255,9 +258,10 @@ abstract contract PorticoFinish is PorticoBase {
     (PorticoStructs.DecodedVAA memory message, PorticoStructs.BridgeInfo memory bridgeInfo) = _completeTransfer(encodedTransferMessage);
     // we modify the message to set the relayerFee to 0 if the msgSender is the fee recipient.
     bridgeInfo.relayerFeeAmount = (_msgSender() == message.recipientAddress) ? 0 : message.relayerFee;
-
+    console.log("Processing");
     //now process
     bool swapCompleted = finish(message, bridgeInfo);
+    console.log("SwapCompleted?? ", swapCompleted);
     // simply emit the raw data bytes. it should be trivial to parse.
     emit PorticoSwapFinish(swapCompleted, message);
   }
@@ -307,6 +311,7 @@ abstract contract PorticoFinish is PorticoBase {
     // see if the unwrap flag is set, and that the finalTokenAddress is the address we have set on deploy as our native weth9 address
     bool shouldUnwrap = params.flags.shouldUnwrapNative() && address(params.finalTokenAddress) == address(WETH);
     if ((params.finalTokenAddress) == bridgeInfo.tokenReceived) {
+      console.log("final == received"); //todo ensure pay out here, currently does *not* refund xasset
       // this means that we don't need to do a swap, aka, we received the canon asset.
       payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, bridgeInfo.relayerFeeAmount);
       return false;
@@ -331,13 +336,25 @@ abstract contract PorticoFinish is PorticoBase {
     PorticoStructs.DecodedVAA memory params,
     PorticoStructs.BridgeInfo memory bridgeInfo
   ) internal returns (bool swapCompleted) {
-    uint256 minAmountOut = calcMinAmount(
+    (uint256 minAmountOut, bool poolExists) = calcMinAmount(
       bridgeInfo.amountReceived,
       uint16(params.flags.maxSlippageFinish()),
       address(bridgeInfo.tokenReceived),
       address(params.finalTokenAddress),
       params.flags.feeTierFinish()
     );
+
+    console.log("Calced");
+
+    //catch does not work for this for some reason
+    if(!poolExists){
+      console.log("SWAP FAIL BECAUSE NO POOL :(");
+      // if the swap fails, we just transfer the amount we received from the token bridge to the recipientAddress.
+      // we also mark swapCompleted to be false, so that we don't try to payout to the recipient
+      bridgeInfo.tokenReceived.transfer(params.recipientAddress, bridgeInfo.amountReceived);
+      
+      return false;
+    }
 
     // set swap options with user params
     ISwapRouter02.ExactInputSingleParams memory swapParams = ISwapRouter02.ExactInputSingleParams({
@@ -352,10 +369,13 @@ abstract contract PorticoFinish is PorticoBase {
 
     //bridgeInfo.tokenReceived.approve(address(ROUTERV3), bridgeInfo.amountReceived);
     updateApproval(address(ROUTERV3), bridgeInfo.tokenReceived, bridgeInfo.amountReceived);
+    console.log("Trying");
     // try to do the swap
     try ROUTERV3.exactInputSingle(swapParams) {
       swapCompleted = true;
+      console.log("Swap Completed: ", swapCompleted);
     } catch Error(string memory e) {
+      console.log("Swap Fail");
 
       // if the swap fails, we just transfer the amount we received from the token bridge to the recipientAddress.
       // we also mark swapCompleted to be false, so that we don't try to payout to the recipient

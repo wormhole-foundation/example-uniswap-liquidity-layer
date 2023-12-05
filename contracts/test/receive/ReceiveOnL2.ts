@@ -67,17 +67,19 @@ describe("Receive On OP", () => {
     //completeTransferWithPayload just needs to not revert
     await s.fakeTokenBridge.completeTransferWithPayload.returns("0x")
 
-  })
-
-
-  it("receipt of xchain tx", async () => {
-
     //fund with xweth
     const xwethHolder = "0x00917c372Fa5e0C7FE8eCc04CeEa2670E18D3786"
     s.WETH_AMOUNT = BN("2e14")//very low liquidity
     s.ethRelayerFee = BN("1e8")
     await stealMoney(xwethHolder, s.Portico.address, o.wormWeth, s.WETH_AMOUNT)
-    
+
+
+  })
+
+
+  it("receipt of xchain tx", async () => {
+
+
     expectedVAA = {
       flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, 5000, 5000, true, true),
       finalTokenAddress: o.wethAddress,
@@ -117,17 +119,11 @@ describe("Receive On OP", () => {
     const ethDelta = await toNumber(endEthBalance.sub(startEthBalance))
     expect(ethDelta).to.be.closeTo(await toNumber(s.WETH_AMOUNT), 0.01, "Eth received")
   })
-})
 
-/**
-
-
- 
- /**
-it("Failed swap, pool doesn't exist", async () => {
+  it("Failed swap, pool doesn't exist", async () => {
 
     expectedVAA = {
-      flags: encodeFlagSet(w.CID.optimism, 1, 100, 123, 300, 300, false, true),
+      flags: encodeFlagSet(w.CID.optimism, 1, 231, 123, 300, 300, false, true),
       finalTokenAddress: o.wethAddress,
       recipientAddress: s.Bob.address,
       canonAssetAmount: s.WETH_AMOUNT,
@@ -136,34 +132,36 @@ it("Failed swap, pool doesn't exist", async () => {
 
     //config fake returns
     //wrappedAsset should return the xeth
-    await s.fakeTokenBridge.wrappedAsset.returns(o.wethAddress)
+    await s.fakeTokenBridge.wrappedAsset.returns(o.wormWeth)
 
     //parseTransferWithPayload
     await s.fakeTokenBridge.parseTransferWithPayload.returns({
-      payloadID: 3,
-      amount: s.WETH_AMOUNT,
-      tokenAddress: adddr2Bytes(o.wethAddress),
-      tokenChain: w.CID.polygon,
+      payloadID: 4,
+      amount: s.WETH_AMOUNT.div(BN("1e10")),//modify for scale
+      tokenAddress: adddr2Bytes(e.wethAddress),
+      tokenChain: w.CID.ethereum,
       to: adddr2Bytes(s.Portico.address),
-      toChain: w.CID.ethereum,
-      fromAddress: adddr2Bytes(o.portico02),
+      toChain: w.CID.optimism,
+      fromAddress: adddr2Bytes(p.portico02),
       payload: abi.encode(
         ["tuple(bytes32 flags, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 relayerFee)"],
         [expectedVAA]
       )
     })
 
-    console.log("SENDING")
+    
     //input data doesn't matter, we spoof the returns
     const gas = await getGas(await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x"))
     showBodyCyan("Gas, failed swap: ", gas)
+    expect(await s.xETH.balanceOf(s.Portico.address)).to.eq(0, "No xETH remaining on Portico")
+
     const bobXeth = await s.xETH.balanceOf(s.Bob.address)
     expect(bobXeth).to.eq(s.WETH_AMOUNT, "Bob received the xETH")
 
-    expect(await s.xETH.balanceOf(s.Portico.address)).to.eq(0, "No xETH remaining on Portico")
 
   })
-  */
+})
+
 /**
 
   it("Slippage Test", async () => {
