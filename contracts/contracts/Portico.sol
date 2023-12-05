@@ -291,11 +291,8 @@ abstract contract PorticoFinish is PorticoBase {
 
     // if there are more than 8 decimals, we need to denormalize. wormhole token bridge truncates tokens of more than 8 decimals to 8 decimals.
     uint8 decimals = bridgeInfo.tokenReceived.decimals();
-    console.log("Input amount: ", bridgeInfo.amountReceived);
-
     if (decimals > 8) {
       bridgeInfo.amountReceived *= uint256(10) ** (decimals - 8);
-      console.log("Alter amount: ", bridgeInfo.amountReceived);
     }
 
     // ensure that the to address is this address
@@ -358,9 +355,7 @@ abstract contract PorticoFinish is PorticoBase {
     // try to do the swap
     try ROUTERV3.exactInputSingle(swapParams) {
       swapCompleted = true;
-      console.log("SUCCESS", swapCompleted);
     } catch Error(string memory e) {
-      console.log("FAIL", e);
 
       // if the swap fails, we just transfer the amount we received from the token bridge to the recipientAddress.
       // we also mark swapCompleted to be false, so that we don't try to payout to the recipient

@@ -77,8 +77,7 @@ describe("Receive On OP", () => {
     s.WETH_AMOUNT = BN("2e14")//very low liquidity
     s.ethRelayerFee = BN("1e8")
     await stealMoney(xwethHolder, s.Portico.address, o.wormWeth, s.WETH_AMOUNT)
-
-
+    
     expectedVAA = {
       flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, 5000, 5000, true, true),
       finalTokenAddress: o.wethAddress,
@@ -90,7 +89,7 @@ describe("Receive On OP", () => {
     //parseTransferWithPayload
     await s.fakeTokenBridge.parseTransferWithPayload.returns({
       payloadID: 3,
-      amount: 20000,//modify by 1e8?
+      amount: s.WETH_AMOUNT.div(BN("1e10")),//modify for scale
       tokenAddress: adddr2Bytes(e.wethAddress),
       tokenChain: w.CID.ethereum,
       to: adddr2Bytes(s.Portico.address),
