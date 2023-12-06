@@ -149,7 +149,7 @@ describe("Receive On OP", () => {
       )
     })
 
-    
+
     //input data doesn't matter, we spoof the returns
     const gas = await getGas(await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x"))
     showBodyCyan("Gas, failed swap: ", gas)
@@ -160,13 +160,17 @@ describe("Receive On OP", () => {
 
 
   })
-})
 
-/**
+  it("Slippage too low for amount", async () => {
 
-  it("Slippage Test", async () => {
+    //get pool
+    //compare to balance of whale
+    //pin block
+    //swap as much as possible with slippage = 1
+    //catch error in swap? 
 
-    expectedVAA = {
+   /**
+   expectedVAA = {
       flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, 300, 500, false, true),
       finalTokenAddress: p.wethAddress,
       recipientAddress: s.Bob.address,
@@ -195,8 +199,18 @@ describe("Receive On OP", () => {
 
     //input data doesn't matter, we spoof the returns
     await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x")
+    */
 
   })
+
+  it("Final == received", async () => {
+
+  })
+})
+
+/**
+
+  
   */
 
 

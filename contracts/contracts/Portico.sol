@@ -318,8 +318,11 @@ abstract contract PorticoFinish is PorticoBase {
     }
     //if we are here, if means we need to do the swap, resulting aset is sent to this address
     swapCompleted = _finish_v3swap(params, bridgeInfo);
-    //if swap fails, relayer and user have already been paid in canon asset, so we are done
+
+    // if the swap fails, we just transfer the amount we received from the token bridge to the recipientAddress.
     if (!swapCompleted) {
+      bridgeInfo.tokenReceived.transfer(params.recipientAddress, bridgeInfo.amountReceived);
+      // we also mark swapCompleted to be false for PorticoSwapFinish event
       return swapCompleted;
     }
     // we must call payout if the swap was completed
@@ -347,12 +350,8 @@ abstract contract PorticoFinish is PorticoBase {
     console.log("Calced");
 
     //catch does not work for this for some reason
-    if(!poolExists){
+    if (!poolExists) {
       console.log("SWAP FAIL BECAUSE NO POOL :(");
-      // if the swap fails, we just transfer the amount we received from the token bridge to the recipientAddress.
-      // we also mark swapCompleted to be false, so that we don't try to payout to the recipient
-      bridgeInfo.tokenReceived.transfer(params.recipientAddress, bridgeInfo.amountReceived);
-      
       return false;
     }
 
@@ -369,17 +368,12 @@ abstract contract PorticoFinish is PorticoBase {
 
     //bridgeInfo.tokenReceived.approve(address(ROUTERV3), bridgeInfo.amountReceived);
     updateApproval(address(ROUTERV3), bridgeInfo.tokenReceived, bridgeInfo.amountReceived);
-    console.log("Trying");
     // try to do the swap
     try ROUTERV3.exactInputSingle(swapParams) {
       swapCompleted = true;
       console.log("Swap Completed: ", swapCompleted);
     } catch Error(string memory e) {
-      console.log("Swap Fail");
-
-      // if the swap fails, we just transfer the amount we received from the token bridge to the recipientAddress.
-      // we also mark swapCompleted to be false, so that we don't try to payout to the recipient
-      bridgeInfo.tokenReceived.transfer(params.recipientAddress, bridgeInfo.amountReceived);
+      console.log("Caught Swap Fail");
       swapCompleted = false;
     }
   }
