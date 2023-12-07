@@ -40,6 +40,7 @@ const canonAssetTable = withFlip({
 
 const nativeAssetTable = withFlip({
   [mainnet.id]: {
+    "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0": "wsteth",
     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2":"eth"
   },
   [arbitrum.id]: {
