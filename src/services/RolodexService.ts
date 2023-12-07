@@ -99,11 +99,11 @@ export class RolodexService {
   }
   getPortico(chainId: number): Address {
     const ans = {
-      [mainnet.id]: "0x0fe9a1cd02B6633A2c2084Ff87E3Ee75D3e2081d",
-      [arbitrum.id]: "0x610d4DFAC3EC32e0be98D18DDb280DACD76A1889",
-      [polygon.id] : "0x69F3d75Fa1eaA2a46005D566Ec784FE9059bb04B",
-      [base.id]: "0xF352DC165783538A26e38A536e76DceF227d90F2",
-      [optimism.id]: "0x7558Bc5d000bD1a7Fd68E23d5d6C9220c987C228",
+      [mainnet.id]: "0xd8E1465908103eD5fd28e381920575fb09beb264",
+      [arbitrum.id]: "0xf8497FE5B0C5373778BFa0a001d476A21e01f09b",
+      [polygon.id] : "0xf6C5FD2C8Ecba25420859f61Be0331e68316Ba01",
+      [base.id]: "0x9816d7C448f79CdD4aF18c4Ae1726A14299E8C75",
+      [optimism.id]: "0xcF205Fa51D33280D9B70321Ae6a3686FB2c178b2",
     }[chainId]
     if(!ans) {
       throw new BadRequest("no portico found for chain")
