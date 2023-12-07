@@ -28,6 +28,7 @@ const canonAssetTable = withFlip({
   },
   [polygon.id] : {
     "0x11CD37bb86F65419713f30673A480EA33c826872": "eth",
+    "0xe082a7fc696de18172ad08d956569ee80bc37f06": "wsteth",
   },
   [base.id]: {
     "0x71b35ecb35104773537f849fbc353f81303a5860": "eth",
