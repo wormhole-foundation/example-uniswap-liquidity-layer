@@ -16,6 +16,7 @@ import { e, o, p, w } from "../../util/addresser";
 import { zeroAddress } from "viem";
 const abi = new AbiCoder()
 
+const xwethHolder = "0x00917c372Fa5e0C7FE8eCc04CeEa2670E18D3786"
 
 /**
  * polygon => OP
@@ -68,7 +69,6 @@ describe("Receive On OP", () => {
     await s.fakeTokenBridge.completeTransferWithPayload.returns("0x")
 
     //fund with xweth
-    const xwethHolder = "0x00917c372Fa5e0C7FE8eCc04CeEa2670E18D3786"
     s.WETH_AMOUNT = BN("2e14")//very low liquidity
     s.ethRelayerFee = BN("1e8")
     await stealMoney(xwethHolder, s.Portico.address, o.wormWeth, s.WETH_AMOUNT)
@@ -163,8 +163,18 @@ describe("Receive On OP", () => {
 
   it("Slippage too low for amount", async () => {
 
+    expect(await s.xETH.balanceOf(s.Bob.address)).to.eq(0, "Bob holds 0 xAsset")
+
     //get pool
+    const pool = "0xaC85eaf55E9C60eD40a683DE7e549d23FDfbEb33"
+
     //compare to balance of whale
+    showBody("Pool balance: ", await toNumber(await s.xETH.balanceOf(pool)))
+    showBody("Whle balance: ", await toNumber(await s.xETH.balanceOf(xwethHolder)))
+    const amount = (await s.xETH.balanceOf(pool)).div(2)
+    showBody("Pool balance: ", await toNumber(amount))
+
+
     //pin block
     //swap as much as possible with slippage = 1
     //catch error in swap? 

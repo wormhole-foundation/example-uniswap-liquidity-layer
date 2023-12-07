@@ -17,7 +17,6 @@ import "./uniswap/PoolAddress.sol";
 import "./oz/Ownable.sol";
 import "./oz/ReentrancyGuard.sol";
 
-
 contract PorticoBase is Ownable, ReentrancyGuard {
   ISwapRouter02 public immutable ROUTERV3;
   ITokenBridge public immutable TOKENBRIDGE;
@@ -161,9 +160,7 @@ abstract contract PorticoStart is PorticoBase {
       params.flags.feeTierStart()
     );
 
-
     require(poolExists, "Pool does not exist");
-
 
     updateApproval(address(ROUTERV3), params.startTokenAddress, params.startTokenAddress.balanceOf(address(this)));
 
@@ -344,7 +341,6 @@ abstract contract PorticoFinish is PorticoBase {
       params.flags.feeTierFinish()
     );
 
-
     //catch does not work for this for some reason
     if (!poolExists) {
       return false;
@@ -361,19 +357,18 @@ abstract contract PorticoFinish is PorticoBase {
       sqrtPriceLimitX96: 0 //sqrtPriceLimit
     });
 
-    //bridgeInfo.tokenReceived.approve(address(ROUTERV3), bridgeInfo.amountReceived);
     updateApproval(address(ROUTERV3), bridgeInfo.tokenReceived, bridgeInfo.amountReceived);
     // try to do the swap
     try ROUTERV3.exactInputSingle(swapParams) {
       swapCompleted = true;
-    } catch Error(string memory e) {
+    } catch Error(string memory /** e */) {
       swapCompleted = false;
     }
   }
 
   ///@notice pay out to user and relayer
   ///@notice this should always be called UNLESS swap fails, in which case payouts happen there
-  function payOut(bool unwrap, IERC20 finalToken, address recipient, uint256 relayerFeeAmount) internal returns (uint256 finalUserAmount){
+  function payOut(bool unwrap, IERC20 finalToken, address recipient, uint256 relayerFeeAmount) internal returns (uint256 finalUserAmount) {
     //square up balances with what we actually have, don't trust reporting from the bridge
     //user gets total - relayer fee
     finalUserAmount = finalToken.balanceOf(address(this)) - relayerFeeAmount;
