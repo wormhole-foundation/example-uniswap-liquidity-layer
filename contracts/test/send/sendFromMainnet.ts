@@ -59,7 +59,7 @@ describe("Deploy", function () {
   })
 })
 
-describe("Send", function () {
+describe("Send from mainnet", function () {
 
 
   it("send mainnet tx => op with weth", async () => {

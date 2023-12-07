@@ -41,7 +41,7 @@ export class TestScope {
     TokenBridge!: ITokenBridge
 
     WETH_AMOUNT = BN("1e18")
-    L2WETH_AMOUNT = BN("9e16")//low liquidity
+    L2WETH_AMOUNT = BN("600000000000000")//low liquidity
     L2relayerFee = BN("1e15")
 
     slippage = 200 //BIPS = 200 => 2% slippage

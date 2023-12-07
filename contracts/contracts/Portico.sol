@@ -17,8 +17,6 @@ import "./uniswap/PoolAddress.sol";
 import "./oz/Ownable.sol";
 import "./oz/ReentrancyGuard.sol";
 
-//testing
-import "hardhat/console.sol";
 
 contract PorticoBase is Ownable, ReentrancyGuard {
   ISwapRouter02 public immutable ROUTERV3;
@@ -95,7 +93,6 @@ contract PorticoBase is Ownable, ReentrancyGuard {
     IV3Pool pool = IV3Pool(PoolAddress.computeAddress(ROUTERV3.factory(), key));
 
     if (!isContract(address(pool))) {
-      console.log("Is not contract");
       return (0, false);
     }
     poolExists = true;
@@ -164,7 +161,9 @@ abstract contract PorticoStart is PorticoBase {
       params.flags.feeTierStart()
     );
 
+
     require(poolExists, "Pool does not exist");
+
 
     updateApproval(address(ROUTERV3), params.startTokenAddress, params.startTokenAddress.balanceOf(address(this)));
 
@@ -179,6 +178,7 @@ abstract contract PorticoStart is PorticoBase {
         0
       )
     );
+
     amount = params.canonAssetAddress.balanceOf(address(this));
   }
 
@@ -250,7 +250,7 @@ abstract contract PorticoStart is PorticoBase {
 abstract contract PorticoFinish is PorticoBase {
   using PorticoFlagSetAccess for PorticoFlagSet;
 
-  event PorticoSwapFinish(bool swapCompleted, PorticoStructs.DecodedVAA data);
+  event PorticoSwapFinish(bool swapCompleted, uint256 finaluserAmount, uint256 relayerFeeAmount, PorticoStructs.DecodedVAA data);
 
   // receiveMessageAndSwap is the entrypoint for finishing the swap
   function receiveMessageAndSwap(bytes calldata encodedTransferMessage) external nonReentrant {
@@ -258,12 +258,10 @@ abstract contract PorticoFinish is PorticoBase {
     (PorticoStructs.DecodedVAA memory message, PorticoStructs.BridgeInfo memory bridgeInfo) = _completeTransfer(encodedTransferMessage);
     // we modify the message to set the relayerFee to 0 if the msgSender is the fee recipient.
     bridgeInfo.relayerFeeAmount = (_msgSender() == message.recipientAddress) ? 0 : message.relayerFee;
-    console.log("Processing");
     //now process
-    bool swapCompleted = finish(message, bridgeInfo);
-    console.log("SwapCompleted?? ", swapCompleted);
+    (bool swapCompleted, uint256 finalUserAmount) = finish(message, bridgeInfo);
     // simply emit the raw data bytes. it should be trivial to parse.
-    emit PorticoSwapFinish(swapCompleted, message);
+    emit PorticoSwapFinish(swapCompleted, finalUserAmount, bridgeInfo.relayerFeeAmount, message);
   }
 
   // _completeTransfer takes the vaa for a payload3 token transfer, redeems it with the token bridge, and returns the decoded vaa payload
@@ -307,14 +305,13 @@ abstract contract PorticoFinish is PorticoBase {
   function finish(
     PorticoStructs.DecodedVAA memory params,
     PorticoStructs.BridgeInfo memory bridgeInfo
-  ) internal returns (bool swapCompleted) {
+  ) internal returns (bool swapCompleted, uint256 finalUserAmount) {
     // see if the unwrap flag is set, and that the finalTokenAddress is the address we have set on deploy as our native weth9 address
     bool shouldUnwrap = params.flags.shouldUnwrapNative() && address(params.finalTokenAddress) == address(WETH);
     if ((params.finalTokenAddress) == bridgeInfo.tokenReceived) {
-      console.log("final == received"); //todo ensure pay out here, currently does *not* refund xasset
       // this means that we don't need to do a swap, aka, we received the canon asset.
-      payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, bridgeInfo.relayerFeeAmount);
-      return false;
+      finalUserAmount = payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, bridgeInfo.relayerFeeAmount);
+      return (false, finalUserAmount);
     }
     //if we are here, if means we need to do the swap, resulting aset is sent to this address
     swapCompleted = _finish_v3swap(params, bridgeInfo);
@@ -322,11 +319,11 @@ abstract contract PorticoFinish is PorticoBase {
     // if the swap fails, we just transfer the amount we received from the token bridge to the recipientAddress.
     if (!swapCompleted) {
       bridgeInfo.tokenReceived.transfer(params.recipientAddress, bridgeInfo.amountReceived);
-      // we also mark swapCompleted to be false for PorticoSwapFinish event
-      return swapCompleted;
+      // we also mark swapCompleted to be false for PorticoSwapFinish event //todo confirm amountReceived is always accurate
+      return (swapCompleted, bridgeInfo.amountReceived);
     }
     // we must call payout if the swap was completed
-    payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, bridgeInfo.relayerFeeAmount);
+    finalUserAmount = payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, bridgeInfo.relayerFeeAmount);
   }
 
   // if swap fails, we don't pay fees to the relayer
@@ -347,11 +344,9 @@ abstract contract PorticoFinish is PorticoBase {
       params.flags.feeTierFinish()
     );
 
-    console.log("Calced");
 
     //catch does not work for this for some reason
     if (!poolExists) {
-      console.log("SWAP FAIL BECAUSE NO POOL :(");
       return false;
     }
 
@@ -371,19 +366,17 @@ abstract contract PorticoFinish is PorticoBase {
     // try to do the swap
     try ROUTERV3.exactInputSingle(swapParams) {
       swapCompleted = true;
-      console.log("Swap Completed: ", swapCompleted);
     } catch Error(string memory e) {
-      console.log("Caught Swap Fail");
       swapCompleted = false;
     }
   }
 
   ///@notice pay out to user and relayer
   ///@notice this should always be called UNLESS swap fails, in which case payouts happen there
-  function payOut(bool unwrap, IERC20 finalToken, address recipient, uint256 relayerFeeAmount) internal {
+  function payOut(bool unwrap, IERC20 finalToken, address recipient, uint256 relayerFeeAmount) internal returns (uint256 finalUserAmount){
     //square up balances with what we actually have, don't trust reporting from the bridge
     //user gets total - relayer fee
-    uint256 finalUserAmount = finalToken.balanceOf(address(this)) - relayerFeeAmount;
+    finalUserAmount = finalToken.balanceOf(address(this)) - relayerFeeAmount;
 
     address feeRecipient = FEE_RECIPIENT == address(0x0) ? _msgSender() : FEE_RECIPIENT;
 
