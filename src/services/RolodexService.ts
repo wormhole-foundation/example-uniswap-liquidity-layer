@@ -28,6 +28,7 @@ const canonAssetTable = withFlip({
   },
   [polygon.id] : {
     "0x11CD37bb86F65419713f30673A480EA33c826872": "eth",
+    "0xe082a7fc696de18172ad08d956569ee80bc37f06": "wsteth",
   },
   [base.id]: {
     "0x71b35ecb35104773537f849fbc353f81303a5860": "eth",
@@ -40,6 +41,7 @@ const canonAssetTable = withFlip({
 
 const nativeAssetTable = withFlip({
   [mainnet.id]: {
+    "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0": "wsteth",
     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2":"eth"
   },
   [arbitrum.id]: {
