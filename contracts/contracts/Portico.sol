@@ -255,8 +255,10 @@ abstract contract PorticoFinish is PorticoBase {
     (PorticoStructs.DecodedVAA memory message, PorticoStructs.BridgeInfo memory bridgeInfo) = _completeTransfer(encodedTransferMessage);
     // we modify the message to set the relayerFee to 0 if the msgSender is the fee recipient.
     bridgeInfo.relayerFeeAmount = (_msgSender() == message.recipientAddress) ? 0 : message.relayerFee;
+
     //now process
     (bool swapCompleted, uint256 finalUserAmount) = finish(message, bridgeInfo);
+
     // simply emit the raw data bytes. it should be trivial to parse.
     emit PorticoSwapFinish(swapCompleted, finalUserAmount, bridgeInfo.relayerFeeAmount, message);
   }
@@ -316,7 +318,7 @@ abstract contract PorticoFinish is PorticoBase {
     // if the swap fails, we just transfer the amount we received from the token bridge to the recipientAddress.
     if (!swapCompleted) {
       bridgeInfo.tokenReceived.transfer(params.recipientAddress, bridgeInfo.amountReceived);
-      // we also mark swapCompleted to be false for PorticoSwapFinish event //todo confirm amountReceived is always accurate
+      // we also mark swapCompleted to be false for PorticoSwapFinish event
       return (swapCompleted, bridgeInfo.amountReceived);
     }
     // we must call payout if the swap was completed
@@ -361,7 +363,7 @@ abstract contract PorticoFinish is PorticoBase {
     // try to do the swap
     try ROUTERV3.exactInputSingle(swapParams) {
       swapCompleted = true;
-    } catch Error(string memory /** e */) {
+    } catch Error(string memory /**e*/) {
       swapCompleted = false;
     }
   }

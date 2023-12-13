@@ -1,17 +1,18 @@
 
-import { showBody, showBodyCyan } from "../../util/format"
+import { showBodyCyan } from "../../util/format";
 import { expect } from "chai";
 import { BN } from "../../util/number";
-import { adddr2Bytes, encodeFlagSet, getGas, toNumber } from "../../util/msc"
-import { start } from "repl";
+import { encodeFlagSet, getGas, toNumber } from "../../util/msc";
 import { stealMoney } from "../../util/money";
-import { DecodedVAA, TokenReceived, TradeParameters, TransferWithPayload, s } from "../scope"
-import { currentBlock, resetCurrent, resetCurrentOP } from "../../util/block";
+import { TradeParameters, s } from "../scope";
+import { currentBlock, resetCurrentOP } from "../../util/block";
 import { ethers } from "hardhat";
-import { IERC20__factory, ITokenBridge__factory, IWormhole__factory, PorticoUniRouter__factory, Portico__factory } from "../../typechain-types";
+import { IERC20__factory, ITokenBridge__factory, Portico__factory } from "../../typechain-types";
 import { DeployContract } from "../../util/deploy";
-import { w, o, e, p } from "../../util/addresser";
+import {ceaseImpersonation, impersonateAccount } from "../../util/impersonator"
+import { w, o, p } from "../../util/addresser";
 import { zeroAddress } from "viem";
+
 
 /**
  * Send from OP to Polygon
@@ -61,21 +62,24 @@ describe("Deploy", function () {
 
 describe("Send from L2", function () {
 
-  it("Slippage too low", async () => {
-    const lowSlippageBips = 1
+  it("Flag test", async () => {
+    const flags = "0x1e00c2dcab4a6400006400000300030000000000000000000000000000000003"
     const params: TradeParameters = {
-      flags: encodeFlagSet(w.CID.polygon, 1, 100, 100, lowSlippageBips, 321, false, false),
-      startTokenAddress: o.wethAddress,
-      canonAssetAddress: o.wormWeth,
-      finalTokenAddress: p.wethAddress,
-      recipientAddress: s.Carol.address,
-      recipientPorticoAddress: p.polyPortico,
-      amountSpecified: s.L2WETH_AMOUNT,
-      relayerFee: s.L2relayerFee
+      flags: flags,
+      startTokenAddress: "0x4200000000000000000000000000000000000006",
+      canonAssetAddress: "0xb47bC3ed6D70F04fe759b2529c9bc7377889678f",
+      finalTokenAddress: "0x4200000000000000000000000000000000000006",
+      recipientAddress: "0x49887A216375FDED17DC1aAAD4920c3777265614",
+      recipientPorticoAddress: "0x9816d7C448f79CdD4aF18c4Ae1726A14299E8C75",
+      amountSpecified: BN("100000000000000"),
+      relayerFee: BN("1000000000")
     }
 
-    await s.WETH.connect(s.Bob).approve(s.Portico.address, s.L2WETH_AMOUNT)
-    expect(s.Portico.connect(s.Bob).start(params)).to.be.revertedWith("Too little received")
+    const sender = ethers.provider.getSigner("0x49887a216375fded17dc1aaad4920c3777265614")
+    await impersonateAccount(sender._address)
+    await s.Portico.connect(sender).start(params, {value: BN("100000000000000")})
+    await ceaseImpersonation(sender._address)
+
   })
 
   it("send with weth", async () => {
@@ -142,5 +146,38 @@ describe("Send from L2", function () {
     const endBobEther = await ethers.provider.getBalance(s.Bob.address)
     const etherDelta = startBobEther.sub(endBobEther)
     expect(await toNumber(etherDelta)).to.be.closeTo(await toNumber(s.L2WETH_AMOUNT), 0.003, "ETHER sent is correct + gas")
+  })
+
+  it("Slippage too low", async () => {
+    const lowSlippageBips = 1
+    const params: TradeParameters = {
+      flags: encodeFlagSet(w.CID.polygon, 1, 100, 100, lowSlippageBips, 321, false, false),
+      startTokenAddress: o.wethAddress,
+      canonAssetAddress: o.wormWeth,
+      finalTokenAddress: p.wethAddress,
+      recipientAddress: s.Carol.address,
+      recipientPorticoAddress: p.polyPortico,
+      amountSpecified: s.L2WETH_AMOUNT,
+      relayerFee: s.L2relayerFee
+    }
+
+    await s.WETH.connect(s.Bob).approve(s.Portico.address, s.L2WETH_AMOUNT)
+    expect(s.Portico.connect(s.Bob).start(params)).to.be.revertedWith("Too little received")
+  })
+
+  it("Pool does not exist", async () => {
+    const params: TradeParameters = {
+      flags: encodeFlagSet(w.CID.polygon, 1, 123, 100, s.slippage, 321, false, false),
+      startTokenAddress: o.wethAddress,
+      canonAssetAddress: o.wormWeth,
+      finalTokenAddress: p.wethAddress,
+      recipientAddress: s.Carol.address,
+      recipientPorticoAddress: p.polyPortico,
+      amountSpecified: s.L2WETH_AMOUNT,
+      relayerFee: s.L2relayerFee
+    }
+
+    await s.WETH.connect(s.Bob).approve(s.Portico.address, s.L2WETH_AMOUNT)
+    expect(s.Portico.connect(s.Bob).start(params)).to.be.reverted
   })
 })

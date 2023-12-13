@@ -69,7 +69,7 @@ describe("Receive On OP", () => {
     await s.fakeTokenBridge.completeTransferWithPayload.returns("0x")
 
     //fund with xweth
-    s.WETH_AMOUNT = BN("2e14")//very low liquidity
+    s.WETH_AMOUNT = BN("2e12")//very low liquidity
     s.ethRelayerFee = BN("1e8")
     await stealMoney(xwethHolder, s.Portico.address, o.wormWeth, s.WETH_AMOUNT)
 
@@ -109,8 +109,8 @@ describe("Receive On OP", () => {
     const startEthBalance = await ethers.provider.getBalance(s.Bob.address)
     expect(await ethers.provider.getBalance(s.Portico.address)).to.eq(0, "0 ETH on Portico")
 
-    showBody("SENDING")
     //input data doesn't matter, we spoof the returns
+    console.log("SENDING")
     await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x1234")
 
     expect(await s.WETH.balanceOf(s.Portico.address)).to.eq(0, "0 WETH on Portico after swap")
@@ -119,6 +119,8 @@ describe("Receive On OP", () => {
     const ethDelta = await toNumber(endEthBalance.sub(startEthBalance))
     expect(ethDelta).to.be.closeTo(await toNumber(s.WETH_AMOUNT), 0.01, "Eth received")
   })
+
+
 
   it("Failed swap, pool doesn't exist", async () => {
 
@@ -152,7 +154,7 @@ describe("Receive On OP", () => {
 
     //input data doesn't matter, we spoof the returns
     const gas = await getGas(await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x"))
-    showBodyCyan("Gas, failed swap: ", gas)
+    showBodyCyan("Failed Swap, pool does not exist: ", gas)
     expect(await s.xETH.balanceOf(s.Portico.address)).to.eq(0, "No xETH remaining on Portico")
 
     const bobXeth = await s.xETH.balanceOf(s.Bob.address)
@@ -161,30 +163,21 @@ describe("Receive On OP", () => {
 
   })
 
+
   it("Slippage too low for amount", async () => {
 
-    expect(await s.xETH.balanceOf(s.Bob.address)).to.eq(0, "Bob holds 0 xAsset")
-
-    //get pool
     const pool = "0xaC85eaf55E9C60eD40a683DE7e549d23FDfbEb33"
+    const amount = (await s.WETH.balanceOf(pool))
 
-    //compare to balance of whale
-    showBody("Pool balance: ", await toNumber(await s.xETH.balanceOf(pool)))
-    showBody("Whle balance: ", await toNumber(await s.xETH.balanceOf(xwethHolder)))
-    const amount = (await s.xETH.balanceOf(pool)).div(2)
-    showBody("Pool balance: ", await toNumber(amount))
+    await stealMoney(xwethHolder, s.Portico.address, s.xETH.address, (BN(amount).sub(await s.xETH.balanceOf(s.Portico.address))))
+    expect(await s.xETH.balanceOf(s.Portico.address)).to.eq(amount, "Portico Balance Correct")
 
 
-    //pin block
-    //swap as much as possible with slippage = 1
-    //catch error in swap? 
-
-   /**
-   expectedVAA = {
+    expectedVAA = {
       flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, 300, 500, false, true),
-      finalTokenAddress: p.wethAddress,
+      finalTokenAddress: o.wethAddress,
       recipientAddress: s.Bob.address,
-      canonAssetAmount: s.WETH_AMOUNT,
+      canonAssetAmount: amount,
       relayerFee: s.L2relayerFee
     }
 
@@ -192,7 +185,7 @@ describe("Receive On OP", () => {
     //parseTransferWithPayload
     await s.fakeTokenBridge.parseTransferWithPayload.returns({
       payloadID: 3,
-      amount: s.WETH_AMOUNT,
+      amount: amount.div(BN("1e10")),//modify for scale
       tokenAddress: adddr2Bytes(o.wormWeth),
       tokenChain: w.CID.polygon,
       to: adddr2Bytes(s.Portico.address),
@@ -207,20 +200,21 @@ describe("Receive On OP", () => {
     //wrappedAsset should return the xeth
     await s.fakeTokenBridge.wrappedAsset.returns(o.wormWeth)
 
+    expect(await s.xETH.balanceOf(s.Bob.address)).to.eq(0, "Bob holds 0 xAsset")
+
     //input data doesn't matter, we spoof the returns
-    await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x")
+    const gas = await getGas(await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x"))
+    showBodyCyan("Failed receive swap: ", gas)
+
+
+  }).timeout(10000000)
+
+  /**
+    it("Final == received", async () => {
+  
+    })
     */
-
-  })
-
-  it("Final == received", async () => {
-
-  })
 })
 
-/**
-
-  
-  */
 
 

@@ -12,17 +12,17 @@ const abi = new AbiCoder()
 
 
 //change these
-const destChainID = w.CID.base
+const destChainID = w.CID.polygon
 const feeIn = 100
 const feeOut = 100
 const slippage = 5000
 const wrapIn = true
-const wrapOut = true
+const wrapOut = false
 const amount = BN("20000000000")
 const relayerFee = BN("80000000")
 
 //which network to send from when testing
-const testNetwork = "mainnet"
+const testNetwork = "op"
 const testNetworks = [
     "polygon",
     "op",
@@ -55,7 +55,7 @@ const send = async (user: SignerWithAddress, mainnet: boolean) => {
 
     //set dest addrs
     if (destChainID == w.CID.polygon) {
-        inputData.finalTokenAddress = p.wethAddress
+        inputData.finalTokenAddress = p.wormWeth//p.wethAddress
         inputData.recipientPorticoAddress = p.portico02
     }
     if (destChainID == w.CID.optimism) {

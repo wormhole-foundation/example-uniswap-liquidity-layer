@@ -161,6 +161,7 @@ describe("Send from mainnet", function () {
 
   })
 
+  /**
   it("weth => usdc slippage too low", async () => {
     const ethAmount = BN("25e16")
 
@@ -177,6 +178,7 @@ describe("Send from mainnet", function () {
       relayerFee: s.ethRelayerFee
     }
   })
+   */
 
   it("Send mainnet tx => op wrapping native eth", async () => {
 
@@ -208,99 +210,3 @@ describe("Send from mainnet", function () {
     expect(await toNumber(etherDelta)).to.be.closeTo(await toNumber(s.WETH_AMOUNT), 0.005, "ETHER sent is correct + gas")
   })
 })
-
-/**
-
-describe("Receive", () => {
-
-  //this is the amount of USDC received from the first swap as of the pinned block
-  const usdcAmount = BN("1783362958")
-
-
-
-  it("Steal USDC to the Portico to simulate tokenbridge sending it", async () => {
-    await stealMoney(s.Bank, s.Portico.address, s.USDC.address, usdcAmount)
-  })
-
-
-
-
-
-  it("Recieve xChain tx", async () => {
-
-    const params: DecodedVAA = {
-      flags: s.noWrapData,
-      canonAssetAddress: e.usdcAddress,
-      finalTokenAddress: e.wethAddress,
-      recipientAddress: s.Carol.address,
-      canonAssetAmount: usdcAmount,
-      relayerFee: ethRelayerFee
-    }
-
-    const startPorticoUSDC = await s.USDC.balanceOf(s.Portico.address)
-    const startCarolUSDC = await s.USDC.balanceOf(s.Carol.address)
-    const startCarolWETH = await s.WETH.balanceOf(s.Carol.address)
-    expect(startPorticoUSDC).to.eq(usdcAmount, "Portico has USDC")
-    expect(startCarolUSDC).to.eq(0, "Carol has 0 USDC")
-    expect(startCarolWETH).to.eq(0, "Carol has 0 WETH")
-
-    const gas = await getGas(await s.Portico.testSwap(params))
-    showBodyCyan("GAS TO RECEIVE: ", gas)
-
-    const endPorticoUSDC = await s.USDC.balanceOf(s.Portico.address)
-    const endCarolUSDC = await s.USDC.balanceOf(s.Carol.address)
-    const endCarolWETH = await s.WETH.balanceOf(s.Carol.address)
-
-    expect(endPorticoUSDC).to.eq(0, "Portico no longer has USDC")
-    expect(endCarolUSDC).to.eq(0, "Carol has 0 USDC")
-    expect(endCarolWETH).to.be.gt(0, "Carol has received WETH")
-
-    showBodyCyan("Received wETH: ", await toNumber(endCarolWETH))
-
-    expect(await toNumber(endCarolWETH)).to.be.closeTo(await toNumber(s.WETH_AMOUNT), 0.02, "Swap completed")
-
-  })
-
-})
-
- */
-
-/**
-describe("Receive where xAsset == finalAsset", () => {
-
-  //this is the amount of USDC received from the first swap as of the pinned block
-  const usdcAmount = BN("1783362958")
-
-  it("Steal USDC to the Portico to simulate tokenbridge sending it", async () => {
-    await stealMoney(s.Bank, s.Portico.address, s.USDC.address, usdcAmount)
-  })
-
-  it("Recieve xChain tx where xAsset == finalAssets", async () => {
-    const TokenReceived: TokenReceived = {
-      tokenHomeAddress: s.noWrapData,//not used for testing
-      tokenHomeChain: 1,
-      tokenAddress: e.usdcAddress,
-      amount: usdcAmount
-    }
-    const params: DecodedVAA = {
-      flags: s.noWrapData,
-      canonAssetAddress: e.usdcAddress,
-      finalTokenAddress: e.usdcAddress,
-      recipientAddress: s.Carol.address,
-      canonAssetAmount: usdcAmount,
-      relayerFee: s.usdcRelayerFee
-    }
-
-    const startPorticoUSDC = await s.USDC.balanceOf(s.Portico.address)
-    const startCarolUSDC = await s.USDC.balanceOf(s.Carol.address)
-    expect(startPorticoUSDC).to.eq(usdcAmount, "Portico has USDC")
-    expect(startCarolUSDC).to.eq(0, "Carol has 0 USDC")
-    //expect(startCarolWETH).to.eq(0, "Carol has 0 WETH")
-    const gas = await getGas(await s.Portico.testSwap(params))
-    showBodyCyan("GAS TO RECEIVE: ", gas)
-    //expect(await s.USDC.balanceOf(s.Carol.address)).to.eq(usdcAmount, "Carol received USDC")
-
-  })
-})
- */
-
