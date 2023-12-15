@@ -111,6 +111,20 @@ export const resetCurrentBase = async () => {
         ],
     });
 }
+
+export const resetCurrentBsc = async () => {
+    await network.provider.request({
+        method: "hardhat_reset",
+        params: [
+            {
+                forking: {
+                    jsonRpcUrl: process.env.BSC_URL!
+                },
+            },
+        ],
+    });
+}
+
 export const resetCurrentGo = async () => {
     await network.provider.request({
         method: "hardhat_reset",

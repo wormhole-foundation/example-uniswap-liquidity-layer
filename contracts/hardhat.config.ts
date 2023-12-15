@@ -79,6 +79,15 @@ const config: HardhatUserConfig = {
           : zaddr
       ],
       chainId: 8453
+    },
+    bsc: {
+      url: process.env.BSC_URL ? process.env.BSC_URL : zaddr,
+      accounts: [
+        process.env.MAINNET_PRIVATE_KEY
+          ? process.env.MAINNET_PRIVATE_KEY
+          : zaddr
+      ],
+      chainId: 56
     }
   },
   solidity: {
@@ -107,7 +116,8 @@ const config: HardhatUserConfig = {
       polygon: process.env.ETHERSCAN_POLYGON_KEY!,
       optimisticEthereum: process.env.OP_KEY!,
       arbitrumOne: process.env.ARB_API_KEY!,
-      base: process.env.BASE_API_KEY!
+      base: process.env.BASE_API_KEY!,
+      bsc: process.env.BSC_API_KEY!
     },
     customChains: [
       {

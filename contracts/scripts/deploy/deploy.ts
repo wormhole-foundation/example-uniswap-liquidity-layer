@@ -1,7 +1,7 @@
 import { formatEther, parseEther, zeroAddress } from "viem";
 import hre, { ethers, network } from "hardhat";
-import { currentBlock, resetCurrent, resetCurrentArb, resetCurrentBase, resetCurrentPoly } from "../../util/block";
-import { a, b, e, o, p } from "../../util/addresser"
+import { currentBlock, resetCurrent, resetCurrentArb, resetCurrentBase, resetCurrentBsc, resetCurrentPoly } from "../../util/block";
+import { a, b, bsc, e, o, p } from "../../util/addresser"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { Portico, Portico__factory } from "../../typechain-types";
 import { DeployContract } from "../../util/deploy";
@@ -55,22 +55,12 @@ async function main() {
   if (networkName == "hardhat" || networkName == "localhost") {
     await network.provider.send("evm_setAutomine", [true])
 
-    /**
-    await resetCurrentPoly()
-    mainnet = false
-    console.log("TEST DEPLOYMENT ON POLYGON @ ", await (await currentBlock()).number)
-
-    swapRouter = p.uniRouter
-    tokenBridge = p.polyTokenBridge
-    weth = p.wethAddress
-     */
-
-    await resetCurrentArb()
+    await resetCurrentBsc()
     mainnet = false
     console.log("TEST DEPLOYMENT @ ", await (await currentBlock()).number)
-    swapRouter = a.uniRouter
-    tokenBridge = a.tokenBridge
-    weth = a.wethAddress
+    swapRouter = bsc.uniRouter
+    tokenBridge = bsc.tokenBridge
+    weth = bsc.wethAddress
 
   } else {
     console.log("DEPLOYING TO: ", networkName)
@@ -91,6 +81,10 @@ async function main() {
       swapRouter = b.uniRouter
       tokenBridge = b.tokenBridge
       weth = b.wethAddress
+    }else if (networkName == "bsc") {
+      swapRouter = bsc.uniRouter
+      tokenBridge = bsc.tokenBridge
+      weth = bsc.wethAddress
     } else {
       //mainnet
       swapRouter = e.uniRouter

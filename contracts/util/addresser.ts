@@ -42,13 +42,15 @@ export class WormholeConstants {
         polygon: 5,
         optimism: 24,
         arbitrum: 23,
-        base: 30
+        base: 30,
+        bsc: 4
     }
 
     readonly WHaddrs = {
         poly: "0x7A4B5a56256163F07b2C80A7cA55aBE66c4ec4d7",
         op: "0xEe91C335eab126dF5fDB3797EA9d6aD93aeC9722",
-        ethereum: "0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B"
+        ethereum: "0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B",
+        bsc: "0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B"
     }
 }
 
@@ -92,6 +94,14 @@ export class BaseAddresses {
     readonly wormWeth: string = "0x71b35ECb35104773537f849FBC353F81303A5860"
     readonly wormWsteth: string = ""
     readonly portico: string = "0xBdCF0bb40eb8642f907133bDB5Fcc681D81f0651"//"0x05498574BD0Fa99eeCB01e1241661E7eE58F8a85"
+    readonly portico02: string = "0x9816d7C448f79CdD4aF18c4Ae1726A14299E8C75"//updated 12/12
+}
+
+export class BscAddresses { 
+    readonly uniRouter: string = "0xB971eF87ede563556b2ED4b1C0b0019111Dd85d2"
+    readonly tokenBridge: string = "0xB6F6D86a8f9879A9c87f643768d9efc38c1Da6E7"
+    readonly wethAddress: string = "0x2170Ed0880ac9A755fd29B2688956BD959F933F8"
+    readonly wormWeth: string = "0x4DB5a66E937A9F4473fA95b1cAF1d1E1D62E29EA"
     readonly portico02: string = "0x9816d7C448f79CdD4aF18c4Ae1726A14299E8C75"//updated 12/12
 }
 
@@ -164,6 +174,8 @@ export class OptimisimAddresses {
 export const a = new ArbAddresses()
 
 export const b = new BaseAddresses()
+
+export const bsc = new BscAddresses()
 
 export const e = new MainnetAddresses()
 
