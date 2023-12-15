@@ -32,6 +32,7 @@ const canonAssetTable = withFlip({
   },
   [base.id]: {
     "0x71b35ecb35104773537f849fbc353f81303a5860": "eth",
+    "0xEd4e2FD35161c3c0e33cA187fce64C70d44Ce32b": "wsteth"
   },
   [optimism.id]: {
     "0xb47bC3ed6D70F04fe759b2529c9bc7377889678f": "eth",
