@@ -101,6 +101,7 @@ export class BscAddresses {
     readonly uniRouter: string = "0xB971eF87ede563556b2ED4b1C0b0019111Dd85d2"
     readonly tokenBridge: string = "0xB6F6D86a8f9879A9c87f643768d9efc38c1Da6E7"
     readonly wethAddress: string = "0x2170Ed0880ac9A755fd29B2688956BD959F933F8"
+    readonly wstethAddress: string = "0x2Bbbdf97295F73175b12CC087cF446765931e1C3"
     readonly wormWeth: string = "0x4DB5a66E937A9F4473fA95b1cAF1d1E1D62E29EA"
     readonly portico02: string = "0x9816d7C448f79CdD4aF18c4Ae1726A14299E8C75"//updated 12/12
 }
