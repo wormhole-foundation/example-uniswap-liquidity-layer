@@ -27,7 +27,7 @@ async function getxAsset(user: SignerWithAddress) {
     await resetCurrentBsc()
 
     const tb = ITokenBridge__factory.connect(bsc.tokenBridge, user)
-    const localCannonAsset = await tb.wrappedAsset(2, adddr2Bytes(e.wethAddress))
+    const localCannonAsset = await tb.wrappedAsset(2, adddr2Bytes(e.wstethAddress))
     console.log(localCannonAsset)
 
 }

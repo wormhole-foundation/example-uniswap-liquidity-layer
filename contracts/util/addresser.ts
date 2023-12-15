@@ -103,7 +103,7 @@ export class BscAddresses {
     readonly wethAddress: string = "0x2170Ed0880ac9A755fd29B2688956BD959F933F8"
     readonly wstethAddress: string = "0x2Bbbdf97295F73175b12CC087cF446765931e1C3"
     readonly wormWeth: string = "0x4DB5a66E937A9F4473fA95b1cAF1d1E1D62E29EA"
-    readonly portico02: string = "0x9816d7C448f79CdD4aF18c4Ae1726A14299E8C75"//updated 12/12
+    readonly portico02: string = "0xE565E118e75304dD3cF83dff409c90034b7EA18a"//updated 12/15
 }
 
 export class OptimisimAddresses {
