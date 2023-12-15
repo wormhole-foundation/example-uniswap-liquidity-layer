@@ -1,17 +1,16 @@
 
-import { showBody, showBodyCyan } from "../../util/format"
+import { showBodyCyan } from "../../util/format";
 import { expect } from "chai";
 import { BN } from "../../util/number";
-import { adddr2Bytes, encodeFlagSet, getGas, toNumber } from "../../util/msc"
-import { start } from "repl";
+import { adddr2Bytes, encodeFlagSet, getGas, toNumber } from "../../util/msc";
 import { stealMoney } from "../../util/money";
-import { DecodedVAA, TokenReceived, TradeParameters, TransferWithPayload, s } from "../scope"
+import { DecodedVAA, s } from "../scope";
 import { AbiCoder } from "ethers/lib/utils";
-import { currentBlock, resetCurrent, resetCurrentOP, resetCurrentPoly } from "../../util/block";
+import { currentBlock, resetCurrentOP } from "../../util/block";
 import { ethers } from "hardhat";
-import { IERC20, IERC20__factory, ITokenBridge__factory, IWormhole__factory, Portico__factory } from "../../typechain-types";
+import { IERC20__factory, ITokenBridge__factory, IWormhole__factory, Portico__factory } from "../../typechain-types";
 import { smock } from "@defi-wonderland/smock";
-import { DeployContract } from "../../util/deploy"
+import { DeployContract } from "../../util/deploy";
 import { e, o, p, w } from "../../util/addresser";
 import { zeroAddress } from "viem";
 const abi = new AbiCoder()
@@ -110,7 +109,6 @@ describe("Receive On OP", () => {
     expect(await ethers.provider.getBalance(s.Portico.address)).to.eq(0, "0 ETH on Portico")
 
     //input data doesn't matter, we spoof the returns
-    console.log("SENDING")
     await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x1234")
 
     expect(await s.WETH.balanceOf(s.Portico.address)).to.eq(0, "0 WETH on Portico after swap")
@@ -203,17 +201,12 @@ describe("Receive On OP", () => {
     expect(await s.xETH.balanceOf(s.Bob.address)).to.eq(0, "Bob holds 0 xAsset")
 
     //input data doesn't matter, we spoof the returns
+    showBodyCyan("Sending tx, this can take a while...")
     const gas = await getGas(await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x"))
     showBodyCyan("Failed receive swap: ", gas)
 
 
   }).timeout(10000000)
-
-  /**
-    it("Final == received", async () => {
-  
-    })
-    */
 })
 
 

@@ -1,11 +1,10 @@
 
-import { showBody, showBodyCyan } from "../../util/format"
+import { showBodyCyan } from "../../util/format";
 import { expect } from "chai";
 import { BN } from "../../util/number";
-import { adddr2Bytes, encodeFlagSet, getGas, toNumber } from "../../util/msc"
-import { start } from "repl";
+import { encodeFlagSet, getGas, toNumber } from "../../util/msc";
 import { stealMoney } from "../../util/money";
-import { DecodedVAA, TokenReceived, TradeParameters, TransferWithPayload, s } from "../scope"
+import { TradeParameters, s } from "../scope";
 import { currentBlock, resetCurrent } from "../../util/block";
 import { ethers } from "hardhat";
 import { IERC20__factory, ITokenBridge__factory, IWormhole__factory, Portico__factory } from "../../typechain-types";
@@ -123,15 +122,10 @@ describe("Send from mainnet", function () {
     //send
     await s.Portico.connect(s.Bob).start(params)
 
-    //console.log("End Bob Weth: ", await toNumber(await s.WETH.balanceOf(s.Bob.address)))
-    //console.log("End Ptc Weth: ", await toNumber(await s.WETH.balanceOf(s.Portico.address)))
-
-
   })
 
   it("Invert the swap from the previous test", async () => {
     //this test proves that the slippage works as intended in both directions
-
     const ethAmount = BN("25e16")
 
     const params: TradeParameters = {
@@ -160,25 +154,6 @@ describe("Send from mainnet", function () {
     expect(await toNumber(etherDelta)).to.be.closeTo(await toNumber(ethAmount), 0.02, "ETHER sent is correct + gas")
 
   })
-
-  /**
-  it("weth => usdc slippage too low", async () => {
-    const ethAmount = BN("25e16")
-
-    const tooLowSlippage = 1
-
-    const params: TradeParameters = {
-      flags: encodeFlagSet(w.CID.polygon, 3, 3000, 100, tooLowSlippage, s.slippage, true, false),
-      startTokenAddress: e.wethAddress,
-      canonAssetAddress: e.usdcAddress,
-      finalTokenAddress: o.wethAddress,
-      recipientAddress: s.Carol.address,
-      recipientPorticoAddress: p.polyPortico,
-      amountSpecified: ethAmount,
-      relayerFee: s.ethRelayerFee
-    }
-  })
-   */
 
   it("Send mainnet tx => op wrapping native eth", async () => {
 

@@ -1,18 +1,15 @@
 
-import { showBody, showBodyCyan } from "../../util/format"
 import { expect } from "chai";
-import { BN } from "../../util/number";
-import { adddr2Bytes, encodeFlagSet, getGas, toNumber } from "../../util/msc"
-import { start } from "repl";
+import { adddr2Bytes, encodeFlagSet, toNumber } from "../../util/msc";
 import { stealMoney } from "../../util/money";
-import { DecodedVAA, TokenReceived, TradeParameters, TransferWithPayload, s } from "../scope"
+import { DecodedVAA, s } from "../scope";
 import { AbiCoder } from "ethers/lib/utils";
-import { currentBlock, resetCurrent, resetCurrentOP, resetCurrentPoly } from "../../util/block";
+import { currentBlock, resetCurrent } from "../../util/block";
 import { ethers } from "hardhat";
-import { IERC20, IERC20__factory, ITokenBridge__factory, IWormhole__factory, Portico__factory } from "../../typechain-types";
+import { IERC20__factory, ITokenBridge__factory, IWormhole__factory, Portico__factory } from "../../typechain-types";
 import { smock } from "@defi-wonderland/smock";
-import { DeployContract } from "../../util/deploy"
-import { e, o, p, w } from "../../util/addresser";
+import { DeployContract } from "../../util/deploy";
+import { e, p, w } from "../../util/addresser";
 import { zeroAddress } from "viem";
 const abi = new AbiCoder()
 
@@ -108,87 +105,4 @@ describe("Receive On Mainnet", () => {
     expect(ethDelta).to.be.closeTo(await toNumber(s.WETH_AMOUNT), 0.01, "Eth received")
   })
 })
-
-/**
-
-
- 
- /**
-it("Failed swap, pool doesn't exist", async () => {
-
-    expectedVAA = {
-      flags: encodeFlagSet(w.CID.optimism, 1, 100, 123, 300, 300, false, true),
-      finalTokenAddress: e.wethAddress,
-      recipientAddress: s.Bob.address,
-      canonAssetAmount: s.WETH_AMOUNT,
-      relayerFee: s.L2relayerFee
-    }
-
-    //config fake returns
-    //wrappedAsset should return the xeth
-    await s.fakeTokenBridge.wrappedAsset.returns(e.wethAddress)
-
-    //parseTransferWithPayload
-    await s.fakeTokenBridge.parseTransferWithPayload.returns({
-      payloadID: 3,
-      amount: s.WETH_AMOUNT,
-      tokenAddress: adddr2Bytes(e.wethAddress),
-      tokenChain: w.CID.polygon,
-      to: adddr2Bytes(s.Portico.address),
-      toChain: w.CID.ethereum,
-      fromAddress: adddr2Bytes(o.portico02),
-      payload: abi.encode(
-        ["tuple(bytes32 flags, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 relayerFee)"],
-        [expectedVAA]
-      )
-    })
-
-    console.log("SENDING")
-    //input data doesn't matter, we spoof the returns
-    const gas = await getGas(await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x"))
-    showBodyCyan("Gas, failed swap: ", gas)
-    const bobXeth = await s.xETH.balanceOf(s.Bob.address)
-    expect(bobXeth).to.eq(s.WETH_AMOUNT, "Bob received the xETH")
-
-    expect(await s.xETH.balanceOf(s.Portico.address)).to.eq(0, "No xETH remaining on Portico")
-
-  })
-  */
-/**
-
-  it("Slippage Test", async () => {
-
-    expectedVAA = {
-      flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, 300, 500, false, true),
-      finalTokenAddress: p.wethAddress,
-      recipientAddress: s.Bob.address,
-      canonAssetAmount: s.WETH_AMOUNT,
-      relayerFee: s.L2relayerFee
-    }
-
-    //config fake returns
-    //parseTransferWithPayload
-    await s.fakeTokenBridge.parseTransferWithPayload.returns({
-      payloadID: 3,
-      amount: s.WETH_AMOUNT,
-      tokenAddress: adddr2Bytes(o.wormWeth),
-      tokenChain: w.CID.polygon,
-      to: adddr2Bytes(s.Portico.address),
-      toChain: w.CID.optimism,
-      fromAddress: adddr2Bytes(o.portico02),
-      payload: abi.encode(
-        ["tuple(bytes32 flags, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 relayerFee)"],
-        [expectedVAA]
-      )
-    })
-
-    //wrappedAsset should return the xeth
-    await s.fakeTokenBridge.wrappedAsset.returns(o.wormWeth)
-
-    //input data doesn't matter, we spoof the returns
-    await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x")
-
-  })
-  */
- 
 

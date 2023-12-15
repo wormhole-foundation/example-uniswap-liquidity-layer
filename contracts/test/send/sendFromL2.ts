@@ -9,7 +9,7 @@ import { currentBlock, resetCurrentOP } from "../../util/block";
 import { ethers } from "hardhat";
 import { IERC20__factory, ITokenBridge__factory, Portico__factory } from "../../typechain-types";
 import { DeployContract } from "../../util/deploy";
-import {ceaseImpersonation, impersonateAccount } from "../../util/impersonator"
+import { ceaseImpersonation, impersonateAccount } from "../../util/impersonator";
 import { w, o, p } from "../../util/addresser";
 import { zeroAddress } from "viem";
 
