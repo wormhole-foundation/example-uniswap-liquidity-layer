@@ -37,6 +37,10 @@ const canonAssetTable = withFlip({
     "0xb47bC3ed6D70F04fe759b2529c9bc7377889678f": "eth",
     "0x855CFcEEe998c8ca34F9c914F584AbF72dC88B87": "wsteth",
   },
+  [bsc.id]: {
+    "0x4DB5a66E937A9F4473fA95b1cAF1d1E1D62E29EA": "eth",
+    "0xad80e1a9b5824234afa9de1f3bbdb8a994796169": "wsteth",
+  },
 })
 
 const nativeAssetTable = withFlip({
@@ -59,6 +63,10 @@ const nativeAssetTable = withFlip({
     "0x4200000000000000000000000000000000000006": "eth",
     "0x1F32b1c2345538c0c6f582fCB022739c4A194Ebb": "wsteth"
   },
+  [bsc.id]: {
+    "0x2170Ed0880ac9A755fd29B2688956BD959F933F8": "eth",
+    "0x2Bbbdf97295F73175b12CC087cF446765931e1C3": "wsteth"
+  },
 })
 
 
@@ -77,7 +85,7 @@ export class RolodexService {
       [polygon.id] : "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
       [optimism.id]: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
       [base.id]: "0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a",
-      //  [bsc.id]: "0x78D78E420Da98ad378D7799bE8f4AF69033EB077",
+      [bsc.id]: "0x78D78E420Da98ad378D7799bE8f4AF69033EB077",
     }[chainId]
     if(!ans) {
       throw new BadRequest("no portico found for chain")
@@ -92,7 +100,7 @@ export class RolodexService {
       [polygon.id] : "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
       [base.id]: "0x33128a8fC17869897dcE68Ed026d694621f6FDfD",
       [optimism.id]: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
-      //  [bsc.id]: "0xdB1d10011AD0Ff90774D0C6Bb92e5C5c8b4461F7",
+      [bsc.id]: "0xB971eF87ede563556b2ED4b1C0b0019111Dd85d2",
     }[chainId]
     if(!ans) {
       throw new BadRequest("no portico found for chain")
@@ -106,6 +114,7 @@ export class RolodexService {
       [polygon.id] : "0xf6C5FD2C8Ecba25420859f61Be0331e68316Ba01",
       [base.id]: "0x9816d7C448f79CdD4aF18c4Ae1726A14299E8C75",
       [optimism.id]: "0xcF205Fa51D33280D9B70321Ae6a3686FB2c178b2",
+      [bsc.id]: "0xE565E118e75304dD3cF83dff409c90034b7EA18a",
     }[chainId]
     if(!ans) {
       throw new BadRequest("no portico found for chain")
