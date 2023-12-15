@@ -59,6 +59,7 @@ const nativeAssetTable = withFlip({
   },
   [base.id]: {
     "0x4200000000000000000000000000000000000006": "eth",
+    "0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452": "wsteth"
   },
   [optimism.id]: {
     "0x4200000000000000000000000000000000000006": "eth",

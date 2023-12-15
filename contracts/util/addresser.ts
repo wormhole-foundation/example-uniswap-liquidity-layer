@@ -90,9 +90,9 @@ export class BaseAddresses {
     readonly uniRouter: string = "0x2626664c2603336E57B271c5C0b26F421741e481"
     readonly tokenBridge: string = "0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627"
     readonly wethAddress: string = "0x4200000000000000000000000000000000000006"
-    readonly wstethAddress: string = ""
+    readonly wstethAddress: string = "0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452"
     readonly wormWeth: string = "0x71b35ECb35104773537f849FBC353F81303A5860"
-    readonly wormWsteth: string = ""
+    readonly wormWsteth: string = "0xEd4e2FD35161c3c0e33cA187fce64C70d44Ce32b"
     readonly portico: string = "0xBdCF0bb40eb8642f907133bDB5Fcc681D81f0651"//"0x05498574BD0Fa99eeCB01e1241661E7eE58F8a85"
     readonly portico02: string = "0x9816d7C448f79CdD4aF18c4Ae1726A14299E8C75"//updated 12/12
 }
