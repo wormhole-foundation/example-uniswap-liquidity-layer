@@ -129,6 +129,7 @@ export class RolodexService {
       [polygon.id] : "0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE",
       [base.id]: "0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627",
       [optimism.id]: "0x1D68124e65faFC907325e3EDbF8c4d84499DAa8b",
+      [bsc.id]: "0xB6F6D86a8f9879A9c87f643768d9efc38c1Da6E7",
     }[chainId]
     if(!ans) {
       throw new BadRequest(`chain ${chainId} not supported`)
@@ -143,6 +144,7 @@ export class RolodexService {
       [polygon.id] : 5,
       [base.id]: 30,
       [optimism.id]: 24,
+      [bsc.id]: 4
     }[chainId]
     if(!ans)  {
       throw new BadRequest(`chain ${chainId} not supported`)
@@ -156,6 +158,7 @@ export class RolodexService {
       [5]: polygon.id,
       [30]:base.id,
       [24]: optimism.id,
+      [4]: bsc.id
     }[wormholeChainId] as (number | undefined)
     if(!ans) {
       throw new BadRequest(`no support for wormhole chain ${wormholeChainId}`)

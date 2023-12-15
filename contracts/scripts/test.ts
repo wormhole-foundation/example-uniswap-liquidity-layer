@@ -1,7 +1,7 @@
 import { formatEther, parseEther } from "viem";
 import hre, { ethers, network } from "hardhat";
 import { currentBlock, resetCurrent, resetCurrentBase, resetCurrentBsc, resetCurrentOP, resetCurrentPoly } from "../util/block";
-import { bsc, e, o, p } from "../util/addresser"
+import { b, bsc, e, o, p } from "../util/addresser"
 import { IERC20__factory, ITokenBridge__factory, IWETH__factory, IWormhole, IWormhole__factory, Portico, Portico__factory } from "../typechain-types";
 import { DeployContract } from "../util/deploy";
 import { DecodedVAA, Signatures, TradeParameters, VM, s } from "../test/scope";
@@ -24,9 +24,9 @@ let portico: Portico
 ///0x0000000000000000000000007f39c581f595b53c5cb19bd0b3f8da6c935e2ca0
 async function getxAsset(user: SignerWithAddress) {
 
-    await resetCurrentBsc()
+    await resetCurrentBase()
 
-    const tb = ITokenBridge__factory.connect(bsc.tokenBridge, user)
+    const tb = ITokenBridge__factory.connect(b.tokenBridge, user)
     const localCannonAsset = await tb.wrappedAsset(2, adddr2Bytes(e.wstethAddress))
     console.log(localCannonAsset)
 
