@@ -27,9 +27,10 @@ async function getxAsset(user: SignerWithAddress) {
     await resetCurrentBase()
 
     const tb = ITokenBridge__factory.connect(b.tokenBridge, user)
-    const localCannonAsset = await tb.wrappedAsset(2, adddr2Bytes(e.wstethAddress))
+    const localCannonAsset = await tb.wrappedAsset(2, adddr2Bytes(e.usdcAddress))
     console.log(localCannonAsset)
-
+    const lca = IERC20__factory.connect(localCannonAsset, user)
+    console.log("Decimals: ", await lca.decimals())
 }
 
 

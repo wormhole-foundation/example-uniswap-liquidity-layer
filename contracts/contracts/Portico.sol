@@ -16,6 +16,8 @@ import "./uniswap/PoolAddress.sol";
 //oz
 import "./oz/Ownable.sol";
 import "./oz/ReentrancyGuard.sol";
+import "./oz/SafeERC20.sol";
+
 
 contract PorticoBase is Ownable, ReentrancyGuard {
   ISwapRouter02 public immutable ROUTERV3;
@@ -150,6 +152,7 @@ contract PorticoBase is Ownable, ReentrancyGuard {
 
 abstract contract PorticoStart is PorticoBase {
   using PorticoFlagSetAccess for PorticoFlagSet;
+  using SafeERC20 for IERC20;
 
   function _start_v3swap(PorticoStructs.TradeParameters memory params, uint256 actualAmount) internal returns (uint256 amount) {
     (uint256 minAmountOut, bool poolExists) = calcMinAmount(
@@ -202,7 +205,7 @@ abstract contract PorticoStart is PorticoBase {
       //ensure no eth needs to be refunded
       require(value == whMessageFee, "msg.value incorrect");
       // otherwise, just get the token we need to do the swap (if we are swapping, or just the token itself)
-      require(params.startTokenAddress.transferFrom(_msgSender(), address(this), params.amountSpecified), "transfer fail");
+      params.startTokenAddress.safeTransferFrom(_msgSender(), address(this), params.amountSpecified);
       //Because wormhole rounds to 1e8, some dust may exist from previous txs
       //we use balanceOf to lump this in with future txs
       amount = params.startTokenAddress.balanceOf(address(this));
@@ -217,7 +220,6 @@ abstract contract PorticoStart is PorticoBase {
     }
 
     // allow the token bridge to do its token bridge things
-    //params.canonAssetAddress.approve(address(TOKENBRIDGE), amount);
     updateApproval(address(TOKENBRIDGE), params.canonAssetAddress, amount);
 
     // now we need to produce the payload we are sending
@@ -246,6 +248,7 @@ abstract contract PorticoStart is PorticoBase {
 
 abstract contract PorticoFinish is PorticoBase {
   using PorticoFlagSetAccess for PorticoFlagSet;
+  using SafeERC20 for IERC20;
 
   event PorticoSwapFinish(bool swapCompleted, uint256 finaluserAmount, uint256 relayerFeeAmount, PorticoStructs.DecodedVAA data);
 
@@ -392,11 +395,11 @@ abstract contract PorticoFinish is PorticoBase {
     } else {
       //pay recipient
       if (finalUserAmount > 0) {
-        require(finalToken.transfer(recipient, finalUserAmount), "STF");
+        finalToken.safeTransfer(recipient, finalUserAmount);
       }
       if (relayerFeeAmount > 0) {
         //pay relayer
-        require(finalToken.transfer(feeRecipient, relayerFeeAmount), "STF");
+        finalToken.safeTransfer(feeRecipient, relayerFeeAmount);
       }
     }
   }
