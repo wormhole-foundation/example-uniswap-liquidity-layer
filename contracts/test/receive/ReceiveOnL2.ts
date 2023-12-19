@@ -1,5 +1,5 @@
 
-import { showBodyCyan } from "../../util/format";
+import { showBody, showBodyCyan } from "../../util/format";
 import { expect } from "chai";
 import { BN } from "../../util/number";
 import { adddr2Bytes, encodeFlagSet, getGas, toNumber } from "../../util/msc";
@@ -71,10 +71,7 @@ describe("Receive On OP", () => {
     s.WETH_AMOUNT = BN("2e12")//very low liquidity
     s.ethRelayerFee = BN("1e8")
     await stealMoney(xwethHolder, s.Portico.address, o.wormWeth, s.WETH_AMOUNT)
-
-
   })
-
 
   it("receipt of xchain tx", async () => {
 
@@ -111,6 +108,57 @@ describe("Receive On OP", () => {
     //input data doesn't matter, we spoof the returns
     await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x1234")
 
+    expect(await s.WETH.balanceOf(s.Portico.address)).to.eq(0, "0 WETH on Portico after swap")
+    expect(await ethers.provider.getBalance(s.Portico.address)).to.eq(0, "0 ETH on Portico after swap")
+    const endEthBalance = await ethers.provider.getBalance(s.Bob.address)
+    const ethDelta = await toNumber(endEthBalance.sub(startEthBalance))
+    expect(ethDelta).to.be.closeTo(await toNumber(s.WETH_AMOUNT), 0.01, "Eth received")
+  })
+
+  //in this test, Frank acts as the relayer
+  it("Verify Relayer Fee", async () => {
+
+    //set fee recipient
+    await s.Portico.connect(s.Frank).setFeeRecipient(s.Frank.address)
+
+    //verify initial balance
+    let balance = await ethers.provider.getBalance(s.Frank.address)
+    expect(await s.WETH.balanceOf(s.Frank.address)).to.eq(0, "Frank holds 0 WETH")
+
+
+    expectedVAA = {
+      flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, 5000, 5000, true, false),
+      finalTokenAddress: o.wethAddress,
+      recipientAddress: s.Bob.address,
+      canonAssetAmount: s.WETH_AMOUNT,
+      relayerFee: BN("10")//10 bips
+    }
+    //config fake returns
+    //parseTransferWithPayload
+    await s.fakeTokenBridge.parseTransferWithPayload.returns({
+      payloadID: 3,
+      amount: s.WETH_AMOUNT.div(BN("1e10")),//modify for scale
+      tokenAddress: adddr2Bytes(e.wethAddress),
+      tokenChain: w.CID.ethereum,
+      to: adddr2Bytes(s.Portico.address),
+      toChain: w.CID.optimism,
+      fromAddress: adddr2Bytes(p.portico02),
+      payload: abi.encode(
+        ["tuple(bytes32 flags, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 relayerFee)"],
+        [expectedVAA]
+      )
+    })
+
+    //wrappedAsset should return the xeth if not native chain
+    await s.fakeTokenBridge.wrappedAsset.returns(o.wormWeth)
+
+    const startEthBalance = await ethers.provider.getBalance(s.Bob.address)
+    expect(await ethers.provider.getBalance(s.Portico.address)).to.eq(0, "0 ETH on Portico")
+
+    //input data doesn't matter, we spoof the returns
+    await s.Portico.connect(s.Frank).receiveMessageAndSwap("0x1234")
+
+    expect(await s.WETH.balanceOf(s.Frank.address)).to.be.gt(0, "Relayer Fee Paid")
     expect(await s.WETH.balanceOf(s.Portico.address)).to.eq(0, "0 WETH on Portico after swap")
     expect(await ethers.provider.getBalance(s.Portico.address)).to.eq(0, "0 ETH on Portico after swap")
     const endEthBalance = await ethers.provider.getBalance(s.Bob.address)
@@ -157,8 +205,6 @@ describe("Receive On OP", () => {
 
     const bobXeth = await s.xETH.balanceOf(s.Bob.address)
     expect(bobXeth).to.eq(s.WETH_AMOUNT, "Bob received the xETH")
-
-
   })
 
 

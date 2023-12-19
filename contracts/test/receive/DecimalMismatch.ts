@@ -72,13 +72,13 @@ describe("Receive On OP - Decimal Mismatch", () => {
 
   it("receipt of xchain tx where decimal of xChain and final asset don't match", async () => {
     //fund with xweth
-    const usdcAmount = BN("50e6")//very low liquidity
-    const relayerFee = BN("1e6")
+    const usdcAmount = BN("50e6")
+    const relayerFee = BN("10")//10 bips
     await stealMoney(xUsdcHolder, s.Portico.address, o.wormUSDC, usdcAmount)
 
     expectedVAA = {
       flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, 5000, 5000, true, false),
-      finalTokenAddress: o.wormUSDC,//no swap
+      finalTokenAddress: o.wormUSDC,//no swap for this test as there are no pools atm
       recipientAddress: s.Bob.address,
       canonAssetAmount: usdcAmount,
       relayerFee: relayerFee
@@ -88,7 +88,7 @@ describe("Receive On OP - Decimal Mismatch", () => {
     //parseTransferWithPayload
     await s.fakeTokenBridge.parseTransferWithPayload.returns({
       payloadID: 3,
-      amount: usdcAmount.div(BN("1e10")),//modify for scale
+      amount: usdcAmount,//amount not modified as token decimals are >=6
       tokenAddress: adddr2Bytes(e.usdcAddress),
       tokenChain: w.CID.ethereum,
       to: adddr2Bytes(s.Portico.address),
