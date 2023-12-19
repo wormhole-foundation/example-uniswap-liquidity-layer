@@ -25,8 +25,8 @@ export class TestScope {
     polySwapRouter = this.swapRouterAddr
     polyTokenBridge = "0x5a58505a96D1dbf8dF91cB21B54419FC36e93fdE"
 
-    ethRelayerFee = BN("10")
-    usdcRelayerFee = BN("5")
+    ethRelayerFee = BN("1e16")
+    usdcRelayerFee = BN("1e6")
 
     //no wrap data
     noWrapData: BytesLike = "0x010001000000b80b00b80b002c012c0100000000000000000000000000000000"

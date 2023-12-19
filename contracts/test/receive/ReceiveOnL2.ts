@@ -131,7 +131,7 @@ describe("Receive On OP", () => {
       finalTokenAddress: o.wethAddress,
       recipientAddress: s.Bob.address,
       canonAssetAmount: s.WETH_AMOUNT,
-      relayerFee: BN("10")//10 bips
+      relayerFee: s.ethRelayerFee
     }
     //config fake returns
     //parseTransferWithPayload

@@ -124,19 +124,6 @@ contract PorticoBase is Ownable, ReentrancyGuard {
     return (divide(uint256(sqrtPriceX96), (2 ** 96), 18) ** 2) / 1e18;
   }
 
-  ///@notice determines the raw amount that is @param bips from @param value
-  function percentOf(uint256 value, uint256 bips) internal pure returns (uint256 result) {
-
-    //10000 bips == 100%
-    uint16 MAX_BIPS = 10000;
-    //if for some reason the fee is passed too high, we just send all proceeds to the relayer
-    //todo confirm this is preferred behavior for this case
-    if (bips >= MAX_BIPS) {
-      return value;
-    }
-    result = (divide(bips, MAX_BIPS, 18) * value) / 1e18;
-  }
-
   ///@notice floating point division at @param factor scale
   function divide(uint256 numerator, uint256 denominator, uint256 factor) internal pure returns (uint256 result) {
     uint256 q = (numerator / denominator) * 10 ** factor;
@@ -387,7 +374,6 @@ abstract contract PorticoFinish is PorticoBase {
   ///@notice pay out to user and relayer
   ///@notice this should always be called UNLESS swap fails, in which case payouts happen there
   function payOut(bool unwrap, IERC20 finalToken, address recipient, uint256 relayerFeeAmount) internal returns (uint256 finalUserAmount) {
-    relayerFeeAmount = percentOf(finalToken.balanceOf(address(this)), relayerFeeAmount);
     //square up balances with what we actually have, don't trust reporting from the bridge
     //user gets total - relayer fee
     finalUserAmount = finalToken.balanceOf(address(this)) - relayerFeeAmount;
