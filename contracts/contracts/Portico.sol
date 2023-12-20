@@ -267,7 +267,6 @@ abstract contract PorticoFinish is PorticoBase {
     PorticoStructs.DecodedVAA memory params,
     PorticoStructs.BridgeInfo memory bridgeInfo
   ) internal returns (bool swapCompleted) {
-
     // set swap options with user params
     ISwapRouter02.ExactInputSingleParams memory swapParams = ISwapRouter02.ExactInputSingleParams({
       tokenIn: address(bridgeInfo.tokenReceived),
@@ -291,9 +290,17 @@ abstract contract PorticoFinish is PorticoBase {
   ///@notice pay out to user and relayer
   ///@notice this should always be called UNLESS swap fails, in which case payouts happen there
   function payOut(bool unwrap, IERC20 finalToken, address recipient, uint256 relayerFeeAmount) internal returns (uint256 finalUserAmount) {
+    uint256 totalBalance = finalToken.balanceOf(address(this));
+
     //square up balances with what we actually have, don't trust reporting from the bridge
-    //user gets total - relayer fee
-    finalUserAmount = finalToken.balanceOf(address(this)) - relayerFeeAmount;
+    if (relayerFeeAmount > totalBalance) {
+      //control for underflow
+      finalUserAmount = 0;
+      relayerFeeAmount = totalBalance;
+    } else {
+      //user gets total - relayer fee
+      finalUserAmount = totalBalance - relayerFeeAmount;
+    }
 
     address feeRecipient = FEE_RECIPIENT == address(0x0) ? _msgSender() : FEE_RECIPIENT;
 
