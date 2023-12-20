@@ -18,7 +18,6 @@ import "./oz/Ownable.sol";
 import "./oz/ReentrancyGuard.sol";
 import "./oz/SafeERC20.sol";
 
-
 contract PorticoBase is Ownable, ReentrancyGuard {
   ISwapRouter02 public immutable ROUTERV3;
   ITokenBridge public immutable TOKENBRIDGE;
@@ -80,73 +79,12 @@ contract PorticoBase is Ownable, ReentrancyGuard {
     return (size > 0);
   }
 
-  ///@notice deduce the minAmountReceived based on slippage bips
-  ///@dev this should be decimal agnostic, as we deal with amounts rather than prices
-  function calcMinAmount(
-    uint256 amountIn,
-    uint16 maxSlippage,
-    address tokenIn,
-    address tokenOut,
-    uint24 fee
-  ) internal view returns (uint256 minAmoutReceived, bool poolExists) {
-    //compute pool
-    PoolAddress.PoolKey memory key = PoolAddress.getPoolKey(tokenIn, tokenOut, fee);
-    IV3Pool pool = IV3Pool(PoolAddress.computeAddress(ROUTERV3.factory(), key));
-
-    if (!isContract(address(pool))) {
-      return (0, false);
-    }
-    poolExists = true;
-
-    //10000 bips == 100% slippage is allowed
-    uint16 MAX_BIPS = 10000;
-    if (maxSlippage >= MAX_BIPS || maxSlippage == 0) {
-      return (0, poolExists);
-    }
-    maxSlippage = MAX_BIPS - maxSlippage;
-
-    //get exchange rate
-    uint256 exchangeRate = getExchangeRate(sqrtPrice(pool));
-
-    //invert exchange rate if needed
-    if (tokenIn != key.token0) {
-      exchangeRate = divide(1e18, exchangeRate, 18);
-    }
-
-    //compute expected amount received with no slippage
-    uint256 expectedAmount = (amountIn * exchangeRate) / 1e18;
-
-    minAmoutReceived = (expectedAmount * maxSlippage) / MAX_BIPS;
-  }
-
-  ///@return exchangeRate == (sqrtPriceX96 / 2**96) ** 2
-  function getExchangeRate(uint160 sqrtPriceX96) internal pure returns (uint256 exchangeRate) {
-    return (divide(uint256(sqrtPriceX96), (2 ** 96), 18) ** 2) / 1e18;
-  }
-
   ///@notice floating point division at @param factor scale
   function divide(uint256 numerator, uint256 denominator, uint256 factor) internal pure returns (uint256 result) {
     uint256 q = (numerator / denominator) * 10 ** factor;
     uint256 r = ((numerator * 10 ** factor) / denominator) % 10 ** factor;
 
     return q + r;
-  }
-
-  function sqrtPrice(IV3Pool pool) internal view returns (uint160) {
-    //get current tick via slot0
-    try pool.slot0() returns (
-      uint160 sqrtPriceX96,
-      int24 /*tick*/,
-      uint16 /*observationIndex*/,
-      uint16 /*observationCardinality*/,
-      uint16 /*observationCardinalityNext*/,
-      uint8 /*feeProtocol*/,
-      bool /*unlocked*/
-    ) {
-      return sqrtPriceX96;
-    } catch {
-      return 0;
-    }
   }
 }
 
@@ -155,16 +93,6 @@ abstract contract PorticoStart is PorticoBase {
   using SafeERC20 for IERC20;
 
   function _start_v3swap(PorticoStructs.TradeParameters memory params, uint256 actualAmount) internal returns (uint256 amount) {
-    (uint256 minAmountOut, bool poolExists) = calcMinAmount(
-      uint256(params.amountSpecified),
-      uint16(params.flags.maxSlippageStart()),
-      address(params.startTokenAddress),
-      address(params.canonAssetAddress),
-      params.flags.feeTierStart()
-    );
-
-    require(poolExists, "Pool does not exist");
-
     updateApproval(address(ROUTERV3), params.startTokenAddress, params.startTokenAddress.balanceOf(address(this)));
 
     ROUTERV3.exactInputSingle(
@@ -174,7 +102,7 @@ abstract contract PorticoStart is PorticoBase {
         params.flags.feeTierStart(), //fee
         address(this), //recipient
         actualAmount, //amountIn
-        minAmountOut, //minAmountReceived
+        params.minAmountStart, //minAmountReceived
         0
       )
     );
@@ -228,6 +156,7 @@ abstract contract PorticoStart is PorticoBase {
       params.finalTokenAddress,
       params.recipientAddress,
       amount,
+      params.minAmountFinish,
       params.relayerFee
     );
 
@@ -338,18 +267,6 @@ abstract contract PorticoFinish is PorticoBase {
     PorticoStructs.DecodedVAA memory params,
     PorticoStructs.BridgeInfo memory bridgeInfo
   ) internal returns (bool swapCompleted) {
-    (uint256 minAmountOut, bool poolExists) = calcMinAmount(
-      bridgeInfo.amountReceived,
-      uint16(params.flags.maxSlippageFinish()),
-      address(bridgeInfo.tokenReceived),
-      address(params.finalTokenAddress),
-      params.flags.feeTierFinish()
-    );
-
-    //catch does not work for this for some reason
-    if (!poolExists) {
-      return false;
-    }
 
     // set swap options with user params
     ISwapRouter02.ExactInputSingleParams memory swapParams = ISwapRouter02.ExactInputSingleParams({
@@ -358,7 +275,7 @@ abstract contract PorticoFinish is PorticoBase {
       fee: params.flags.feeTierFinish(),
       recipient: address(this), // we need to receive the token in order to correctly split the fee. tragic.
       amountIn: bridgeInfo.amountReceived,
-      amountOutMinimum: minAmountOut,
+      amountOutMinimum: params.minAmountFinish,
       sqrtPriceLimitX96: 0 //sqrtPriceLimit
     });
 

@@ -80,6 +80,8 @@ export type TradeParameters = {
     recipientAddress: string,
     recipientPorticoAddress: string
     amountSpecified: BigNumber,
+    minAmountStart: BigNumber,
+    minAmountFinish: BigNumber,
     relayerFee: BigNumber
 }
 
@@ -88,6 +90,7 @@ export type DecodedVAA = {
     finalTokenAddress: string,
     recipientAddress: string,
     canonAssetAmount: BigNumber,
+    minAmountFinish: BigNumber,
     relayerFee: BigNumber
 }
 

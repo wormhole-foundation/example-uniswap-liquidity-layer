@@ -99,6 +99,8 @@ library PorticoStructs {
     address recipientPorticoAddress;
     // the amount of the token that the person wishes to transfer
     uint256 amountSpecified;
+    uint256 minAmountStart;
+    uint256 minAmountFinish;
     uint256 relayerFee; // the amount of tokens of the recipient to give to the relayer
   }
   //268,041 158,788
@@ -109,6 +111,7 @@ library PorticoStructs {
     address recipientAddress;
     // the x asset amount expected to  be received
     uint256 canonAssetAmount;
+    uint256 minAmountFinish;
     uint256 relayerFee;
   }
 

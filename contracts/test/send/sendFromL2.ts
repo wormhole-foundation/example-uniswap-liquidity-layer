@@ -72,6 +72,8 @@ describe("Send from L2", function () {
       recipientAddress: "0x49887A216375FDED17DC1aAAD4920c3777265614",
       recipientPorticoAddress: "0x9816d7C448f79CdD4aF18c4Ae1726A14299E8C75",
       amountSpecified: BN("100000000000000"),
+      minAmountStart: BN("100000000000000").div(2),
+      minAmountFinish: BN("100000000000000").div(2),
       relayerFee: BN("1000000000")
     }
 

@@ -71,6 +71,8 @@ describe("Send from mainnet", function () {
       recipientAddress: s.Carol.address,
       recipientPorticoAddress: o.opPortico,
       amountSpecified: s.WETH_AMOUNT,
+      minAmountStart: s.WETH_AMOUNT.div(2),
+      minAmountFinish: s.WETH_AMOUNT.div(2),
       relayerFee: s.ethRelayerFee
     }
 
@@ -108,6 +110,8 @@ describe("Send from mainnet", function () {
       recipientAddress: s.Carol.address,
       recipientPorticoAddress: p.polyPortico,
       amountSpecified: USDC_AMOUNT,
+      minAmountStart: USDC_AMOUNT.div(2),
+      minAmountFinish: USDC_AMOUNT.div(2),
       relayerFee: s.ethRelayerFee
     }
 
@@ -136,6 +140,8 @@ describe("Send from mainnet", function () {
       recipientAddress: s.Carol.address,
       recipientPorticoAddress: p.polyPortico,
       amountSpecified: ethAmount,
+      minAmountStart: BN(0),
+      minAmountFinish: BN(0),
       relayerFee: s.ethRelayerFee
     }
 
@@ -165,6 +171,8 @@ describe("Send from mainnet", function () {
       recipientAddress: s.Carol.address,
       recipientPorticoAddress: o.opPortico,
       amountSpecified: s.WETH_AMOUNT,
+      minAmountStart: s.WETH_AMOUNT.div(2),
+      minAmountFinish: s.WETH_AMOUNT.div(2),
       relayerFee: s.ethRelayerFee
     }
 
