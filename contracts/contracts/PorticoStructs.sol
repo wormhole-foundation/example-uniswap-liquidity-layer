@@ -66,18 +66,6 @@ library PorticoFlagSetAccess {
 }
 
 library PorticoStructs {
-  //16 + 32 + 24 + 24 + 16 + 16 + 8 + 8 == 144
-  struct packedData {
-    uint16 recipientChain;
-    uint32 bridgeNonce;
-    uint24 startFee;
-    uint24 endFee;
-    int16 slipStart;
-    int16 slipEnd;
-    bool wrap;
-    bool unwrap;
-  }
-
   //https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/main/src/WormholeRelayerSDK.sol#L177
   //https://docs.wormhole.com/wormhole/quick-start/tutorials/hello-token#receiving-a-token
   struct TokenReceived {

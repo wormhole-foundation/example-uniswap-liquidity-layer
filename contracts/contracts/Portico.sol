@@ -36,8 +36,6 @@ contract PorticoBase is Ownable, ReentrancyGuard {
     FEE_RECIPIENT = _feeRecipient;
   }
 
-  receive() external payable {}
-
   function version() external pure returns (uint32) {
     return 1;
   }
@@ -67,7 +65,9 @@ contract PorticoBase is Ownable, ReentrancyGuard {
     return bytes32(uint256(uint160(addr)));
   }
 
+  ///@dev https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/main/src/Utils.sol#L10-L15
   function unpadAddress(bytes32 whFormatAddress) internal pure returns (address) {
+    require(uint256(whFormatAddress) >> 160 != 0, "Not EVM Addr");
     return address(uint160(uint256(whFormatAddress)));
   }
 
@@ -114,7 +114,7 @@ abstract contract PorticoStart is PorticoBase {
 
   function start(
     PorticoStructs.TradeParameters memory params
-  ) public payable nonReentrant returns (address emitterAddress, uint16 chainId, uint64 sequence) {
+  ) external payable nonReentrant returns (address emitterAddress, uint16 chainId, uint64 sequence) {
     uint256 amount;
     uint256 whMessageFee = wormhole.messageFee();
     uint256 value = msg.value;
@@ -180,6 +180,8 @@ abstract contract PorticoFinish is PorticoBase {
   using SafeERC20 for IERC20;
 
   event PorticoSwapFinish(bool swapCompleted, uint256 finaluserAmount, uint256 relayerFeeAmount, PorticoStructs.DecodedVAA data);
+
+  receive() external payable {}
 
   // receiveMessageAndSwap is the entrypoint for finishing the swap
   function receiveMessageAndSwap(bytes calldata encodedTransferMessage) external nonReentrant {
