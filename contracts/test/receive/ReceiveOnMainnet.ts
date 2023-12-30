@@ -73,6 +73,7 @@ describe("Receive On Mainnet", () => {
       finalTokenAddress: e.wethAddress,
       recipientAddress: s.Bob.address,
       canonAssetAmount: s.WETH_AMOUNT,
+      minAmountFinish: s.WETH_AMOUNT.div(2),
       relayerFee: s.ethRelayerFee
     }
 
@@ -87,7 +88,7 @@ describe("Receive On Mainnet", () => {
       toChain: w.CID.ethereum,
       fromAddress: adddr2Bytes(p.polyPortico),
       payload: abi.encode(
-        ["tuple(bytes32 flags, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 relayerFee)"],
+        ["tuple(bytes32 flags, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 minAmountFinish, uint256 relayerFee)"],
         [expectedVAA]
       )
     })

@@ -19,6 +19,8 @@ import "./oz/ReentrancyGuard.sol";
 import "./oz/SafeERC20.sol";
 
 contract PorticoBase is Ownable, ReentrancyGuard {
+  using SafeERC20 for IERC20;
+
   ISwapRouter02 public immutable ROUTERV3;
   ITokenBridge public immutable TOKENBRIDGE;
   IWETH public immutable WETH;
@@ -54,43 +56,21 @@ contract PorticoBase is Ownable, ReentrancyGuard {
     if (currentAllowance < amount) {
       //reset approval if allowance greater than 0 but less than amount
       if (currentAllowance != 0) {
-        require(token.approve(spender, 0), "approval reset failed");
+        token.safeIncreaseAllowance(spender, 0);
       }
-      //approve infinate
-      require(token.approve(spender, 2 ** 256 - 1), "infinite approval failed");
+      //approve maximum
+      token.safeIncreaseAllowance(spender, 2 ** 256 - 1);
     }
-  }
-
-  function padAddress(address addr) internal pure returns (bytes32) {
-    return bytes32(uint256(uint160(addr)));
-  }
-
-  ///@dev https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/main/src/Utils.sol#L10-L15
-  function unpadAddress(bytes32 whFormatAddress) internal pure returns (address) {
-    require(uint256(whFormatAddress) >> 160 != 0, "Not EVM Addr");
-    return address(uint160(uint256(whFormatAddress)));
-  }
-
-  function isContract(address _addr) private view returns (bool value) {
-    uint32 size;
-    assembly {
-      size := extcodesize(_addr)
-    }
-    return (size > 0);
-  }
-
-  ///@notice floating point division at @param factor scale
-  function divide(uint256 numerator, uint256 denominator, uint256 factor) internal pure returns (uint256 result) {
-    uint256 q = (numerator / denominator) * 10 ** factor;
-    uint256 r = ((numerator * 10 ** factor) / denominator) % 10 ** factor;
-
-    return q + r;
   }
 }
 
 abstract contract PorticoStart is PorticoBase {
   using PorticoFlagSetAccess for PorticoFlagSet;
   using SafeERC20 for IERC20;
+
+  function padAddress(address addr) internal pure returns (bytes32) {
+    return bytes32(uint256(uint160(addr)));
+  }
 
   function _start_v3swap(PorticoStructs.TradeParameters memory params, uint256 actualAmount) internal returns (uint256 amount) {
     updateApproval(address(ROUTERV3), params.startTokenAddress, params.startTokenAddress.balanceOf(address(this)));
@@ -183,6 +163,20 @@ abstract contract PorticoFinish is PorticoBase {
 
   receive() external payable {}
 
+  function isContract(address _addr) internal view returns (bool value) {
+    uint32 size;
+    assembly {
+      size := extcodesize(_addr)
+    }
+    return (size > 0);
+  }
+
+  ///@dev https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/main/src/Utils.sol#L10-L15
+  function unpadAddress(bytes32 whFormatAddress) internal pure returns (address) {
+    //require(uint256(whFormatAddress) >> 160 != 0, "Not EVM Addr");//todo
+    return address(uint160(uint256(whFormatAddress)));
+  }
+
   // receiveMessageAndSwap is the entrypoint for finishing the swap
   function receiveMessageAndSwap(bytes calldata encodedTransferMessage) external nonReentrant {
     // start by calling _completeTransfer, submitting the VAA to the token bridge
@@ -211,9 +205,11 @@ abstract contract PorticoFinish is PorticoBase {
     // parse the wormhole message payload into the `TransferWithPayload` struct, a payload3 token transfer
     ITokenBridge.TransferWithPayload memory transfer = TOKENBRIDGE.parseTransferWithPayload(transferPayload);
 
+    // ensure that the to address is this address
+    require(unpadAddress(transfer.to) == address(this) && transfer.toChain == wormholeChainId, "Token was not sent to this address");
+
     // decode the payload3 we originally sent into the decodedVAA struct.
     message = abi.decode(transfer.payload, (PorticoStructs.DecodedVAA));
-
     // get the address for the token on this address.
     bridgeInfo.tokenReceived = IERC20(
       transfer.tokenChain == wormholeChainId
@@ -229,9 +225,6 @@ abstract contract PorticoFinish is PorticoBase {
     if (decimals > 8) {
       bridgeInfo.amountReceived *= uint256(10) ** (decimals - 8);
     }
-
-    // ensure that the to address is this address
-    require(unpadAddress(transfer.to) == address(this) && transfer.toChain == wormholeChainId, "Token was not sent to this address");
   }
 
   ///@notice determines we need to swap and/or unwrap, does those things if needed, and sends tokens to user & pays relayer fee
@@ -269,6 +262,18 @@ abstract contract PorticoFinish is PorticoBase {
     PorticoStructs.DecodedVAA memory params,
     PorticoStructs.BridgeInfo memory bridgeInfo
   ) internal returns (bool swapCompleted) {
+    //verify pool exists, catch won't work for this for some reason
+    if (
+      !isContract(
+        PoolAddress.computeAddress(
+          ROUTERV3.factory(),
+          PoolAddress.getPoolKey(address(bridgeInfo.tokenReceived), address(params.finalTokenAddress), params.flags.feeTierFinish())
+        )
+      )
+    ) {
+      return false;
+    }
+
     // set swap options with user params
     ISwapRouter02.ExactInputSingleParams memory swapParams = ISwapRouter02.ExactInputSingleParams({
       tokenIn: address(bridgeInfo.tokenReceived),

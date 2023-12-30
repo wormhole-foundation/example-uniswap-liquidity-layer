@@ -61,29 +61,6 @@ describe("Deploy", function () {
 })
 
 describe("Send from L2", function () {
-
-  it("Flag test", async () => {
-    const flags = "0x1e00c2dcab4a6400006400000300030000000000000000000000000000000003"
-    const params: TradeParameters = {
-      flags: flags,
-      startTokenAddress: "0x4200000000000000000000000000000000000006",
-      canonAssetAddress: "0xb47bC3ed6D70F04fe759b2529c9bc7377889678f",
-      finalTokenAddress: "0x4200000000000000000000000000000000000006",
-      recipientAddress: "0x49887A216375FDED17DC1aAAD4920c3777265614",
-      recipientPorticoAddress: "0x9816d7C448f79CdD4aF18c4Ae1726A14299E8C75",
-      amountSpecified: BN("100000000000000"),
-      minAmountStart: BN("100000000000000").div(2),
-      minAmountFinish: BN("100000000000000").div(2),
-      relayerFee: BN("1000000000")
-    }
-
-    const sender = ethers.provider.getSigner("0x49887a216375fded17dc1aaad4920c3777265614")
-    await impersonateAccount(sender._address)
-    await s.Portico.connect(sender).start(params, {value: BN("100000000000000")})
-    await ceaseImpersonation(sender._address)
-
-  })
-
   it("send with weth", async () => {
 
     const params: TradeParameters = {
@@ -94,6 +71,8 @@ describe("Send from L2", function () {
       recipientAddress: s.Carol.address,
       recipientPorticoAddress: p.polyPortico,
       amountSpecified: s.L2WETH_AMOUNT,
+      minAmountStart: s.L2WETH_AMOUNT.div(2),
+      minAmountFinish: s.L2WETH_AMOUNT.div(2),
       relayerFee: s.L2relayerFee
     }
 
@@ -104,7 +83,7 @@ describe("Send from L2", function () {
     expect(startPorticoWeth).to.eq(0, "No weth at start")
     expect(startBobWeth).to.eq(s.L2WETH_AMOUNT, "Bob wETH is correct")
 
- 
+
     await s.WETH.connect(s.Bob).approve(s.Portico.address, s.L2WETH_AMOUNT)
     const result = await s.Portico.connect(s.Bob).start(params)
     const gas = await getGas(result)
@@ -130,6 +109,8 @@ describe("Send from L2", function () {
       recipientAddress: s.Carol.address,
       recipientPorticoAddress: p.polyPortico,
       amountSpecified: s.L2WETH_AMOUNT,
+      minAmountStart: s.L2WETH_AMOUNT.div(2),
+      minAmountFinish: s.L2WETH_AMOUNT.div(2),
       relayerFee: s.L2relayerFee
     }
 
@@ -160,6 +141,8 @@ describe("Send from L2", function () {
       recipientAddress: s.Carol.address,
       recipientPorticoAddress: p.polyPortico,
       amountSpecified: s.L2WETH_AMOUNT,
+      minAmountStart: s.L2WETH_AMOUNT.div(2),
+      minAmountFinish: s.L2WETH_AMOUNT.div(2),
       relayerFee: s.L2relayerFee
     }
 
@@ -176,6 +159,8 @@ describe("Send from L2", function () {
       recipientAddress: s.Carol.address,
       recipientPorticoAddress: p.polyPortico,
       amountSpecified: s.L2WETH_AMOUNT,
+      minAmountStart: s.L2WETH_AMOUNT.div(2),
+      minAmountFinish: s.L2WETH_AMOUNT.div(2),
       relayerFee: s.L2relayerFee
     }
 

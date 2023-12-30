@@ -81,6 +81,7 @@ describe("Receive On OP", () => {
       finalTokenAddress: o.wethAddress,
       recipientAddress: s.Bob.address,
       canonAssetAmount: s.WETH_AMOUNT,
+      minAmountFinish: s.WETH_AMOUNT.div(2),
       relayerFee: s.ethRelayerFee
     }
     //config fake returns
@@ -94,7 +95,7 @@ describe("Receive On OP", () => {
       toChain: w.CID.optimism,
       fromAddress: adddr2Bytes(p.portico02),
       payload: abi.encode(
-        ["tuple(bytes32 flags, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 relayerFee)"],
+        ["tuple(bytes32 flags, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 minAmountFinish, uint256 relayerFee)"],
         [expectedVAA]
       )
     })
@@ -131,6 +132,7 @@ describe("Receive On OP", () => {
       finalTokenAddress: o.wethAddress,
       recipientAddress: s.Bob.address,
       canonAssetAmount: s.WETH_AMOUNT,
+      minAmountFinish: s.WETH_AMOUNT.div(2),
       relayerFee: s.ethRelayerFee
     }
     //config fake returns
@@ -144,7 +146,7 @@ describe("Receive On OP", () => {
       toChain: w.CID.optimism,
       fromAddress: adddr2Bytes(p.portico02),
       payload: abi.encode(
-        ["tuple(bytes32 flags, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 relayerFee)"],
+        ["tuple(bytes32 flags, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 minAmountFinish, uint256 relayerFee)"],
         [expectedVAA]
       )
     })
@@ -175,6 +177,7 @@ describe("Receive On OP", () => {
       finalTokenAddress: o.wethAddress,
       recipientAddress: s.Bob.address,
       canonAssetAmount: s.WETH_AMOUNT,
+      minAmountFinish: s.WETH_AMOUNT.div(2),
       relayerFee: s.L2relayerFee
     }
 
@@ -192,7 +195,7 @@ describe("Receive On OP", () => {
       toChain: w.CID.optimism,
       fromAddress: adddr2Bytes(p.portico02),
       payload: abi.encode(
-        ["tuple(bytes32 flags, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 relayerFee)"],
+        ["tuple(bytes32 flags, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 minAmountFinish, uint256 relayerFee)"],
         [expectedVAA]
       )
     })
@@ -206,6 +209,7 @@ describe("Receive On OP", () => {
     const bobXeth = await s.xETH.balanceOf(s.Bob.address)
     expect(bobXeth).to.eq(s.WETH_AMOUNT, "Bob received the xETH")
   })
+
 
 
   it("Slippage too low for amount", async () => {
@@ -222,6 +226,7 @@ describe("Receive On OP", () => {
       finalTokenAddress: o.wethAddress,
       recipientAddress: s.Bob.address,
       canonAssetAmount: amount,
+      minAmountFinish: s.WETH_AMOUNT.div(2),
       relayerFee: s.L2relayerFee
     }
 
@@ -236,7 +241,7 @@ describe("Receive On OP", () => {
       toChain: w.CID.optimism,
       fromAddress: adddr2Bytes(o.portico02),
       payload: abi.encode(
-        ["tuple(bytes32 flags, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 relayerFee)"],
+        ["tuple(bytes32 flags, address finalTokenAddress, address recipientAddress, uint256 canonAssetAmount, uint256 minAmountFinish, uint256 relayerFee)"],
         [expectedVAA]
       )
     })
