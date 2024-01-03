@@ -173,8 +173,20 @@ abstract contract PorticoFinish is PorticoBase {
 
   ///@dev https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/main/src/Utils.sol#L10-L15
   function unpadAddress(bytes32 whFormatAddress) internal pure returns (address) {
-    //require(uint256(whFormatAddress) >> 160 != 0, "Not EVM Addr");//todo
+    if (uint256(whFormatAddress) >> 160 != 0) {
+      revert("Not EVM Addr");
+    }
     return address(uint160(uint256(whFormatAddress)));
+  }
+
+  function sendEther(address to, uint256 value) internal {
+    bool sent;
+    assembly {
+      sent := call(gas(), to, value, 0, 0, 0, 0)
+    }
+    if (!sent) {
+      revert("failed to send ether");
+    }
   }
 
   // receiveMessageAndSwap is the entrypoint for finishing the swap
@@ -206,7 +218,7 @@ abstract contract PorticoFinish is PorticoBase {
     ITokenBridge.TransferWithPayload memory transfer = TOKENBRIDGE.parseTransferWithPayload(transferPayload);
 
     // ensure that the to address is this address
-    require(unpadAddress(transfer.to) == address(this) && transfer.toChain == wormholeChainId, "Token was not sent to this address");
+    require(unpadAddress(transfer.to) == address(this) && transfer.toChain == wormholeChainId, "Token not sent to this address");
 
     // decode the payload3 we originally sent into the decodedVAA struct.
     message = abi.decode(transfer.payload, (PorticoStructs.DecodedVAA));
@@ -289,9 +301,7 @@ abstract contract PorticoFinish is PorticoBase {
     // try to do the swap
     try ROUTERV3.exactInputSingle(swapParams) {
       swapCompleted = true;
-    } catch Error(string memory /**e*/) {
-      swapCompleted = false;
-    }
+    } catch {}
   }
 
   ///@notice pay out to user and relayer
@@ -313,15 +323,13 @@ abstract contract PorticoFinish is PorticoBase {
 
     if (unwrap) {
       WETH.withdraw(WETH.balanceOf(address(this)));
-      //send to user
       if (finalUserAmount > 0) {
-        (bool sentToUser, ) = recipient.call{ value: finalUserAmount }("");
-        require(sentToUser, "Failed to send Ether");
+        //send to user
+        sendEther(recipient, finalUserAmount);
       }
       if (relayerFeeAmount > 0) {
         //pay relayer fee
-        (bool sentToRelayer, ) = feeRecipient.call{ value: relayerFeeAmount }("");
-        require(sentToRelayer, "Failed to send Ether");
+        sendEther(feeRecipient, relayerFeeAmount);
       }
     } else {
       //pay recipient

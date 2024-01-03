@@ -35,23 +35,7 @@ library PorticoFlagSetAccess {
       ans := add(add(byte(9, flagset), shl(8, byte(10, flagset))), shl(16, byte(11, flagset)))
     }
   }
-
-  // bytes 12,13 is the max slippage for the start path
-  // in BPS - 100 = 1% slippage.
-  function maxSlippageStart(PorticoFlagSet flagset) internal pure returns (int16 ans) {
-    assembly {
-      ans := add(byte(12, flagset), shl(8, byte(13, flagset)))
-    }
-  }
-
-  // bytes 14,15 is the max slippage for the start path
-  // in BPS - 100 = 1% slippage.
-  function maxSlippageFinish(PorticoFlagSet flagset) internal pure returns (int16 ans) {
-    assembly {
-      ans := add(byte(14, flagset), shl(8, byte(15, flagset)))
-    }
-  }
-
+  
   // shouldWrapNative is the first bit of the byte 31
   function shouldWrapNative(PorticoFlagSet flagset) internal pure returns (bool) {
     bytes32 fs = PorticoFlagSet.unwrap(flagset);
