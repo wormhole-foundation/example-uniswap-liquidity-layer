@@ -128,7 +128,7 @@ describe("Receive On OP", () => {
 
 
     expectedVAA = {
-      flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, 5000, 5000, true, false),
+      flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, true, false),
       finalTokenAddress: o.wethAddress,
       recipientAddress: s.Bob.address,
       canonAssetAmount: s.WETH_AMOUNT,
@@ -173,7 +173,7 @@ describe("Receive On OP", () => {
   it("Failed swap, pool doesn't exist", async () => {
 
     expectedVAA = {
-      flags: encodeFlagSet(w.CID.optimism, 1, 231, 123, 300, 300, false, true),
+      flags: encodeFlagSet(w.CID.optimism, 1, 231, 123, false, true),
       finalTokenAddress: o.wethAddress,
       recipientAddress: s.Bob.address,
       canonAssetAmount: s.WETH_AMOUNT,
@@ -222,7 +222,7 @@ describe("Receive On OP", () => {
 
 
     expectedVAA = {
-      flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, 300, 500, false, true),
+      flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, false, true),
       finalTokenAddress: o.wethAddress,
       recipientAddress: s.Bob.address,
       canonAssetAmount: amount,

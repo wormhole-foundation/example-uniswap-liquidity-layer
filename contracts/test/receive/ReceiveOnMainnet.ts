@@ -69,7 +69,7 @@ describe("Receive On Mainnet", () => {
 
   it("receipt of xchain tx", async () => {
     expectedVAA = {
-      flags: encodeFlagSet(w.CID.ethereum, 1, 100, 100, 300, 300, false, true),
+      flags: encodeFlagSet(w.CID.ethereum, 1, 100, 100, false, true),
       finalTokenAddress: e.wethAddress,
       recipientAddress: s.Bob.address,
       canonAssetAmount: s.WETH_AMOUNT,

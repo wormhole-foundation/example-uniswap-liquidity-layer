@@ -55,7 +55,7 @@ describe("Deploy", function () {
 
   it("Fund participants", async () => {
 
-    await stealMoney(s.OpBank, s.Bob.address, o.wethAddress, s.L2WETH_AMOUNT)
+    await stealMoney(s.OpBank, s.Bob.address, o.wethAddress, s.L2WETH_AMOUNT.mul(2))
 
   })
 })
@@ -64,7 +64,7 @@ describe("Send from L2", function () {
   it("send with weth", async () => {
 
     const params: TradeParameters = {
-      flags: encodeFlagSet(w.CID.polygon, 1, 100, 100, s.slippage, s.slippage, false, false),
+      flags: encodeFlagSet(w.CID.polygon, 1, 100, 100, false, false),
       startTokenAddress: o.wethAddress,
       canonAssetAddress: o.wormWeth,
       finalTokenAddress: p.wethAddress,
@@ -81,7 +81,7 @@ describe("Send from L2", function () {
     const startBobWeth = await s.WETH.balanceOf(s.Bob.address)
 
     expect(startPorticoWeth).to.eq(0, "No weth at start")
-    expect(startBobWeth).to.eq(s.L2WETH_AMOUNT, "Bob wETH is correct")
+    expect(startBobWeth).to.eq(s.L2WETH_AMOUNT.mul(2), "Bob wETH is correct")
 
 
     await s.WETH.connect(s.Bob).approve(s.Portico.address, s.L2WETH_AMOUNT)
@@ -95,14 +95,14 @@ describe("Send from L2", function () {
 
     //ending balances should be 0 because the xAsset is sent to the tokenbridge
     expect(endPorticoWeth).to.eq(0, "No weth left on portico, sent to bridge")
-    expect(endBobWeth).to.eq(0, "Ending wETH is correct")
+    expect(endBobWeth).to.eq(s.L2WETH_AMOUNT, "Ending wETH is correct")
 
   })
 
   it("Send wrapping native eth", async () => {
 
     const params: TradeParameters = {
-      flags: encodeFlagSet(w.CID.optimism, 2, 100, 100, s.slippage, s.slippage, true, false),
+      flags: encodeFlagSet(w.CID.optimism, 2, 100, 100, true, false),
       startTokenAddress: o.wethAddress,
       canonAssetAddress: o.wormWeth,
       finalTokenAddress: p.wethAddress,
@@ -116,10 +116,7 @@ describe("Send from L2", function () {
 
     const startBobEther = await ethers.provider.getBalance(s.Bob.address)
     const startPorticoWeth = await s.WETH.balanceOf(s.Portico.address)
-    const startBobWeth = await s.WETH.balanceOf(s.Bob.address)
 
-
-    expect(startBobWeth).to.eq(0, "Bob has no and weth")
     expect(await toNumber(startPorticoWeth)).to.be.lt(await toNumber(BN("1e10")), "Wormhole txs round to 1e8")
     expect(await toNumber(await ethers.provider.getBalance(s.Bob.address))).to.be.gt(await toNumber(s.L2WETH_AMOUNT), "Bob has enough ETH")
 
@@ -131,28 +128,27 @@ describe("Send from L2", function () {
     expect(await toNumber(etherDelta)).to.be.closeTo(await toNumber(s.L2WETH_AMOUNT), 0.003, "ETHER sent is correct + gas")
   })
 
+  //todo update min amounts
   it("Slippage too low", async () => {
-    const lowSlippageBips = 1
     const params: TradeParameters = {
-      flags: encodeFlagSet(w.CID.polygon, 1, 100, 100, lowSlippageBips, 321, false, false),
+      flags: encodeFlagSet(w.CID.polygon, 1, 100, 100, false, false),
       startTokenAddress: o.wethAddress,
       canonAssetAddress: o.wormWeth,
       finalTokenAddress: p.wethAddress,
       recipientAddress: s.Carol.address,
       recipientPorticoAddress: p.polyPortico,
       amountSpecified: s.L2WETH_AMOUNT,
-      minAmountStart: s.L2WETH_AMOUNT.div(2),
+      minAmountStart: BN("700000000000000"),//min amount too high
       minAmountFinish: s.L2WETH_AMOUNT.div(2),
       relayerFee: s.L2relayerFee
     }
-
     await s.WETH.connect(s.Bob).approve(s.Portico.address, s.L2WETH_AMOUNT)
     expect(s.Portico.connect(s.Bob).start(params)).to.be.revertedWith("Too little received")
   })
 
   it("Pool does not exist", async () => {
     const params: TradeParameters = {
-      flags: encodeFlagSet(w.CID.polygon, 1, 123, 100, s.slippage, 321, false, false),
+      flags: encodeFlagSet(w.CID.polygon, 1, 123, 100, false, false),
       startTokenAddress: o.wethAddress,
       canonAssetAddress: o.wormWeth,
       finalTokenAddress: p.wethAddress,

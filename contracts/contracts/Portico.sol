@@ -8,10 +8,7 @@ import "./IERC20.sol";
 import "./IWETH.sol";
 
 //uniswap
-import "./uniswap/TickMath.sol";
 import "./uniswap/ISwapRouter02.sol";
-import "./uniswap/IV3Pool.sol";
-import "./uniswap/PoolAddress.sol";
 
 //oz
 import "./oz/Ownable.sol";
@@ -53,10 +50,17 @@ contract PorticoBase is Ownable, ReentrancyGuard {
     //get current allowance
     uint256 currentAllowance = token.allowance(address(this), spender);
 
+    /**
+    //oz safeIncreaseAllowance controls for tokens that require allowance to be reset to 0 before increasing again
+    if (currentAllowance < amount) {
+      token.safeIncreaseAllowance(spender, 2 ** 256 - 1);
+    }
+    */   
+
     if (currentAllowance < amount) {
       //reset approval if allowance greater than 0 but less than amount
       if (currentAllowance != 0) {
-        token.safeIncreaseAllowance(spender, 0);
+        token.safeDecreaseAllowance(spender, currentAllowance);
       }
       //approve maximum
       token.safeIncreaseAllowance(spender, 2 ** 256 - 1);
@@ -73,7 +77,7 @@ abstract contract PorticoStart is PorticoBase {
   }
 
   function _start_v3swap(PorticoStructs.TradeParameters memory params, uint256 actualAmount) internal returns (uint256 amount) {
-    updateApproval(address(ROUTERV3), params.startTokenAddress, params.startTokenAddress.balanceOf(address(this)));
+    updateApproval(address(ROUTERV3), params.startTokenAddress, actualAmount);
 
     ROUTERV3.exactInputSingle(
       ISwapRouter02.ExactInputSingleParams(
@@ -102,10 +106,8 @@ abstract contract PorticoStart is PorticoBase {
     if (address(params.startTokenAddress) == address(WETH) && params.flags.shouldWrapNative()) {
       //if wrapping, msg.value should be exactly amountSpecified + wormhole message fee
       require(value == params.amountSpecified + whMessageFee, "msg.value incorrect");
-
       // if we are wrapping a token, we call deposit for the user, assuming we have been send what we need.
       WETH.deposit{ value: params.amountSpecified }();
-
       //Because wormhole rounds to 1e8, some dust may exist from previous txs
       //we use balanceOf to lump this in with future txs
       amount = WETH.balanceOf(address(this));
@@ -117,9 +119,10 @@ abstract contract PorticoStart is PorticoBase {
       //Because wormhole rounds to 1e8, some dust may exist from previous txs
       //we use balanceOf to lump this in with future txs
       amount = params.startTokenAddress.balanceOf(address(this));
-      //ensure we received enough
-      require(amount >= params.amountSpecified, "transfer insufficient");
     }
+
+    //sanity check amount received
+    require(amount >= params.amountSpecified, "transfer insufficient");
 
     // if the start token is the canon token, we don't need to swap
     if (params.startTokenAddress != params.canonAssetAddress) {
@@ -163,14 +166,6 @@ abstract contract PorticoFinish is PorticoBase {
 
   receive() external payable {}
 
-  function isContract(address _addr) internal view returns (bool value) {
-    uint32 size;
-    assembly {
-      size := extcodesize(_addr)
-    }
-    return (size > 0);
-  }
-
   ///@dev https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/main/src/Utils.sol#L10-L15
   function unpadAddress(bytes32 whFormatAddress) internal pure returns (address) {
     if (uint256(whFormatAddress) >> 160 != 0) {
@@ -179,6 +174,7 @@ abstract contract PorticoFinish is PorticoBase {
     return address(uint160(uint256(whFormatAddress)));
   }
 
+  ///@notice send ether without exposing to gas griefing attacks via returned bytes
   function sendEther(address to, uint256 value) internal {
     bool sent;
     assembly {
@@ -193,6 +189,7 @@ abstract contract PorticoFinish is PorticoBase {
   function receiveMessageAndSwap(bytes calldata encodedTransferMessage) external nonReentrant {
     // start by calling _completeTransfer, submitting the VAA to the token bridge
     (PorticoStructs.DecodedVAA memory message, PorticoStructs.BridgeInfo memory bridgeInfo) = _completeTransfer(encodedTransferMessage);
+
     // we modify the message to set the relayerFee to 0 if the msgSender is the fee recipient.
     bridgeInfo.relayerFeeAmount = (_msgSender() == message.recipientAddress) ? 0 : message.relayerFee;
 
@@ -274,18 +271,6 @@ abstract contract PorticoFinish is PorticoBase {
     PorticoStructs.DecodedVAA memory params,
     PorticoStructs.BridgeInfo memory bridgeInfo
   ) internal returns (bool swapCompleted) {
-    //verify pool exists, catch won't work for this for some reason
-    if (
-      !isContract(
-        PoolAddress.computeAddress(
-          ROUTERV3.factory(),
-          PoolAddress.getPoolKey(address(bridgeInfo.tokenReceived), address(params.finalTokenAddress), params.flags.feeTierFinish())
-        )
-      )
-    ) {
-      return false;
-    }
-
     // set swap options with user params
     ISwapRouter02.ExactInputSingleParams memory swapParams = ISwapRouter02.ExactInputSingleParams({
       tokenIn: address(bridgeInfo.tokenReceived),

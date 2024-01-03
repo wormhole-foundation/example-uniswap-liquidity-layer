@@ -64,7 +64,7 @@ describe("Send from mainnet", function () {
   it("send mainnet tx => op with weth", async () => {
 
     const params: TradeParameters = {
-      flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, s.slippage, s.slippage, false, false),
+      flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, false, false),
       startTokenAddress: e.wethAddress,
       canonAssetAddress: e.wethAddress,
       finalTokenAddress: o.wethAddress,
@@ -103,7 +103,7 @@ describe("Send from mainnet", function () {
     const USDC_AMOUNT = BN("500e6")
 
     const params: TradeParameters = {
-      flags: encodeFlagSet(w.CID.polygon, 2, 3000, 100, s.slippage, s.slippage, false, false),
+      flags: encodeFlagSet(w.CID.polygon, 2, 3000, 100, false, false),
       startTokenAddress: e.usdcAddress,
       canonAssetAddress: e.wethAddress,
       finalTokenAddress: o.wethAddress,
@@ -133,7 +133,7 @@ describe("Send from mainnet", function () {
     const ethAmount = BN("25e16")
 
     const params: TradeParameters = {
-      flags: encodeFlagSet(w.CID.polygon, 3, 3000, 100, s.slippage, s.slippage, true, false),
+      flags: encodeFlagSet(w.CID.polygon, 3, 3000, 100, true, false),
       startTokenAddress: e.wethAddress,
       canonAssetAddress: e.usdcAddress,
       finalTokenAddress: o.wethAddress,
@@ -164,7 +164,7 @@ describe("Send from mainnet", function () {
   it("Send mainnet tx => op wrapping native eth", async () => {
 
     const params: TradeParameters = {
-      flags: encodeFlagSet(w.CID.optimism, 4, 100, 100, s.slippage, s.slippage, true, true),
+      flags: encodeFlagSet(w.CID.optimism, 4, 100, 100, true, true),
       startTokenAddress: e.wethAddress,
       canonAssetAddress: e.wethAddress,
       finalTokenAddress: o.wethAddress,

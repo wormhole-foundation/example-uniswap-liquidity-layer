@@ -105,8 +105,6 @@ export const encodeFlagSet = (
   bridgeNonce: number,
   feeTierStart: number,
   feeTierFinish: number,
-  maxSlippageStart: number,
-  maxSlippageFinish: number,
   shouldWrapNative: boolean,
   shouldUnwrapNative: boolean,
 ): Hex => {
@@ -122,9 +120,7 @@ export const encodeFlagSet = (
     + leSize(bridgeNonce, 4) // next four bridge nonce
     + leSize(feeTierStart, 3) // fee tier 3
     + leSize(feeTierFinish, 3)
-    + leSize(maxSlippageStart, 2) // slippage 2
-    + leSize(maxSlippageFinish, 2)
-    + "0".repeat(15 * 2) // 16-30, so 15*2 zeros
+    + "0".repeat(19 * 2) // 12-30, so 19*2 zeros
     + leSize(bitSet, 1)
   return ans as Hex
 }
