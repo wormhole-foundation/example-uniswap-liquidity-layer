@@ -45,25 +45,13 @@ contract PorticoBase is Ownable, ReentrancyGuard {
   }
 
   ///@notice if current approval is insufficient, approve max
-  ///@notice if current approval is insufficient but > 0, approve 0 first
+  ///@notice oz safeIncreaseAllowance controls for tokens that require allowance to be reset to 0 before increasing again
   function updateApproval(address spender, IERC20 token, uint256 amount) internal {
     // get current allowance
     uint256 currentAllowance = token.allowance(address(this), spender);
-
-    /**
-    // oz safeIncreaseAllowance controls for tokens that require allowance to be reset to 0 before increasing again
     if (currentAllowance < amount) {
-      token.safeIncreaseAllowance(spender, 2 ** 256 - 1);
-    }
-    */
-
-    if (currentAllowance < amount) {
-      // reset approval if allowance greater than 0 but less than amount
-      if (currentAllowance != 0) {
-        token.safeDecreaseAllowance(spender, currentAllowance);
-      }
-      // approve maximum
-      token.safeIncreaseAllowance(spender, 2 ** 256 - 1);
+      // amount is a delta, so need to pass max - current to avoid overflow
+      token.safeIncreaseAllowance(spender, type(uint256).max - (currentAllowance + 1));
     }
   }
 }
@@ -250,13 +238,13 @@ abstract contract PorticoFinish is PorticoBase {
   }
 
   /**
-    * @notice perform the swap via Uniswap V3 Router
-    * if swap fails, we don't pay fees to the relayer
-    * the reason is because that typically, the swap fails because of bad market conditions
-    * in this case, it is in the best interest of the mev/relayer to NOT relay this message until conditions are good
-    * the user of course, who if they self relay, does not pay a fee, does not have this problem, so they can force this if they wish
-    * swap failed - return canon asset to recipient
-    * it will return true if the swap was completed, indicating that funds need to be sent from this contract to the recipient
+   * @notice perform the swap via Uniswap V3 Router
+   * if swap fails, we don't pay fees to the relayer
+   * the reason is because that typically, the swap fails because of bad market conditions
+   * in this case, it is in the best interest of the mev/relayer to NOT relay this message until conditions are good
+   * the user of course, who if they self relay, does not pay a fee, does not have this problem, so they can force this if they wish
+   * swap failed - return canon asset to recipient
+   * it will return true if the swap was completed, indicating that funds need to be sent from this contract to the recipient
    */
   function _finish_v3swap(
     PorticoStructs.DecodedVAA memory params,
