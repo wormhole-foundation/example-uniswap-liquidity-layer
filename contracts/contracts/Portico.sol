@@ -47,22 +47,22 @@ contract PorticoBase is Ownable, ReentrancyGuard {
   ///@notice if current approval is insufficient, approve max
   ///@notice if current approval is insufficient but > 0, approve 0 first
   function updateApproval(address spender, IERC20 token, uint256 amount) internal {
-    //get current allowance
+    // get current allowance
     uint256 currentAllowance = token.allowance(address(this), spender);
 
     /**
-    //oz safeIncreaseAllowance controls for tokens that require allowance to be reset to 0 before increasing again
+    // oz safeIncreaseAllowance controls for tokens that require allowance to be reset to 0 before increasing again
     if (currentAllowance < amount) {
       token.safeIncreaseAllowance(spender, 2 ** 256 - 1);
     }
-    */   
+    */
 
     if (currentAllowance < amount) {
-      //reset approval if allowance greater than 0 but less than amount
+      // reset approval if allowance greater than 0 but less than amount
       if (currentAllowance != 0) {
         token.safeDecreaseAllowance(spender, currentAllowance);
       }
-      //approve maximum
+      // approve maximum
       token.safeIncreaseAllowance(spender, 2 ** 256 - 1);
     }
   }
@@ -72,16 +72,12 @@ abstract contract PorticoStart is PorticoBase {
   using PorticoFlagSetAccess for PorticoFlagSet;
   using SafeERC20 for IERC20;
 
-  function padAddress(address addr) internal pure returns (bytes32) {
-    return bytes32(uint256(uint160(addr)));
-  }
-
   function _start_v3swap(PorticoStructs.TradeParameters memory params, uint256 actualAmount) internal returns (uint256 amount) {
     updateApproval(address(ROUTERV3), params.startTokenAddress, actualAmount);
 
     ROUTERV3.exactInputSingle(
       ISwapRouter02.ExactInputSingleParams(
-        address(params.startTokenAddress), // tokenIn
+        address(params.startTokenAddress), //tokenIn
         address(params.canonAssetAddress), //tokenOut
         params.flags.feeTierStart(), //fee
         address(this), //recipient
@@ -104,24 +100,24 @@ abstract contract PorticoStart is PorticoBase {
     uint256 value = msg.value;
     // always check for native wrapping logic
     if (address(params.startTokenAddress) == address(WETH) && params.flags.shouldWrapNative()) {
-      //if wrapping, msg.value should be exactly amountSpecified + wormhole message fee
+      // if wrapping, msg.value should be exactly amountSpecified + wormhole message fee
       require(value == params.amountSpecified + whMessageFee, "msg.value incorrect");
-      // if we are wrapping a token, we call deposit for the user, assuming we have been send what we need.
+      // if we are wrapping a token, we call WETH.deposit for the user, assuming we have been sent what we need.
       WETH.deposit{ value: params.amountSpecified }();
-      //Because wormhole rounds to 1e8, some dust may exist from previous txs
-      //we use balanceOf to lump this in with future txs
+      // because wormhole rounds to 1e8, some dust may exist from previous txs
+      // we use balanceOf to lump this in with future txs
       amount = WETH.balanceOf(address(this));
     } else {
-      //ensure no eth needs to be refunded
+      // ensure no eth needs to be refunded
       require(value == whMessageFee, "msg.value incorrect");
       // otherwise, just get the token we need to do the swap (if we are swapping, or just the token itself)
       params.startTokenAddress.safeTransferFrom(_msgSender(), address(this), params.amountSpecified);
-      //Because wormhole rounds to 1e8, some dust may exist from previous txs
-      //we use balanceOf to lump this in with future txs
+      // Because wormhole rounds to 1e8, some dust may exist from previous txs
+      // we use balanceOf to lump this in with future txs
       amount = params.startTokenAddress.balanceOf(address(this));
     }
 
-    //sanity check amount received
+    // sanity check amount received
     require(amount >= params.amountSpecified, "transfer insufficient");
 
     // if the start token is the canon token, we don't need to swap
@@ -143,6 +139,7 @@ abstract contract PorticoStart is PorticoBase {
       params.relayerFee
     );
 
+    // send the actual transfer tx, and get the sequence
     sequence = TOKENBRIDGE.transferTokensWithPayload{ value: whMessageFee }(
       address(params.canonAssetAddress),
       amount,
@@ -152,9 +149,19 @@ abstract contract PorticoStart is PorticoBase {
       abi.encode(decodedVAA)
     );
 
+    // local chain id
     chainId = wormholeChainId;
+
+    // emitter is the local tokenbridge
     emitterAddress = address(TOKENBRIDGE);
+
+    // emit event
     emit PorticoSwapStart(sequence, chainId);
+  }
+
+  ///@notice @return addr in bytes32 format, as required by Wormhole
+  function padAddress(address addr) internal pure returns (bytes32) {
+    return bytes32(uint256(uint160(addr)));
   }
 }
 
@@ -164,33 +171,13 @@ abstract contract PorticoFinish is PorticoBase {
 
   event PorticoSwapFinish(bool swapCompleted, uint256 finaluserAmount, uint256 relayerFeeAmount, PorticoStructs.DecodedVAA data);
 
-  receive() external payable {}
-
-  ///@dev https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/main/src/Utils.sol#L10-L15
-  function unpadAddress(bytes32 whFormatAddress) internal pure returns (address) {
-    if (uint256(whFormatAddress) >> 160 != 0) {
-      revert("Not EVM Addr");
-    }
-    return address(uint160(uint256(whFormatAddress)));
-  }
-
-  ///@notice send ether without exposing to gas griefing attacks via returned bytes
-  function sendEther(address to, uint256 value) internal {
-    bool sent;
-    assembly {
-      sent := call(gas(), to, value, 0, 0, 0, 0)
-    }
-    if (!sent) {
-      revert("failed to send ether");
-    }
-  }
-
   // receiveMessageAndSwap is the entrypoint for finishing the swap
   function receiveMessageAndSwap(bytes calldata encodedTransferMessage) external nonReentrant {
     // start by calling _completeTransfer, submitting the VAA to the token bridge
     (PorticoStructs.DecodedVAA memory message, PorticoStructs.BridgeInfo memory bridgeInfo) = _completeTransfer(encodedTransferMessage);
 
-    // we modify the message to set the relayerFee to 0 if the msgSender is the fee recipient.
+    // we modify the message to set the relayerFee to 0 if the msgSender is the fee recipient
+    // this allows users to self-relay and not pay the fee, even if the fee was set to non-zero at tx origin
     bridgeInfo.relayerFeeAmount = (_msgSender() == message.recipientAddress) ? 0 : message.relayerFee;
 
     //now process
@@ -248,7 +235,8 @@ abstract contract PorticoFinish is PorticoBase {
       finalUserAmount = payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, bridgeInfo.relayerFeeAmount);
       return (false, finalUserAmount);
     }
-    //if we are here, if means we need to do the swap, resulting aset is sent to this address
+
+    // if we are here, if means we need to do the swap, resulting aset from the swap is sent to this contract
     swapCompleted = _finish_v3swap(params, bridgeInfo);
 
     // if the swap fails, we just transfer the amount we received from the token bridge to the recipientAddress.
@@ -261,17 +249,20 @@ abstract contract PorticoFinish is PorticoBase {
     finalUserAmount = payOut(shouldUnwrap, params.finalTokenAddress, params.recipientAddress, bridgeInfo.relayerFeeAmount);
   }
 
-  // if swap fails, we don't pay fees to the relayer
-  // the reason is because that typically, the swap fails because of bad market conditions
-  // in this case, it is in the best interest of the mev/relayer to NOT relay this message until conditions are good
-  // the user of course, who if they self relay, does not pay a fee, does not have this problem, so they can force this if they wish
-  // swap failed - return canon asset to recipient
-  // it will return true if the swap was completed, indicating that funds need to be sent from this contract to the recipient
+  /**
+    * @notice perform the swap via Uniswap V3 Router
+    * if swap fails, we don't pay fees to the relayer
+    * the reason is because that typically, the swap fails because of bad market conditions
+    * in this case, it is in the best interest of the mev/relayer to NOT relay this message until conditions are good
+    * the user of course, who if they self relay, does not pay a fee, does not have this problem, so they can force this if they wish
+    * swap failed - return canon asset to recipient
+    * it will return true if the swap was completed, indicating that funds need to be sent from this contract to the recipient
+   */
   function _finish_v3swap(
     PorticoStructs.DecodedVAA memory params,
     PorticoStructs.BridgeInfo memory bridgeInfo
   ) internal returns (bool swapCompleted) {
-    // set swap options with user params
+    // set swap options with params decoded from the payload
     ISwapRouter02.ExactInputSingleParams memory swapParams = ISwapRouter02.ExactInputSingleParams({
       tokenIn: address(bridgeInfo.tokenReceived),
       tokenOut: address(params.finalTokenAddress),
@@ -279,11 +270,13 @@ abstract contract PorticoFinish is PorticoBase {
       recipient: address(this), // we need to receive the token in order to correctly split the fee. tragic.
       amountIn: bridgeInfo.amountReceived,
       amountOutMinimum: params.minAmountFinish,
-      sqrtPriceLimitX96: 0 //sqrtPriceLimit
+      sqrtPriceLimitX96: 0 //sqrtPriceLimit is not used
     });
 
+    // update approval
     updateApproval(address(ROUTERV3), bridgeInfo.tokenReceived, bridgeInfo.amountReceived);
-    // try to do the swap
+
+    // try the swap
     try ROUTERV3.exactInputSingle(swapParams) {
       swapCompleted = true;
     } catch {}
@@ -291,40 +284,64 @@ abstract contract PorticoFinish is PorticoBase {
 
   ///@notice pay out to user and relayer
   ///@notice this should always be called UNLESS swap fails, in which case payouts happen there
+  // NOTE if relayerFeeAmount is incorrectly scaled, then the end user may receive nothing, and all proceeds go to relayer
+  // it is incumbent upon the cross chain tx origin to ensure the relayerFeeAmount is passed correctly
   function payOut(bool unwrap, IERC20 finalToken, address recipient, uint256 relayerFeeAmount) internal returns (uint256 finalUserAmount) {
     uint256 totalBalance = finalToken.balanceOf(address(this));
 
-    //square up balances with what we actually have, don't trust reporting from the bridge
+    // square up balances with what we actually have, don't trust reporting from the bridge
     if (relayerFeeAmount > totalBalance) {
-      //control for underflow
+      // control for underflow
       finalUserAmount = 0;
       relayerFeeAmount = totalBalance;
     } else {
-      //user gets total - relayer fee
+      // user gets total - relayer fee
       finalUserAmount = totalBalance - relayerFeeAmount;
     }
 
+    // if feeRecipient is not set, then send fees to msg.sender
     address feeRecipient = FEE_RECIPIENT == address(0x0) ? _msgSender() : FEE_RECIPIENT;
 
     if (unwrap) {
       WETH.withdraw(WETH.balanceOf(address(this)));
       if (finalUserAmount > 0) {
-        //send to user
+        // send to user
         sendEther(recipient, finalUserAmount);
       }
       if (relayerFeeAmount > 0) {
-        //pay relayer fee
+        // pay relayer fee
         sendEther(feeRecipient, relayerFeeAmount);
       }
     } else {
-      //pay recipient
+      // send to user
       if (finalUserAmount > 0) {
         finalToken.safeTransfer(recipient, finalUserAmount);
       }
       if (relayerFeeAmount > 0) {
-        //pay relayer
+        // pay relayer fee
         finalToken.safeTransfer(feeRecipient, relayerFeeAmount);
       }
+    }
+  }
+
+  receive() external payable {}
+
+  ///@dev https://github.com/wormhole-foundation/wormhole-solidity-sdk/blob/main/src/Utils.sol#L10-L15
+  function unpadAddress(bytes32 whFormatAddress) internal pure returns (address) {
+    if (uint256(whFormatAddress) >> 160 != 0) {
+      revert("Not EVM Addr");
+    }
+    return address(uint160(uint256(whFormatAddress)));
+  }
+
+  ///@notice send ether without exposing to gas griefing attacks via returned bytes
+  function sendEther(address to, uint256 value) internal {
+    bool sent;
+    assembly {
+      sent := call(gas(), to, value, 0, 0, 0, 0)
+    }
+    if (!sent) {
+      revert("failed to send ether");
     }
   }
 }

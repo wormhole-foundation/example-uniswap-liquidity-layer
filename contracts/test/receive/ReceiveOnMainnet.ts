@@ -92,12 +92,22 @@ describe("Receive On Mainnet", () => {
         [expectedVAA]
       )
     })
+
+    //set fee recipient
+    await s.Portico.connect(s.Frank).setFeeRecipient(s.Frank.address)
+
+    //verify initial balance
+    expect(await s.WETH.balanceOf(s.Frank.address)).to.eq(0, "Frank holds 0 WETH")
     
     const startEthBalance = await ethers.provider.getBalance(s.Bob.address)
     expect(await ethers.provider.getBalance(s.Portico.address)).to.eq(0, "0 ETH on Portico")
 
     //input data doesn't matter, we spoof the returns
+    //in this scenario, Bob is self-relaying, so the relayer (Frank) should not receive the fee
     await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x")
+
+    //relayer did not receive the fee because Bob self-relayed
+    expect(await s.WETH.balanceOf(s.Frank.address)).to.eq(0, "Relayer Fee Not Paid")
 
     expect(await s.WETH.balanceOf(s.Portico.address)).to.eq(0, "0 WETH on Portico after swap")
     expect(await ethers.provider.getBalance(s.Portico.address)).to.eq(0, "0 ETH on Portico after swap")

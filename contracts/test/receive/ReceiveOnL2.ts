@@ -123,9 +123,7 @@ describe("Receive On OP", () => {
     await s.Portico.connect(s.Frank).setFeeRecipient(s.Frank.address)
 
     //verify initial balance
-    let balance = await ethers.provider.getBalance(s.Frank.address)
     expect(await s.WETH.balanceOf(s.Frank.address)).to.eq(0, "Frank holds 0 WETH")
-
 
     expectedVAA = {
       flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, true, false),
@@ -158,17 +156,18 @@ describe("Receive On OP", () => {
     expect(await ethers.provider.getBalance(s.Portico.address)).to.eq(0, "0 ETH on Portico")
 
     //input data doesn't matter, we spoof the returns
+    //Bob initiated the tx, so Frank is acting as the relayer here
     await s.Portico.connect(s.Frank).receiveMessageAndSwap("0x1234")
 
-    expect(await s.WETH.balanceOf(s.Frank.address)).to.be.gt(0, "Relayer Fee Paid")
+    //relayer received the fee
+    expect(await s.WETH.balanceOf(s.Frank.address)).to.eq(s.ethRelayerFee, "Relayer Fee Paid")
+
     expect(await s.WETH.balanceOf(s.Portico.address)).to.eq(0, "0 WETH on Portico after swap")
     expect(await ethers.provider.getBalance(s.Portico.address)).to.eq(0, "0 ETH on Portico after swap")
     const endEthBalance = await ethers.provider.getBalance(s.Bob.address)
     const ethDelta = await toNumber(endEthBalance.sub(startEthBalance))
     expect(ethDelta).to.be.closeTo(await toNumber(s.WETH_AMOUNT), 0.01, "Eth received")
   })
-
-
 
   it("Failed swap, pool doesn't exist", async () => {
 
@@ -210,8 +209,6 @@ describe("Receive On OP", () => {
     expect(bobXeth).to.eq(s.WETH_AMOUNT, "Bob received the xETH")
   })
 
-
-
   it("Slippage too low for amount", async () => {
 
     const pool = "0xaC85eaf55E9C60eD40a683DE7e549d23FDfbEb33"
@@ -226,7 +223,7 @@ describe("Receive On OP", () => {
       finalTokenAddress: o.wethAddress,
       recipientAddress: s.Bob.address,
       canonAssetAmount: amount,
-      minAmountFinish: s.WETH_AMOUNT.div(2),
+      minAmountFinish: s.WETH_AMOUNT.mul(2),//min amount received too high
       relayerFee: s.L2relayerFee
     }
 
@@ -255,6 +252,9 @@ describe("Receive On OP", () => {
     showBodyCyan("Sending tx, this can take a while...")
     const gas = await getGas(await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x"))
     showBodyCyan("Failed receive swap: ", gas)
+
+    expect(await s.xETH.balanceOf(s.Bob.address)).to.be.gt(0, "Bob received xAsset")
+
 
 
   }).timeout(10000000)
