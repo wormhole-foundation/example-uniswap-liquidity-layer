@@ -43,8 +43,6 @@ export class OrderController {
         req.bridgeNonce || new Date().valueOf(),
         req.feeTierStart,
         req.feeTierEnd,
-        req.slippageStart,
-        req.slippageEnd,
         req.shouldWrapNative ||  false,
         req.shouldUnwrapNative || false,
       ),
@@ -54,6 +52,8 @@ export class OrderController {
       getAddress(req.destinationAddress),
       getAddress(destinationPorticoAddress),
       BigInt(req.startingTokenAmount),
+      BigInt(req.minAmountStart),
+      BigInt(req.minAmountEnd),
       BigInt(req.relayerFee),
     ]
 

@@ -48,11 +48,11 @@ export class CreateOrderRequest {
 
   @Integer()
   @Default(10)
-  slippageStart: number = 10
+  minAmountStart: number = 9000000000
 
   @Integer()
   @Default(10)
-  slippageEnd: number = 10
+  minAmountEnd: number = 9000000000
 
   @Integer()
   @Example(1)
