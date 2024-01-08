@@ -77,7 +77,7 @@ describe("Receive On OP", () => {
 
 
     expectedVAA = {
-      flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, 5000, 5000, true, true),
+      flags: encodeFlagSet(w.CID.optimism, 1, 100, 100, true, true),
       finalTokenAddress: o.wethAddress,
       recipientAddress: s.Bob.address,
       canonAssetAmount: s.WETH_AMOUNT,
@@ -107,7 +107,7 @@ describe("Receive On OP", () => {
     expect(await ethers.provider.getBalance(s.Portico.address)).to.eq(0, "0 ETH on Portico")
 
     //input data doesn't matter, we spoof the returns
-    await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x1234")
+    showBodyCyan("Gas to receive: ", await getGas(await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x1234")))
 
     expect(await s.WETH.balanceOf(s.Portico.address)).to.eq(0, "0 WETH on Portico after swap")
     expect(await ethers.provider.getBalance(s.Portico.address)).to.eq(0, "0 ETH on Portico after swap")
@@ -157,7 +157,7 @@ describe("Receive On OP", () => {
 
     //input data doesn't matter, we spoof the returns
     //Bob initiated the tx, so Frank is acting as the relayer here
-    await s.Portico.connect(s.Frank).receiveMessageAndSwap("0x1234")
+    showBodyCyan("Gas for relayer to relay: ", await getGas(await s.Portico.connect(s.Frank).receiveMessageAndSwap("0x1234")))
 
     //relayer received the fee
     expect(await s.WETH.balanceOf(s.Frank.address)).to.eq(s.ethRelayerFee, "Relayer Fee Paid")

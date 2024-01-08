@@ -1,6 +1,6 @@
 
 import { expect } from "chai";
-import { adddr2Bytes, encodeFlagSet, toNumber } from "../../util/msc";
+import { adddr2Bytes, encodeFlagSet, getGas, toNumber } from "../../util/msc";
 import { stealMoney } from "../../util/money";
 import { DecodedVAA, s } from "../scope";
 import { AbiCoder } from "ethers/lib/utils";
@@ -11,6 +11,7 @@ import { smock } from "@defi-wonderland/smock";
 import { DeployContract } from "../../util/deploy";
 import { e, p, w } from "../../util/addresser";
 import { zeroAddress } from "viem";
+import { showBody, showBodyCyan } from "../../util/format";
 const abi = new AbiCoder()
 
 
@@ -104,7 +105,7 @@ describe("Receive On Mainnet", () => {
 
     //input data doesn't matter, we spoof the returns
     //in this scenario, Bob is self-relaying, so the relayer (Frank) should not receive the fee
-    await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x")
+    showBodyCyan("Gas to receive: ", await getGas(await s.Portico.connect(s.Bob).receiveMessageAndSwap("0x1234")))
 
     //relayer did not receive the fee because Bob self-relayed
     expect(await s.WETH.balanceOf(s.Frank.address)).to.eq(0, "Relayer Fee Not Paid")

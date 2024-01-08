@@ -124,7 +124,7 @@ const config: HardhatUserConfig = {
         network: "base",
         chainId: 8453,
         urls: {
-          apiURL: process.env.BASE_URL!,
+          apiURL: "https://rpc.ankr.com/base",
           browserURL: "https://basescan.org/api"
         }
       }
