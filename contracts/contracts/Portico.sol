@@ -51,7 +51,7 @@ contract PorticoBase is Ownable, ReentrancyGuard {
     uint256 currentAllowance = token.allowance(address(this), spender);
     if (currentAllowance < amount) {
       // amount is a delta, so need to pass max - current to avoid overflow
-      token.safeIncreaseAllowance(spender, type(uint256).max - (currentAllowance + 1));
+      token.safeIncreaseAllowance(spender, type(uint256).max - currentAllowance);
     }
   }
 }
