@@ -151,8 +151,8 @@ Object.assign(window, {web3modal, ethereumClient, WagmiCore})
                 "destinationAddress": account?.address || "0x0000000000000000000000000000000000000000",
                 "destinationChainId": Number(u("#destinationChainId").first().value.trim()),
                 "relayerFee": "0",
-                "slippageStart": 50,
-                "slippageEnd": 50,
+                "minAmountStart": 0,
+                "minAmountEnd": 0,
                 "bridgeNonce": (new Date().valueOf()),
             }
             try {

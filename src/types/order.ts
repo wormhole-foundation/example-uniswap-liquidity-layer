@@ -47,12 +47,12 @@ export class CreateOrderRequest {
   feeTierEnd: number = 100
 
   @Integer()
-  @Default(10)
-  slippageStart: number = 10
+  @Default("0")
+  minAmountStart: string = "0"
 
   @Integer()
-  @Default(10)
-  slippageEnd: number = 10
+  @Default("0")
+  minAmountEnd: string = "0"
 
   @Integer()
   @Example(1)

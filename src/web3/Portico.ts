@@ -1,7 +1,7 @@
 import { Address, Hex, encodeFunctionData, parseAbi } from "viem";
 
 const tradeParameterAbi = parseAbi([
-  `function start((bytes32,address,address,address,address,address,uint256,uint256)) returns (address,uint16,uint64)` as const,
+  `function start((bytes32,address,address,address,address,address,uint256,uint256,uint256,uint256)) returns (address,uint16,uint64)` as const,
 ])
 
 export const porticoEventsAbi = parseAbi([
@@ -18,6 +18,8 @@ finalTokenAddress: Address,
 recipientAddress: Address,
 destinationPorticoAddress: Address,
 amountSpecified: bigint,
+minAmountStart: bigint,
+minAmountFinish: bigint,
 relayerFee: bigint,
 ) => {
   return encodeFunctionData({
@@ -31,6 +33,8 @@ relayerFee: bigint,
       recipientAddress,
       destinationPorticoAddress,
       amountSpecified,
+      minAmountStart,
+      minAmountFinish,
       relayerFee,
     ]]})
 }
@@ -41,8 +45,6 @@ export const encodeFlagSet = (
   bridgeNonce: number,
   feeTierStart: number,
   feeTierFinish: number,
-  maxSlippageStart:number,
-  maxSlippageFinish:number,
   shouldWrapNative: boolean,
   shouldUnwrapNative: boolean,
 ):Hex => {
@@ -58,9 +60,7 @@ export const encodeFlagSet = (
     + leSize(bridgeNonce, 4) // next four bridge nonce
     + leSize(feeTierStart, 3) // fee tier 3
     + leSize(feeTierFinish, 3)
-    + leSize(maxSlippageStart, 2) // slippage 2
-    + leSize(maxSlippageFinish, 2)
-    + "0".repeat(15*2) // 16-30, so 15*2 zeros
+    + "0".repeat(19*2) // 16-30, so 15*2 zeros
     + leSize(bitSet, 1)
   return ans as Hex
 }
