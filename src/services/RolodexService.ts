@@ -1,7 +1,7 @@
 import { Service} from "@tsed/di";
 import { MultiRpcService } from "./RpcServices";
 import { RedisService } from "./RedisService";
-import { arbitrum, base, bsc, mainnet, optimism, polygon } from "viem/chains";
+import { arbitrum, base, bsc, mainnet, optimism, polygon, avalanche } from "viem/chains";
 import { Address, getAddress } from "viem";
 import { v5 } from "uuid";
 import { BadRequest } from "@tsed/exceptions";
@@ -42,6 +42,9 @@ const canonAssetTable = withFlip({
     "0x4DB5a66E937A9F4473fA95b1cAF1d1E1D62E29EA": "eth",
     "0xad80e1a9b5824234afa9de1f3bbdb8a994796169": "wsteth",
   },
+  [avalanche.id]: {
+    "0x8b82A291F83ca07Af22120ABa21632088fC92931": "eth",
+  },
 })
 
 const nativeAssetTable = withFlip({
@@ -69,6 +72,9 @@ const nativeAssetTable = withFlip({
     "0x2170Ed0880ac9A755fd29B2688956BD959F933F8": "eth",
     "0x2Bbbdf97295F73175b12CC087cF446765931e1C3": "wsteth"
   },
+  [avalanche.id]: {
+    "0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab": "eth",
+  },
 })
 
 
@@ -88,6 +94,7 @@ export class RolodexService {
       [optimism.id]: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
       [base.id]: "0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a",
       [bsc.id]: "0x78D78E420Da98ad378D7799bE8f4AF69033EB077",
+      [avalanche.id]: "0xbe0F5544EC67e9B3b2D979aaA43f18Fd87E6257F"
     }[chainId]
     if(!ans) {
       throw new BadRequest("no portico found for chain")
@@ -103,6 +110,7 @@ export class RolodexService {
       [base.id]: "0x33128a8fC17869897dcE68Ed026d694621f6FDfD",
       [optimism.id]: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
       [bsc.id]: "0xB971eF87ede563556b2ED4b1C0b0019111Dd85d2",
+      [avalanche.id]: "0xbb00FF08d01D300023C629E8fFfFcb65A5a578cE"
     }[chainId]
     if(!ans) {
       throw new BadRequest("no portico found for chain")
@@ -117,6 +125,7 @@ export class RolodexService {
       [base.id]: "0x610d4DFAC3EC32e0be98D18DDb280DACD76A1889",
       [optimism.id]: "0x9ae506cDDd27DEe1275fd1fe6627E5dc65257061",
       [bsc.id]: "0x05498574BD0Fa99eeCB01e1241661E7eE58F8a85",
+      [avalanche.id]: "0xE565E118e75304dD3cF83dff409c90034b7EA18a"
     }[chainId]
     if(!ans) {
       throw new BadRequest("no portico found for chain")
@@ -132,6 +141,7 @@ export class RolodexService {
       [base.id]: "0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627",
       [optimism.id]: "0x1D68124e65faFC907325e3EDbF8c4d84499DAa8b",
       [bsc.id]: "0xB6F6D86a8f9879A9c87f643768d9efc38c1Da6E7",
+      [avalanche.id]: "0x0e082F06FF657D94310cB8cE8B0D9a04541d8052"
     }[chainId]
     if(!ans) {
       throw new BadRequest(`chain ${chainId} not supported`)
@@ -146,7 +156,8 @@ export class RolodexService {
       [polygon.id] : 5,
       [base.id]: 30,
       [optimism.id]: 24,
-      [bsc.id]: 4
+      [bsc.id]: 4,
+      [avalanche.id]: 6
     }[chainId]
     if(!ans)  {
       throw new BadRequest(`chain ${chainId} not supported`)
@@ -160,7 +171,9 @@ export class RolodexService {
       [5]: polygon.id,
       [30]:base.id,
       [24]: optimism.id,
-      [4]: bsc.id
+      [4]: bsc.id,
+      [6]: avalanche.id
+
     }[wormholeChainId] as (number | undefined)
     if(!ans) {
       throw new BadRequest(`no support for wormhole chain ${wormholeChainId}`)
