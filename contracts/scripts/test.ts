@@ -1,21 +1,12 @@
-import { formatEther, parseEther, zeroAddress } from "viem";
-import hre, { ethers, network } from "hardhat";
-import { currentBlock, resetCurrent, resetCurrentBase, resetCurrentBsc, resetCurrentOP, resetCurrentPoly } from "../util/block";
-import { b, bsc, e, o, p } from "../util/addresser"
-import { IERC20__factory, ITokenBridge__factory, IWETH__factory, IWormhole, IWormhole__factory, Portico, Portico__factory } from "../typechain-types";
-import { DeployContract } from "../util/deploy";
-import { DecodedVAA, Signatures, TradeParameters, VM, s } from "../test/scope";
-import { adddr2Bytes, encodeFlagSet, getEvent, getGas } from "../util/msc";
-import { ceaseImpersonation, impersonateAccount } from "../util/impersonator";
-import { BN } from "../util/number";
-import { stealMoney } from "../util/money";
-import { showBodyCyan } from "../util/format";
-import { Signer } from "ethers";
+import { zeroAddress } from "viem";
+import { ethers } from "hardhat";
+import { resetCurrentBase } from "../util/block";
+import { av, b, e } from "../util/addresser";
+import { IERC20__factory, ITokenBridge__factory, Portico } from "../typechain-types";
+import { adddr2Bytes } from "../util/msc";
 import { AbiCoder } from "ethers/lib/utils";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
-import { signedVAA } from "./receiveData"
-import { encode } from "punycode";
 
 const abi = new AbiCoder()
 
@@ -26,8 +17,8 @@ async function getxAsset(user: SignerWithAddress) {
 
     await resetCurrentBase()
 
-    const tb = ITokenBridge__factory.connect(b.tokenBridge, user)
-    const localCannonAsset = await tb.wrappedAsset(2, adddr2Bytes(e.usdcAddress))
+    const tb = ITokenBridge__factory.connect(av.tokenBridge, user)
+    const localCannonAsset = await tb.wrappedAsset(2, adddr2Bytes(e.wethAddress))
     console.log(localCannonAsset)
     const lca = IERC20__factory.connect(localCannonAsset, user)
     console.log("Decimals: ", await lca.decimals())
@@ -57,9 +48,9 @@ async function main() {
     const user = accounts[0];
     console.log("User: ", user.address)
 
-    await abiEncodeParams()
+    //await abiEncodeParams()
 
-    //await getxAsset(user)
+    await getxAsset(user)
 
     //portico = Portico__factory.connect("0x9816d7C448f79CdD4aF18c4Ae1726A14299E8C75", user)
 

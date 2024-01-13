@@ -88,7 +88,17 @@ const config: HardhatUserConfig = {
           : zaddr
       ],
       chainId: 56
+    },
+    avax: {
+      url: process.env.AVAX_URL ? process.env.AVAX_URL : zaddr,
+      accounts: [
+        process.env.MAINNET_PRIVATE_KEY
+          ? process.env.MAINNET_PRIVATE_KEY
+          : zaddr
+      ],
+      chainId: 43114
     }
+
   },
   solidity: {
     compilers: [
@@ -117,7 +127,8 @@ const config: HardhatUserConfig = {
       optimisticEthereum: process.env.OP_KEY!,
       arbitrumOne: process.env.ARB_API_KEY!,
       base: process.env.BASE_API_KEY!,
-      bsc: process.env.BSC_API_KEY!
+      bsc: process.env.BSC_API_KEY!,
+      routescan: "routescan"
     },
     customChains: [
       {
@@ -126,6 +137,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: "https://rpc.ankr.com/base",
           browserURL: "https://basescan.org/api"
+        }
+      },
+      {
+        network: "routescan",
+        chainId: 43114,
+        urls: {
+          apiURL: "https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan",
+          browserURL: "https://routescan.io"
         }
       }
     ]

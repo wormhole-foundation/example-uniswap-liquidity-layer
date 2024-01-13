@@ -1,7 +1,7 @@
-import { formatEther, parseEther, zeroAddress } from "viem";
+import { zeroAddress } from "viem";
 import hre, { ethers, network } from "hardhat";
-import { currentBlock, resetCurrent, resetCurrentArb, resetCurrentBase, resetCurrentBsc, resetCurrentPoly } from "../../util/block";
-import { a, b, bsc, e, o, p } from "../../util/addresser"
+import { currentBlock, resetCurrentBsc } from "../../util/block";
+import { a, av, b, bsc, e, o, p } from "../../util/addresser";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { Portico, Portico__factory } from "../../typechain-types";
 import { DeployContract } from "../../util/deploy";
@@ -19,7 +19,7 @@ const deploy = async (deployer: SignerWithAddress, mainnet: boolean) => {
     swapRouter,
     tokenBridge,
     weth,
-    zeroAddress,
+    "0x53207E216540125e322CdA8A693b0b89576DEb46"//zeroAddress,
   )
 
 
@@ -85,7 +85,12 @@ async function main() {
       swapRouter = bsc.uniRouter
       tokenBridge = bsc.tokenBridge
       weth = bsc.wethAddress
-    } else {
+    } else if (networkName == "avax") {
+      console.log("DEPLOYING TO AVAX")
+      swapRouter = av.uniRouter
+      tokenBridge = av.tokenBridge
+      weth = bsc.wethAddress
+    }else {
       //mainnet
       swapRouter = e.uniRouter
       tokenBridge = e.tokenBridge
@@ -109,13 +114,14 @@ main().catch((error) => {
 });
 
 /**
+DEPLOYING TO AVAX
 Deployer:  0x085909388fc0cE9E5761ac8608aF8f2F52cb8B89
-Portico Deployed:  0x610d4DFAC3EC32e0be98D18DDb280DACD76A1889
-swapRouter :  0x2626664c2603336E57B271c5C0b26F421741e481
-TokenBridge:  0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627
-Local weth :  0x4200000000000000000000000000000000000006
+Portico Deployed:  0xE565E118e75304dD3cF83dff409c90034b7EA18a
+swapRouter :  0xbb00FF08d01D300023C629E8fFfFcb65A5a578cE
+TokenBridge:  0x0e082F06FF657D94310cB8cE8B0D9a04541d8052
+Local weth :  0x2170Ed0880ac9A755fd29B2688956BD959F933F8
 
-hh verify --network base 0x610d4DFAC3EC32e0be98D18DDb280DACD76A1889 "0x2626664c2603336E57B271c5C0b26F421741e481" "0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627" "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" "0x4200000000000000000000000000000000000006"
+hh verify --network avax 0xE565E118e75304dD3cF83dff409c90034b7EA18a "0xbb00FF08d01D300023C629E8fFfFcb65A5a578cE" "0x0e082F06FF657D94310cB8cE8B0D9a04541d8052" "0x2170Ed0880ac9A755fd29B2688956BD959F933F8" "0x53207E216540125e322CdA8A693b0b89576DEb46"
 
 
  */

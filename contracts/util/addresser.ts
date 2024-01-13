@@ -44,15 +44,26 @@ export class WormholeConstants {
         optimism: 24,
         arbitrum: 23,
         base: 30,
-        bsc: 4
+        bsc: 4,
+        avax: 6
     }
 
     readonly WHaddrs = {
         poly: "0x7A4B5a56256163F07b2C80A7cA55aBE66c4ec4d7",
         op: "0xEe91C335eab126dF5fDB3797EA9d6aD93aeC9722",
         ethereum: "0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B",
-        bsc: "0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B"
+        bsc: "0x98f3c9e6E3fAce36bAAd05FE09d375Ef1464288B",
+        avax: "0x54a8e5f9c4CbA08F9943965859F6c34eAF03E26c"
     }
+}
+
+export class AvaxAddresses { 
+    readonly wethAddress: string = "0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab"
+    readonly wormWeth: string = "0x8b82A291F83ca07Af22120ABa21632088fC92931"
+    readonly tokenBridge: string = "0x0e082F06FF657D94310cB8cE8B0D9a04541d8052"
+    readonly uniRouter: string = "0xbb00FF08d01D300023C629E8fFfFcb65A5a578cE"
+    readonly portico03: string = "0xE565E118e75304dD3cF83dff409c90034b7EA18a"
+
 }
 
 export class PolygonAddresses{
@@ -189,6 +200,8 @@ export class OptimisimAddresses {
 
 
 export const a = new ArbAddresses()
+
+export const av = new AvaxAddresses()
 
 export const b = new BaseAddresses()
 
