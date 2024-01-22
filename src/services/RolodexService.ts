@@ -181,6 +181,7 @@ export class RolodexService {
     return ans
   }
   getCanonTokenForTokenName(chainId: number, token:string) {
+    token = token.toLowerCase()
     const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]
     if(!(ct && nt)) {
       throw new BadRequest(`no support for chain ${chainId}`)
@@ -192,6 +193,7 @@ export class RolodexService {
     return ans
   }
   getNativeTokenForTokenName(chainId: number, token:string) {
+    token = token.toLowerCase()
     const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]
     if(!(ct && nt)) {
       throw new BadRequest(`no support for chain ${chainId}`)
@@ -203,6 +205,7 @@ export class RolodexService {
     return  ans
   }
   getCanonTokenForToken(chainId: number, token:string) {
+    token = token.toLowerCase()
     const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]
     if(!(ct && nt)) {
       throw new BadRequest(`no support for chain ${chainId}`)
