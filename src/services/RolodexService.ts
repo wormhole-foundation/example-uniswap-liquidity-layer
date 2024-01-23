@@ -11,7 +11,8 @@ interface lut {[key:string]:{[key:string]:string}}
 const withFlip = (x:lut):lut => {
   for(const [k, v] of Object.entries(x)) {
     for(const [sk,sv] of Object.entries(v)) {
-      x[k][sv] = sk
+      x[k.toLowerCase()][sv.toLowerCase()] = sk.toLowerCase()
+      x[k.toLowerCase()][sk.toLowerCase()] = sv.toLowerCase()
     }
   }
   return x
