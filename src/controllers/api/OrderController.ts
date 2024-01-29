@@ -1,5 +1,5 @@
 import {Controller} from "@tsed/di";
-import { BadRequest } from "@tsed/exceptions";
+import { ServiceUnavailable } from "@tsed/exceptions";
 import { BodyParams, PathParams } from "@tsed/platform-params";
 import {Get, Pattern, Post, Returns} from "@tsed/schema";
 import { OrderModel, OrderStatus } from "src/models";
@@ -77,6 +77,14 @@ export class OrderController {
       estimatedAmountOut = secondQuote
     }catch {
       estimatedAmountOut = 0n
+    }
+
+    if(!req.slippageInBps) {
+      req.slippageInBps = 300
+    }
+
+    if((startDataParams[6] - (startDataParams[6] * BigInt(req.slippageInBps) / 10000n)) > startDataParams[7]) {
+      throw new ServiceUnavailable("not enough liquidity")
     }
 
     return {
