@@ -75,8 +75,8 @@ export class OrderController {
       const destinationCanonAsset = this.rolodexService.getCanonTokenForToken(req.destinationChainId, req.destinationToken)
       const secondQuote = await this.orderService.quoteTrade(req.destinationChainId, getAddress(destinationCanonAsset), getAddress(req.destinationToken), firstQuote ,req.feeTierEnd)
       estimatedAmountOut = secondQuote
-    }catch {
-      throw new ServiceUnavailable(`not enough liquidity. quote failed`)
+    }catch(e){
+      throw new ServiceUnavailable(`not enough liquidity. quote failed`, e)
     }
 
     if(!req.slippageInBps) {
