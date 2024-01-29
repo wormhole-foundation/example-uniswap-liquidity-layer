@@ -82,9 +82,11 @@ export class OrderController {
     if(!req.slippageInBps) {
       req.slippageInBps = 300
     }
-
-    if((startDataParams[6] - (startDataParams[6] * BigInt(req.slippageInBps) / 10000n)) > startDataParams[7]) {
-      throw new ServiceUnavailable("not enough liquidity")
+    const startingTokenAmount = startDataParams[6]
+    const slippageTokenAmount = (startDataParams[6] * BigInt(req.slippageInBps) / 10000n)
+    const  minAmountEnd = estimatedAmountOut
+    if((startingTokenAmount - slippageTokenAmount) > minAmountEnd) {
+      throw new ServiceUnavailable(`not enough liquidity. ${startingTokenAmount-slippageTokenAmount} > ${minAmountEnd}`)
     }
 
     return {
