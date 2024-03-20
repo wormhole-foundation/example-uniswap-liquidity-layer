@@ -1,34 +1,32 @@
 import hre, { ethers, network } from "hardhat";
-import { currentBlock, resetCurrent, resetCurrentArb, resetCurrentBase, resetCurrentOP, resetCurrentPoly } from "../../util/block";
-import { a, b, e, o, p, w } from "../../util/addresser";
+import { currentBlock, resetCurrent, resetCurrentArb, resetCurrentBase, resetCurrentBsc, resetCurrentOP, resetCurrentPoly } from "../../util/block";
+import { a, b, bsc, e, o, p, w } from "../../util/addresser";
 import { IERC20, IERC20__factory, ITokenBridge__factory, Portico, Portico__factory } from "../../typechain-types";
 import { TradeParameters } from "../../test/scope";
 import { adddr2Bytes, encodeFlagSet, getEvent } from "../../util/msc";
 import { BN } from "../../util/number";
 import { stealMoney } from "../../util/money";
-import { AbiCoder } from "ethers/lib/utils";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-const abi = new AbiCoder()
 
 
 //change these
 const destChainID = w.CID.polygon
 const feeIn = 100
 const feeOut = 100
-const slippage = 5000
-const wrapIn = true
+const wrapIn = false
 const wrapOut = false
-const amount = BN("20000000000")
-const relayerFee = BN("80000000")
+const amount = BN("100000000000000")
+const relayerFee = BN("0")
 
 //which network to send from when testing
-const testNetwork = "op"
+const testNetwork = "bsc"
 const testNetworks = [
     "polygon",
     "op",
     "arbitrum",
     "base",
-    "mainnet"
+    "mainnet",
+    "bsc"
 ]
 
 let portico: Portico//Portico
@@ -47,11 +45,13 @@ const send = async (user: SignerWithAddress, mainnet: boolean) => {
         recipientAddress: user.address,
         recipientPorticoAddress: "",
         amountSpecified: amount,
+        minAmountStart: amount.div(2),
+        minAmountFinish: amount.div(2),
         relayerFee: relayerFee
     }
 
     //encode flags
-    inputData.flags = encodeFlagSet(destChainID, 1, feeIn, feeOut, slippage, slippage, wrapIn, wrapOut)
+    inputData.flags = encodeFlagSet(destChainID, 1, feeIn, feeOut, wrapIn, wrapOut)
 
     //set dest addrs
     if (destChainID == w.CID.polygon) {
@@ -74,7 +74,7 @@ const send = async (user: SignerWithAddress, mainnet: boolean) => {
         inputData.finalTokenAddress = b.wethAddress
         inputData.recipientPorticoAddress = b.portico02
     }
-    
+
     console.log("Sending to Portico: ", portico.address)
     console.log("Input Data: ")
     console.log(inputData)
@@ -204,14 +204,25 @@ async function main() {
 
             console.log("TEST TX ON MAINNET @ ", await (await currentBlock()).number)
 
+        } else if (testNetwork == testNetworks[5]) {
+
+            await resetCurrentBsc()
+
+            //set chain specifics
+            portico = Portico__factory.connect(bsc.porticoPancake, user)
+            WETH = IERC20__factory.connect(bsc.wethAddress, user)
+            localCannonAsset = bsc.wormWeth
+
+            //fund 
+            const whale = bsc.bscBank
+            await stealMoney(whale, user.address, WETH.address, amount)
+
+
+
+            console.log("TEST TX ON BSC  @ ", await (await currentBlock()).number)
+
         }
-
-
-
-
-
         mainnet = false
-
 
     } else {
         console.log("SENDING FROM: ", networkName)
@@ -241,6 +252,12 @@ async function main() {
             portico = Portico__factory.connect(b.portico02, user)
             WETH = IERC20__factory.connect(b.wethAddress, user)
             const tb = ITokenBridge__factory.connect(b.tokenBridge, user)
+            localCannonAsset = await tb.wrappedAsset(2, adddr2Bytes(e.wethAddress))
+
+        } else if (networkName == "bsc") {
+            portico = Portico__factory.connect(bsc.porticoPancake, user)
+            WETH = IERC20__factory.connect(bsc.wethAddress, user)
+            const tb = ITokenBridge__factory.connect(bsc.tokenBridge, user)
             localCannonAsset = await tb.wrappedAsset(2, adddr2Bytes(e.wethAddress))
 
         } else {

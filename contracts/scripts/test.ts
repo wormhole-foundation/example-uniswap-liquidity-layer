@@ -1,7 +1,7 @@
 import { zeroAddress } from "viem";
 import { ethers } from "hardhat";
-import { resetCurrentBase } from "../util/block";
-import { av, b, e } from "../util/addresser";
+import { resetCurrentArb, resetCurrentAvax, resetCurrentBase, resetCurrentOP, resetCurrentPoly } from "../util/block";
+import { a, av, b, e, o, p } from "../util/addresser";
 import { IERC20__factory, ITokenBridge__factory, Portico } from "../typechain-types";
 import { adddr2Bytes } from "../util/msc";
 import { AbiCoder } from "ethers/lib/utils";
@@ -15,10 +15,10 @@ let portico: Portico
 ///0x0000000000000000000000007f39c581f595b53c5cb19bd0b3f8da6c935e2ca0
 async function getxAsset(user: SignerWithAddress) {
 
-    await resetCurrentBase()
+    await resetCurrentOP()
 
-    const tb = ITokenBridge__factory.connect(av.tokenBridge, user)
-    const localCannonAsset = await tb.wrappedAsset(2, adddr2Bytes(e.wethAddress))
+    const tb = ITokenBridge__factory.connect(o.opTokenBridge, user)
+    const localCannonAsset = await tb.wrappedAsset(2, adddr2Bytes(e.usdtAddress))
     console.log(localCannonAsset)
     const lca = IERC20__factory.connect(localCannonAsset, user)
     console.log("Decimals: ", await lca.decimals())

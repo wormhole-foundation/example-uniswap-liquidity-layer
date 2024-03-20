@@ -125,6 +125,20 @@ export const resetCurrentBsc = async () => {
     });
 }
 
+
+export const resetCurrentAvax = async () => {
+    await network.provider.request({
+        method: "hardhat_reset",
+        params: [
+            {
+                forking: {
+                    jsonRpcUrl: process.env.AVAX_URL!
+                },
+            },
+        ],
+    });
+}
+
 export const resetCurrentGo = async () => {
     await network.provider.request({
         method: "hardhat_reset",

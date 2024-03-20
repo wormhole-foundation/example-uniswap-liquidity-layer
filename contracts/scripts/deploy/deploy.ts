@@ -1,6 +1,5 @@
-import { zeroAddress } from "viem";
 import hre, { ethers, network } from "hardhat";
-import { currentBlock, resetCurrentBsc } from "../../util/block";
+import { currentBlock, resetCurrent, resetCurrentArb, resetCurrentBase } from "../../util/block";
 import { a, av, b, bsc, e, o, p } from "../../util/addresser";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { Portico, Portico__factory } from "../../typechain-types";
@@ -10,6 +9,7 @@ let portico: Portico
 let swapRouter: string
 let tokenBridge: string
 let weth: string
+const feeRecpient = "0x53207E216540125e322CdA8A693b0b89576DEb46"//zeroAddress
 
 const deploy = async (deployer: SignerWithAddress, mainnet: boolean) => {
 
@@ -19,7 +19,7 @@ const deploy = async (deployer: SignerWithAddress, mainnet: boolean) => {
     swapRouter,
     tokenBridge,
     weth,
-    "0x53207E216540125e322CdA8A693b0b89576DEb46"//zeroAddress,
+    feeRecpient//"0x53207E216540125e322CdA8A693b0b89576DEb46"//zeroAddress,
   )
 
 
@@ -40,7 +40,7 @@ const deploy = async (deployer: SignerWithAddress, mainnet: boolean) => {
         swapRouter,
         tokenBridge,
         weth,
-        zeroAddress,
+        feeRecpient,
       ],
     })
     console.log("verified")
@@ -55,12 +55,12 @@ async function main() {
   if (networkName == "hardhat" || networkName == "localhost") {
     await network.provider.send("evm_setAutomine", [true])
 
-    await resetCurrentBsc()
+    await resetCurrent()
     mainnet = false
     console.log("TEST DEPLOYMENT @ ", await (await currentBlock()).number)
-    swapRouter = bsc.uniRouter
-    tokenBridge = bsc.tokenBridge
-    weth = bsc.wethAddress
+    swapRouter = e.pcsSwapRouter
+    tokenBridge = e.tokenBridge
+    weth = e.wethAddress
 
   } else {
     console.log("DEPLOYING TO: ", networkName)
@@ -74,30 +74,28 @@ async function main() {
       tokenBridge = p.polyTokenBridge
       weth = p.wethAddress
     } else if (networkName == "arbitrum") {
-      swapRouter = a.uniRouter
+      swapRouter = a.pcsSwapRouter
       tokenBridge = a.tokenBridge
       weth = a.wethAddress
     }else if (networkName == "base") {
-      swapRouter = b.uniRouter
+      swapRouter = b.pcsSwapRouter//b.uniRouter
       tokenBridge = b.tokenBridge
       weth = b.wethAddress
     }else if (networkName == "bsc") {
-      swapRouter = bsc.uniRouter
+      swapRouter = bsc.pcsSwapRouter//bsc.uniRouter
       tokenBridge = bsc.tokenBridge
       weth = bsc.wethAddress
     } else if (networkName == "avax") {
-      console.log("DEPLOYING TO AVAX")
       swapRouter = av.uniRouter
       tokenBridge = av.tokenBridge
       weth = bsc.wethAddress
     }else {
       //mainnet
-      swapRouter = e.uniRouter
+      swapRouter = e.pcsSwapRouter
       tokenBridge = e.tokenBridge
       weth = e.wethAddress
     }
   }
-
 
   const accounts = await ethers.getSigners();
   const deployer = accounts[0];
@@ -114,14 +112,13 @@ main().catch((error) => {
 });
 
 /**
-DEPLOYING TO AVAX
+DEPLOYING TO:  base
 Deployer:  0x085909388fc0cE9E5761ac8608aF8f2F52cb8B89
-Portico Deployed:  0xE565E118e75304dD3cF83dff409c90034b7EA18a
-swapRouter :  0xbb00FF08d01D300023C629E8fFfFcb65A5a578cE
-TokenBridge:  0x0e082F06FF657D94310cB8cE8B0D9a04541d8052
-Local weth :  0x2170Ed0880ac9A755fd29B2688956BD959F933F8
+Portico Deployed:  0x9128bA6B88a3851d6aa856aadE7dA0Bb694560Db
+swapRouter :  0x1b81D678ffb9C0263b24A97847620C99d213eB14
+TokenBridge:  0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627
+Local weth :  0x4200000000000000000000000000000000000006
 
-hh verify --network avax 0xE565E118e75304dD3cF83dff409c90034b7EA18a "0xbb00FF08d01D300023C629E8fFfFcb65A5a578cE" "0x0e082F06FF657D94310cB8cE8B0D9a04541d8052" "0x2170Ed0880ac9A755fd29B2688956BD959F933F8" "0x53207E216540125e322CdA8A693b0b89576DEb46"
-
+hh verify --network base 0x9128bA6B88a3851d6aa856aadE7dA0Bb694560Db "0x1b81D678ffb9C0263b24A97847620C99d213eB14" "0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627" "0x4200000000000000000000000000000000000006" "0x53207E216540125e322CdA8A693b0b89576DEb46"
 
  */

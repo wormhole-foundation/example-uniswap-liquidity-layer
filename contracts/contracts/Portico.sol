@@ -62,7 +62,6 @@ abstract contract PorticoStart is PorticoBase {
 
   function _start_v3swap(PorticoStructs.TradeParameters memory params, uint256 actualAmount) internal returns (uint256 amount) {
     updateApproval(address(ROUTERV3), params.startTokenAddress, actualAmount);
-
     ROUTERV3.exactInputSingle(
       ISwapRouter02.ExactInputSingleParams(
         address(params.startTokenAddress), //tokenIn
@@ -74,7 +73,6 @@ abstract contract PorticoStart is PorticoBase {
         0
       )
     );
-
     amount = params.canonAssetAddress.balanceOf(address(this));
   }
 

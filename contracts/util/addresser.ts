@@ -2,6 +2,8 @@ export class MainnetAddresses {
     readonly wethAddress: string = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
     readonly wstethAddress: string = "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0"
     readonly usdcAddress: string = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+    readonly usdtAddress: string = "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+    readonly usdtWhale: string = "0xF977814e90dA44bFA03b6295A0616a897441aceC"
     readonly usdcWethPool: string = "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8"
     readonly compAddress: string = "0xc00e94cb662c3520282e6f5717214004a7f26888"
     readonly wbtcAddress: string = "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599"
@@ -34,7 +36,9 @@ export class MainnetAddresses {
     readonly portico: string = "0xf4c22e13414bcC2FaB827D62De33C05E9B3955F7"
     readonly portico02: string = "0xd8E1465908103eD5fd28e381920575fb09beb264"//updated 12/12
     readonly portico03: string = "0x48b6101128C0ed1E208b7C910e60542A2ee6f476"
+    readonly pancakePortico: string = "0x4db1683d60e0a933A9A477a19FA32F472bB9d06e"
     readonly uniRouter: string = "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45"
+    readonly pcsSwapRouter: string = "0x13f4EA83D0bd40E75C8222255bc855a974568Dd4"
 }
 
 export class WormholeConstants {
@@ -60,6 +64,11 @@ export class WormholeConstants {
 export class AvaxAddresses { 
     readonly wethAddress: string = "0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab"
     readonly wormWeth: string = "0x8b82A291F83ca07Af22120ABa21632088fC92931"
+
+    readonly usdtAddress: string = "0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7"
+    readonly wormUsdt: string = "0x9d228444FC4B7E15A2C481b48E10247A03351FD8"//decimal 6
+    readonly usdtWhale: string = "0x5a52E96BAcdaBb82fd05763E25335261B270Efcb"
+    
     readonly tokenBridge: string = "0x0e082F06FF657D94310cB8cE8B0D9a04541d8052"
     readonly uniRouter: string = "0xbb00FF08d01D300023C629E8fFfFcb65A5a578cE"
     readonly portico03: string = "0xE565E118e75304dD3cF83dff409c90034b7EA18a"
@@ -69,6 +78,10 @@ export class AvaxAddresses {
 export class PolygonAddresses{
     readonly wethAddress: string = "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619"
     readonly wstethAddress: string = "0x03b54A6e9a984069379fae1a4fC4dBAE93B3bCCD"
+    readonly usdtAddress: string = "0xc2132D05D31c914a87C6611C10748AEb04B58e8F"
+    readonly wormUsdt: string = "0x9417669fBF23357D2774e9D421307bd5eA1006d2"
+    readonly usdtWhale: string = "0xF977814e90dA44bFA03b6295A0616a897441aceC"//binance hot wallet
+    
     readonly wormWeth: string = "0x11CD37bb86F65419713f30673A480EA33c826872"
     readonly wormWsteth: string = "0xe082a7Fc696De18172Ad08D956569Ee80BC37f06"
     readonly wormUSDC: string = "0x4318CB63A2b8edf2De971E2F17F77097e499459D"
@@ -91,6 +104,7 @@ export class ArbAddresses{
     readonly portico: string = "0x7C1Caa71943Ef43e9b203B02678000755a4eCdE9"
     readonly portico02: string = "0xf8497FE5B0C5373778BFa0a001d476A21e01f09b"//updated 12/12
     readonly portico03: string = "0x48fa7528bFD6164DdF09dF0Ed22451cF59c84130"
+    readonly pancakePortico: string = "0xE70946692E2e56ae47BfAe2d93d31bd60952B090"//"0xd8284305b520FF5486ab718DBdfe46f18454aeDE"
 
     readonly wethAddress: string = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1"
     readonly wormWeth: string = "0xD8369C2EDA18dD6518eABb1F85BD60606dEb39Ec"
@@ -98,14 +112,21 @@ export class ArbAddresses{
     readonly wstethAddress: string = "0x5979D7b546E38E414F7E9822514be443A4800529"
     readonly wormWsteth: string = "0xf2717122Dfdbe988ae811E7eFB157aAa07Ff9D0F"
 
+    readonly usdtWhale: string = "0xB38e8c17e38363aF6EbdCb3dAE12e0243582891D"//binance hot wallet
+    readonly usdtAddress: string = "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9"
+    readonly wormUsdt: string = "0xE4728F3E48E94C6DA2B53610E677cc241DAFB134"//decimal 6
+
     readonly swapRouter: string = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
     readonly uniRouter: string = "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45"
     readonly tokenBridge: string = "0x0b2402144Bb366A632D14B83F244D2e0e21bD39c"
+
+    readonly pcsSwapRouter: string = "0x32226588378236Fd0c7c4053999F88aC0e5cAc77"//"0x1b81D678ffb9C0263b24A97847620C99d213eB14"
 
 }
 
 export class BaseAddresses {
     readonly uniRouter: string = "0x2626664c2603336E57B271c5C0b26F421741e481"
+    readonly pcsSwapRouter: string = "0x678Aa4bF4E210cf2166753e054d5b7c31cc7fa86"//"0x1b81D678ffb9C0263b24A97847620C99d213eB14"
     readonly tokenBridge: string = "0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627"
     readonly wethAddress: string = "0x4200000000000000000000000000000000000006"
     readonly wstethAddress: string = "0xc1CBa3fCea344f92D9239c08C0568f6F2F0ee452"
@@ -113,9 +134,13 @@ export class BaseAddresses {
     readonly wormWeth: string = "0x71b35ECb35104773537f849FBC353F81303A5860"
     readonly wormWsteth: string = "0xEd4e2FD35161c3c0e33cA187fce64C70d44Ce32b"
     readonly wormUSDC: string = "0xec267C53f53807c2337C257f8AC3Fc3cC07cc0ed"//500 pool exists 0xB0eCE34DFCb616825576982247f74C7978771f78
+    readonly usdtAddress: string = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
+    readonly usdtWhale: string = "0xe75358526Ef4441Db03cCaEB9a87F180fAe80eb9"
+    readonly wormUsdt: string = "0xFf0C62A4979400841eFaA6faADb07Ac7d5C98b27"
     readonly portico: string = "0xBdCF0bb40eb8642f907133bDB5Fcc681D81f0651"//"0x05498574BD0Fa99eeCB01e1241661E7eE58F8a85"
     readonly portico02: string = "0x9816d7C448f79CdD4aF18c4Ae1726A14299E8C75"//updated 12/12
     readonly portico03: string = "0x610d4DFAC3EC32e0be98D18DDb280DACD76A1889"
+    readonly pancakePortico: string = "0x4568aa1eA0ED54db666c58B4526B3FC9BD9be9bf"//"0x9128bA6B88a3851d6aa856aadE7dA0Bb694560Db"
 }
 
 export class BscAddresses { 
@@ -124,6 +149,14 @@ export class BscAddresses {
     readonly wethAddress: string = "0x2170Ed0880ac9A755fd29B2688956BD959F933F8"
     readonly usdcAddress: string = "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d"
     readonly wstethAddress: string = "0x2Bbbdf97295F73175b12CC087cF446765931e1C3"
+    readonly wormUSDT: string = "0x524bC91Dc82d6b90EF29F76A3ECAaBAffFD490Bc"
+    readonly usdtAddress: string = "0x55d398326f99059fF775485246999027B3197955"
+
+    readonly pancakePortico: string = "0xF352DC165783538A26e38A536e76DceF227d90F2"
+    readonly pcsSwapRouter: string = "0x13f4EA83D0bd40E75C8222255bc855a974568Dd4"//smart router (use this)
+    readonly pcsRouter: string = "0x1b81D678ffb9C0263b24A97847620C99d213eB14"//swap router
+    readonly bscBank: string = "0xF977814e90dA44bFA03b6295A0616a897441aceC"//binance hot wallet
+    readonly usdtWhale: string = "0x58c3beC55C0F744f93DB7A4633aA7DD9a1C4D033"
 
     readonly wormWeth: string = "0x4DB5a66E937A9F4473fA95b1cAF1d1E1D62E29EA"
     readonly wormUSDC: string = "0xB04906e95AB5D797aDA81508115611fee694c2b3"
@@ -143,6 +176,8 @@ export class OptimisimAddresses {
     readonly wstethAddress: string = "0x1F32b1c2345538c0c6f582fCB022739c4A194Ebb"
     readonly rethAddress: string = "0x9Bcef72be871e61ED4fBbc7630889beE758eb81D"
     readonly snxAddress: string = "0x8700dAec35aF8Ff88c16BdF0418774CB3D7599B4"
+    readonly usdtAddress: string = "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58"
+    readonly wormUsdtAddress: string = "0xf6B4185FCf8aF291c0E3927fbEab7046b4f6A8CA"
 
     //Contracts
     readonly nfpManager: string = "0xC36442b4a4522E871399CD717aBDD847Ab11FE88"
