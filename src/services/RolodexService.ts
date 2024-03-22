@@ -56,7 +56,8 @@ const canonAssetTable = withFlip({
 const nativeAssetTable = withFlip({
   [mainnet.id]: {
     "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0": "wsteth",
-    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": "eth"
+    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": "eth",
+    "0xdAC17F958D2ee523a2206206994597C13D831ec7": "usdt"
   },
   [arbitrum.id]: {
     "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": "eth",
@@ -103,6 +104,20 @@ export class RolodexService {
   ) {
   }
 
+  getQuoterPcs(chainId: number): Address {
+    const ans = {
+      [mainnet.id]: "0xB048Bbc1Ee6b733FFfCFb9e9CeF7375518e25997",
+      [arbitrum.id]: "0xB048Bbc1Ee6b733FFfCFb9e9CeF7375518e25997",
+      [base.id]: "0xB048Bbc1Ee6b733FFfCFb9e9CeF7375518e25997",
+      [bsc.id]: "0xB048Bbc1Ee6b733FFfCFb9e9CeF7375518e25997",
+    }[chainId]
+    if (!ans) {
+      throw new BadRequest("no portico found for chain")
+    }
+    return getAddress(ans)
+  }
+
+
   getQuoterV2(chainId: number): Address {
     const ans = {
       [mainnet.id]: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
@@ -137,7 +152,7 @@ export class RolodexService {
       [mainnet.id]: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
       [arbitrum.id]: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
       [polygon.id]: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
-      [base.id]: "0x33128a8fC17869897dcE68Ed026d694621f6FDfD",
+      [base.id]: "0x2626664c2603336E57B271c5C0b26F421741e481",
       [optimism.id]: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
       [bsc.id]: "0xB971eF87ede563556b2ED4b1C0b0019111Dd85d2",
       [avalanche.id]: "0xbb00FF08d01D300023C629E8fFfFcb65A5a578cE"
