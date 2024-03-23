@@ -208,6 +208,16 @@ export class RolodexService {
     return getAddress(ans)
   }
 
+  confirmPortico(contractAddress: Address, chainid: number): Address {
+    if(contractAddress == this.getPcsPortico(chainid)){
+      return contractAddress
+    }
+    if(contractAddress == this.getUniPortico(chainid)){
+      return contractAddress
+    }
+  }
+
+
   getUniPortico(chainId: number): Address {
     const ans = {
       [mainnet.id]: "0x48b6101128C0ed1E208b7C910e60542A2ee6f476",
@@ -284,14 +294,7 @@ export class RolodexService {
     }
     return ans
   }
-
-  getCanonTokenNameForToken(chainId: number, token: string){
-    const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]
-    if (!(ct && nt)) {
-      throw new BadRequest(`no support for chain ${chainId}`)
-    }
-  }
-
+  
   getCanonTokenForTokenName(chainId: number, token: string) {
     const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]
     if (!(ct && nt)) {
