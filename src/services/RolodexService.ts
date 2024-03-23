@@ -4,6 +4,7 @@ import { RedisService } from "./RedisService";
 import { arbitrum, base, bsc, mainnet, optimism, polygon, avalanche } from "viem/chains";
 import { Address, getAddress } from "viem";
 import { BadRequest } from "@tsed/exceptions";
+import { start } from "repl";
 
 interface lut { [key: string]: { [key: string]: string } }
 
@@ -117,8 +118,26 @@ export class RolodexService {
     return getAddress(ans)
   }
 
+  getQuoterV2(startToken: string, endToken: string, chainId: number): Address {
 
-  getQuoterV2(chainId: number): Address {
+    let pcs = false
+
+    const cannonUsdt = this.getCanonTokenForTokenName(chainId, "usdt")
+    const nativeUsdt = this.getNativeTokenForTokenName(chainId, "usdt")
+
+    //if either of the tokens are either native or cannon usdt, then pcs == true
+    if(getAddress(startToken) == getAddress(cannonUsdt) || getAddress(endToken) == getAddress(nativeUsdt)){
+      pcs = true
+    }
+
+    if(pcs){
+      return this.getQuoterPcs(chainId)
+    }else{
+      return this.getQuoterUni(chainId)
+    }
+  }
+
+  getQuoterUni(chainId: number): Address {
     const ans = {
       [mainnet.id]: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
       [arbitrum.id]: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
@@ -265,6 +284,14 @@ export class RolodexService {
     }
     return ans
   }
+
+  getCanonTokenNameForToken(chainId: number, token: string){
+    const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]
+    if (!(ct && nt)) {
+      throw new BadRequest(`no support for chain ${chainId}`)
+    }
+  }
+
   getCanonTokenForTokenName(chainId: number, token: string) {
     const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]
     if (!(ct && nt)) {

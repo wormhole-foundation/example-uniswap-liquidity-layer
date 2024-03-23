@@ -1,12 +1,12 @@
-import {Controller} from "@tsed/di";
-import { BadRequest } from "@tsed/exceptions";
+import { Controller } from "@tsed/di";
+import { ServiceUnvailable } from "@tsed/exceptions";
 import { BodyParams, PathParams } from "@tsed/platform-params";
-import {Get, Pattern, Post, Returns} from "@tsed/schema";
-import { OrderModel, OrderStatus } from "src/models";
+import { Get, Pattern, Post, Returns } from "@tsed/schema";
+import { OrderModel } from "src/models";
 import { OrderService, RolodexService } from "src/services";
-import { CreateOrderRequest, CreateOrderResponse, CreateQuoteRequest} from "src/types";
+import { CreateOrderRequest, CreateOrderResponse } from "src/types";
 import { encodeFlagSet, encodeStartData } from "src/web3";
-import { Address, Hex, checksumAddress, getAddress, isAddress, toHex } from "viem";
+import { Hex, getAddress, toHex } from "viem";
 
 @Controller("/order")
 export class OrderController {
@@ -33,7 +33,7 @@ export class OrderController {
 
     const wormholeDestinationChainId = this.rolodexService.getWormholeChainId(req.destinationChainId)
 
-    let destinationPorticoAddress = this.rolodexService.getPortico(req.destinationChainId)
+    let destinationPorticoAddress = this.rolodexService.getPortico(req.destinationToken, req.destinationChainId)
     if(req.destinationPorticoAddress && req.destinationPorticoAddress.length == 42) {
       destinationPorticoAddress = req.destinationPorticoAddress
     }
@@ -57,10 +57,10 @@ export class OrderController {
       BigInt(req.relayerFee),
     ]
 
-    let transactionData = encodeStartData(
+    const transactionData = encodeStartData(
       ...startDataParams
     )
-    let porticoAddress = this.rolodexService.getPortico(req.startingChainId)
+    let porticoAddress = this.rolodexService.getPortico(req.startingToken, req.startingChainId)
     if(req.porticoAddress && req.porticoAddress.length == 42) {
       porticoAddress = req.porticoAddress
     }
@@ -75,8 +75,18 @@ export class OrderController {
       const destinationCanonAsset = this.rolodexService.getCanonTokenForToken(req.destinationChainId, req.destinationToken)
       const secondQuote = await this.orderService.quoteTrade(req.destinationChainId, getAddress(destinationCanonAsset), getAddress(req.destinationToken), firstQuote ,req.feeTierEnd)
       estimatedAmountOut = secondQuote
-    }catch {
-      estimatedAmountOut = 0n
+    }catch(e){
+      throw new ServiceUnvailable(`not enough liquidity. quote failed`, e)
+    }
+
+    if(!req.slippageInBps) {
+      req.slippageInBps = 300
+    }
+    const startingTokenAmount = startDataParams[6]
+    const slippageTokenAmount = (startDataParams[6] * BigInt(req.slippageInBps) / 10000n)
+    const  minAmountEnd = estimatedAmountOut
+    if((startingTokenAmount - slippageTokenAmount) > minAmountEnd) {
+      throw new ServiceUnvailable(`not enough liquidity. ${startingTokenAmount-slippageTokenAmount} > ${minAmountEnd}`)
     }
 
     return {

@@ -1,13 +1,13 @@
-import { Service} from "@tsed/di";
+import { Service } from "@tsed/di";
 import { MultiRpcService } from "./RpcServices";
 import { BadRequest } from "@tsed/exceptions";
 import { OrderModel, OrderStatus } from "src/models";
-import { Address, Hex, decodeEventLog, encodeEventTopics, getAddress, toHex} from "viem";
+import { Hex, decodeEventLog, encodeEventTopics, getAddress, toHex } from "viem";
 import { TxnData } from "src/types";
 import { RedisService } from "./RedisService";
 import { RolodexService } from "./RolodexService";
 import { porticoEventsAbi } from "src/web3";
-import { getEmitterAddressEth, parseTokenTransferPayload, parseTransferPayload, parseVaa } from "@certusone/wormhole-sdk";
+import { parseTokenTransferPayload, parseVaa } from "@certusone/wormhole-sdk";
 import { WormholeService } from "./WormholeService";
 import { quoterAbi } from "src/web3/SwapRouter";
 
@@ -27,7 +27,7 @@ export class OrderService {
       return amount
     }
     const provider = this.rpcService.getProvider(chainId)
-    const quoter = this.rolodexService.getQuoterV2(chainId)
+    const quoter = this.rolodexService.getQuoterV2(startToken, endToken, chainId)
     const result = await provider.readContract({
       abi: quoterAbi,
       functionName: "quoteExactInputSingle",
@@ -69,7 +69,7 @@ export class OrderService {
   }
 
   private async findFinishTransfer(sequence: string, wormholeChainId: number, emitterAddress: string,chainId: number) {
-    const provider = this.rpcService.getProvider(chainId)
+    //const provider = this.rpcService.getProvider(chainId)
     const tokenBridge = this.rolodexService.getTokenBridge(chainId)
     if(!tokenBridge) {
       throw new BadRequest("no token bridge on receiver chain")
@@ -98,7 +98,7 @@ export class OrderService {
         status: OrderStatus.INFLIGHT,
       }
     }
-    const startingPorticoAddress = this.rolodexService.getPortico(chainId)
+    const startingPorticoAddress = this.rolodexService.getPortico("todo", chainId)
     if(!startingPorticoAddress) {
       throw new BadRequest(`unsupported chain ${chainId}`)
     }
