@@ -1,5 +1,5 @@
 import { Controller } from "@tsed/di";
-import { ServiceUnvailable } from "@tsed/exceptions";
+import { ServiceUnavailable } from "@tsed/exceptions";
 import { BodyParams, PathParams } from "@tsed/platform-params";
 import { Get, Pattern, Post, Returns } from "@tsed/schema";
 import { OrderModel } from "src/models";
@@ -76,7 +76,7 @@ export class OrderController {
       const secondQuote = await this.orderService.quoteTrade(req.destinationChainId, getAddress(destinationCanonAsset), getAddress(req.destinationToken), firstQuote ,req.feeTierEnd)
       estimatedAmountOut = secondQuote
     }catch(e){
-      throw new ServiceUnvailable(`not enough liquidity. quote failed`, e)
+      throw new ServiceUnavailable(`not enough liquidity. quote failed`, e)
     }
 
     if(!req.slippageInBps) {
@@ -86,7 +86,7 @@ export class OrderController {
     const slippageTokenAmount = (startDataParams[6] * BigInt(req.slippageInBps) / 10000n)
     const  minAmountEnd = estimatedAmountOut
     if((startingTokenAmount - slippageTokenAmount) > minAmountEnd) {
-      throw new ServiceUnvailable(`not enough liquidity. ${startingTokenAmount-slippageTokenAmount} > ${minAmountEnd}`)
+      throw new ServiceUnavailable(`not enough liquidity. ${startingTokenAmount-slippageTokenAmount} > ${minAmountEnd}`)
     }
 
     return {

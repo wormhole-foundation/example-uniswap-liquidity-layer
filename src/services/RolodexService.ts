@@ -122,17 +122,19 @@ export class RolodexService {
 
     let pcs = false
 
-    const cannonUsdt = this.getCanonTokenForTokenName(chainId, "usdt")
     const nativeUsdt = this.getNativeTokenForTokenName(chainId, "usdt")
 
-    //if either of the tokens are either native or cannon usdt, then pcs == true
-    if(getAddress(startToken) == getAddress(cannonUsdt) || getAddress(endToken) == getAddress(nativeUsdt)){
+    //if either of the tokens are native  usdt then pcs == true
+    if (startToken.toLowerCase() == nativeUsdt.toLowerCase()) {
+      pcs = true
+    }
+    if (endToken.toLowerCase() == nativeUsdt.toLowerCase()) {
       pcs = true
     }
 
-    if(pcs){
+    if (pcs) {
       return this.getQuoterPcs(chainId)
-    }else{
+    } else {
       return this.getQuoterUni(chainId)
     }
   }
@@ -195,9 +197,12 @@ export class RolodexService {
     return getAddress(ans)
   }
 
-  getPortico(tokenName: string, chainId: number): Address {
+  getPortico(tokenAddr: string, chainId: number): Address {
+
+    const nativeUsdt = this.getNativeTokenForTokenName(chainId, "usdt")
+
     let ans: Address
-    if (pcsTokens.includes(tokenName)) {
+    if (tokenAddr.toLowerCase() == nativeUsdt.toLowerCase()) {
       ans = this.getPcsPortico(chainId)
     } else {
       ans = this.getUniPortico(chainId)
@@ -207,16 +212,6 @@ export class RolodexService {
     }
     return getAddress(ans)
   }
-
-  confirmPortico(contractAddress: Address, chainid: number): Address {
-    if(contractAddress == this.getPcsPortico(chainid)){
-      return contractAddress
-    }
-    if(contractAddress == this.getUniPortico(chainid)){
-      return contractAddress
-    }
-  }
-
 
   getUniPortico(chainId: number): Address {
     const ans = {
@@ -294,7 +289,7 @@ export class RolodexService {
     }
     return ans
   }
-  
+
   getCanonTokenForTokenName(chainId: number, token: string) {
     const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]
     if (!(ct && nt)) {

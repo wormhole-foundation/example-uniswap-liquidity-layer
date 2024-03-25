@@ -88,6 +88,7 @@ export class OrderService {
     }
   }
 
+
   public async getOrder(transactionHash:Hex, chainId: number): Promise<OrderModel> {
     const receipt = await this.getTxData(transactionHash, chainId)
     const id = `${transactionHash}_${chainId}`
@@ -97,7 +98,7 @@ export class OrderService {
         status: OrderStatus.INFLIGHT,
       }
     }
-    const startingPorticoAddress = this.rolodexService.confirmPortico(receipt.contractAddress!, chainId)
+    const startingPorticoAddress = this.rolodexService.getPortico(receipt.contractAddress!.toString(), chainId)
     if(!startingPorticoAddress) {
       throw new BadRequest(`unsupported chain ${chainId}`)
     }
