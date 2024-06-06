@@ -17,26 +17,41 @@ The Uniswap Liquidity Layer supports native ether and Lido wrapped staked ether.
 ### Portico Contract Deployments
 
 Ethereum: [0x48b6101128C0ed1E208b7C910e60542A2ee6f476](https://etherscan.io/address/0x48b6101128C0ed1E208b7C910e60542A2ee6f476)
+
 Optimism: [0x9ae506cDDd27DEe1275fd1fe6627E5dc65257061](https://optimistic.etherscan.io/address/0x9ae506cDDd27DEe1275fd1fe6627E5dc65257061#code)
+
 Base: [0x610d4DFAC3EC32e0be98D18DDb280DACD76A1889](https://basescan.org/address/0x610d4DFAC3EC32e0be98D18DDb280DACD76A1889)
+
 Arbitrum: [0x48fa7528bFD6164DdF09dF0Ed22451cF59c84130](https://arbiscan.io/address/0x48fa7528bFD6164DdF09dF0Ed22451cF59c84130)
+
 Polygon: [0x227bABe533fa9a1085f5261210E0B7137E44437B](https://polygonscan.com/address/0x227bABe533fa9a1085f5261210E0B7137E44437B)
+
 Binance Smart Chain: [0x05498574BD0Fa99eeCB01e1241661E7eE58F8a85](https://bscscan.com/address/0x05498574BD0Fa99eeCB01e1241661E7eE58F8a85)
+
 Avalanche: [0xE565E118e75304dD3cF83dff409c90034b7EA18a](https://snowtrace.io/address/0xE565E118e75304dD3cF83dff409c90034b7EA18a)
+
 
 ### Uniswap Liquidity Layer ETH Pools
 
 Optimism: [0xaC85eaf55E9C60eD40a683DE7e549d23FDfbEb33](https://optimistic.etherscan.io/address/0xaC85eaf55E9C60eD40a683DE7e549d23FDfbEb33#code)
+
 Base: [0x48413707B70355597404018e7c603B261fcADf3f](https://basescan.org/address/0x48413707B70355597404018e7c603B261fcADf3f)
+
 Arbitrum: [0xbaaf1fc002e31cb12b99e4119e5e350911ec575b](https://arbiscan.io/address/0xbaaf1fc002e31cb12b99e4119e5e350911ec575b)
+
 Polygon: [0xeda1094f59a4781456734e5d258b95e6be20b983](https://polygonscan.com/address/0xeda1094f59a4781456734e5d258b95e6be20b983)
+
 Binance Smart Chain: [0xF5C616e7b58226b8081DCc7E4A7123A63734eef6](https://bscscan.com/address/0xF5C616e7b58226b8081DCc7E4A7123A63734eef6)
+
 Avalanche: [0x9a26dab3bd252a8d3caa102864c57706485586db](https://snowtrace.io/address/0x9a26dab3bd252a8d3caa102864c57706485586db)
+
 
 ### Uniswap Liquidity Layer wstETH Pools
 
 Optimism: [0xDe09856cf2d7c0AeAC6b09437a175612261229e2](https://optimistic.etherscan.io/address/0xDe09856cf2d7c0AeAC6b09437a175612261229e2#code)
+
 Arbitrum: [0xddc4af4db32e47803b22a8fd71d03f3dac87186e](https://arbiscan.io/address/0xddc4af4db32e47803b22a8fd71d03f3dac87186e)
+
 Polygon: [0xf62646bef9215589c4afcd132c924ee675c9bab5](https://polygonscan.com/address/0xf62646bef9215589c4afcd132c924ee675c9bab5)
 
 ## Disclaimer
