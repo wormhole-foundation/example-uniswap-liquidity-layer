@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <title>Demo</title>
+        <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700" rel="stylesheet" />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/umbrella/3.2.3/umbrella.min.js" integrity="sha512-aNzOYpn6v3MbmzaUMVdEwdDY2yRM3gzjcZpcpgcDjxKLug1SyA2xNEnvL3JwnjOCwylhzMfEVyXQb5Vstck3rA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <script src="https://unpkg.com/tailwindcss-cdn@3.3.4/tailwindcss.js"></script>
+        <script src="https://unpkg.com/tailwindcss-cdn@3.3.4/tailwindcss-with-all-plugins.js"></script>
+        <script type="module">
+
+if (typeof window !== 'undefined') {
+  if (!window.process) {
+    window.process = { env: {} }
+  }
+}
+import {
+    EthereumClient,
+    w3mConnectors,
+    w3mProvider,
+    WagmiCore,
+    WagmiCoreChains,
+    WagmiCoreConnectors
+  } from 'https://unpkg.com/@web3modal/ethereum'
+
+  import { Web3Modal } from 'https://unpkg.com/@web3modal/html'
+
+  // Equivalent to importing from @wagmi/core
+  const { configureChains, createConfig } = WagmiCore
+
+  // Equivalent to importing from viem/chains
+  const { mainnet, optimism, polygon, avalanche, arbitrum } = WagmiCoreChains
+
+const chains = [avalanche, optimism, arbitrum, mainnet, polygon]
+const projectId = '82410f7bdea195676c81514f64a00fd7'
+
+const { publicClient } = configureChains(chains, [w3mProvider({ projectId })])
+const wagmiConfig = createConfig({
+  autoConnect: true,
+  connectors: w3mConnectors({ projectId, chains }),
+  publicClient
+})
+const ethereumClient = new EthereumClient(wagmiConfig, chains)
+const web3modal = new Web3Modal({ projectId }, ethereumClient)
+Object.assign(window, {web3modal, ethereumClient, WagmiCore})
+        </script>
+    </head>
+    <script>
+        let lastQuoteRequest = undefined
+        let lastQuoteResult = undefined
+        const parseNumber = (val)=>{
+            return val.toString().replaceAll(",","")
+        }
+        const getChain= () => {
+            return Number(window.ethereum.chainId)
+        }
+
+        const getAllowance = async (token, owner, spender) => {
+            return WagmiCore.readContract({
+                address: token,
+                abi: WagmiCore.erc20ABI,
+                functionName: "allowance",
+                args: [owner, spender],
+            })
+        }
+
+
+        const executeQuote = async () => {
+            if(!lastQuoteResult || !lastQuoteRequest) {
+                return
+            }
+            console.log("sending transaction", lastQuoteRequest, lastQuoteResult)
+            const account = ethereumClient.getAccount()
+            if(!account) {
+                window.alert("must connect account to execute")
+                return
+            }
+            console.log("transaction account", account)
+
+            while(true){
+                const chainId = (await ethereumClient.getNetwork()).chain.id
+                const chainsMatch = lastQuoteRequest.startChainId != chainId
+                console.log(chainId, chainsMatch)
+                if(!chainsMatch) {
+                    await ethereumClient.switchNetwork({chainId: lastQuoteRequest.startingChainId})
+                }else {
+                    break
+                }
+            }
+            console.log("asking for allowance")
+            if(await getAllowance(lastQuoteRequest.startingToken, account.address, lastQuoteResult.transactionTarget) < BigInt(lastQuoteRequest.startingTokenAmount)) {
+                const txn = await WagmiCore.writeContract({
+                    address: lastQuoteRequest.startingToken,
+                    abi: WagmiCore.erc20ABI,
+                    functionName: "approve",
+                    args: [lastQuoteResult.transactionTarget, BigInt(lastQuoteRequest.startingTokenAmount)],
+                })
+                await txn.wait()
+            }
+
+            console.log("sending transaction", lastQuoteResult)
+            const transactionResult = await WagmiCore.sendTransaction({
+                to: lastQuoteResult.transactionTarget,
+                data: lastQuoteResult.transactionData,
+            })
+
+            if(transactionResult.hash) {
+                u("#transactionHash").first().value(transactionResult.hash)
+                u("#transactionChainId").first().value(lastQuoteRequest.startingChainId)
+            }
+            setSuccess(transactionResult)
+        }
+
+        const setSuccess = (x)=>{
+            u("#successHolder").text(JSON.stringify(x, null, 4))
+            u("#errorHolder").text("")
+        }
+        const setError = (x)=>{
+            u("#errorHolder").text(JSON.stringify(x, null, 4))
+            u("#successHolder").text("")
+        }
+
+        const checkHash = async() => {
+            try {
+                const startChainId = Number(u("#transactionChainId").first().value.trim())
+                const transactionHash = u("#transactionHash").first().value
+                const ans = await (await fetch(`/api/order/status/${startChainId}/${transactionHash}`, {
+                    method:"GET",
+                })).json()
+                if(ans.errors) {
+                    setError(ans)
+                    return
+                }
+                setSuccess(ans)
+            }catch(e) {
+                setError(e)
+            }
+
+        }
+        const sendQuote = async ()=>{
+            u("#errorHolder").text("")
+            const account = ethereumClient.getAccount()
+            const startChainId = Number(u("#startChainId").first().value.trim())
+            const payload = {
+                "startingChainId": startChainId,
+                "startingToken": u("#startToken").first().value.trim(),
+                "startingTokenAmount": parseNumber(u("#startAmount").first().value.trim()),
+                "destinationToken": u("#destinationToken").first().value.trim(),
+                "destinationAddress": account?.address || "0x0000000000000000000000000000000000000000",
+                "destinationChainId": Number(u("#destinationChainId").first().value.trim()),
+                "relayerFee": "0",
+                "minAmountStart": 0,
+                "minAmountEnd": 0,
+                "bridgeNonce": (new Date().valueOf()),
+            }
+            try {
+                const ans = await (await fetch("/api/order/create", {
+                    method:"POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload)
+                })).json()
+
+                lastQuoteRequest = payload
+                lastQuoteResult = ans
+                console.log("got quote", ans)
+                if(ans.errors) {
+                    lastQuoteResult = undefined
+                    lastQuoteRequest = undefined
+                    u("#successHolder").text("")
+                    u("#errorHolder").text(JSON.stringify(ans, null, 4))
+                    return
+                }
+                u("#successHolder").text(JSON.stringify(ans, null, 4))
+            }catch(e) {
+                lastQuoteResult = undefined
+                lastQuoteRequest = undefined
+                u("#errorHolder").text(e)
+            }
+        }
+    </script>
+    <body>
+        <w3m-core-button></w3m-core-button>
+        <div class="container flex">
+            <div  class="container md mx-auto" >
+                <div class="flex gap-2 flex-col">
+                    <div class="flex flex-row gap-2" ><span>startChainId    </span> <input id="startChainId" value="137"/></div>
+                    <div class="flex flex-row gap-2" ><span>startToken      </span> <input id="startToken" value="0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619" /></div>
+                    <div class="flex flex-row gap-2" ><span>startTokenAmount</span> <input id="startAmount" value="10,000,000,000"/></div>
+                    <div class="flex flex-row gap-2" ><span>destChainId     </span> <input id="destinationChainId" value="10"/></div>
+                    <div class="flex flex-row gap-2" ><span>destToken       </span> <input id="destinationToken" value="0x4200000000000000000000000000000000000006"/></div>
+                    <div>
+                        <button class="text-white bg-blue-500 px-4 py-2 rounded-xl" onclick="sendQuote()">Quote</button>
+                        <button class="text-white bg-green-500 px-4 py-2 rounded-xl" onclick="executeQuote()">Execute</button>
+                    </div>
+                </div>
+            </div>
+            <div  class="container md mx-auto" >
+                <div class="flex flex-row gap-2" ><span>transactionChainId    </span> <input id="transactionChainId" value="137"/></div>
+                <div class="flex flex-row gap-2" ><span>transactionHash</span> <input id="transactionHash" value=""/></div>
+                <button class="text-white bg-blue-500 px-4 py-2 rounded-xl" onclick="checkHash()">Check</button>
+            </div>
+        </div>
+        <div>
+            <div class="bg-red-100" id="errorHolder"> </div>
+            <div class="overflow-x-scroll bg-gray-100 lg">
+                <div class="whitespace-pre" id="successHolder"/>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
