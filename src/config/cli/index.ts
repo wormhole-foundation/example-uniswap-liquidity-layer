@@ -49,12 +49,12 @@ const createProgram = () => {
   )
 
   const ankr = (chain:string) => {
-    const token = "f1194078083339a3013757de68d78d487dfab383d3b70e27798eb4dd47012a8a"
+    const token = ""
     return `https://rpc.ankr.com/${chain}/${token}`
   }
 
   const blast = (chain: string) => {
-    const token = "f8c01a0b-d5ae-4d0f-b6e6-9124d5290d35"
+    const token = ""
     return `https://${chain}-mainnet.blastapi.io/${token}`
   }
 
