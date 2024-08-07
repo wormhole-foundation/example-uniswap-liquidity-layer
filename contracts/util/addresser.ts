@@ -49,7 +49,8 @@ export class WormholeConstants {
         arbitrum: 23,
         base: 30,
         bsc: 4,
-        avax: 6
+        avax: 6,
+        celo: 14
     }
 
     readonly WHaddrs = {
@@ -164,6 +165,28 @@ export class BscAddresses {
     readonly portico03: string = "0x05498574BD0Fa99eeCB01e1241661E7eE58F8a85"
 }
 
+export class CeloAddresses { 
+    readonly uniRouter: string = "0x5615CDAb10dc425a742d643d949a7F474C01abc4"//swapRouter02
+    readonly tokenBridge: string = "0x796Dff6D74F3E27060B71255Fe517BFb23C93eed"
+    readonly wethAddress: string = "0x122013fd7dF1C6F636a5bb8f03108E876548b455"
+    readonly usdcAddress: string = "0xcebA9300f2b948710d2653dD7B07f33A8B32118C"
+    readonly wstethAddress: string = ""
+    readonly wormUSDT: string = "0x617f3112bf5397D0467D315cC709EF968D9ba546"
+    readonly usdtAddress: string = "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e"
+
+    readonly portico:string = "0xE565E118e75304dD3cF83dff409c90034b7EA18a"
+
+    readonly pancakePortico: string = ""
+    readonly pcsSwapRouter: string = ""//smart router (use this)
+    readonly pcsRouter: string = ""//swap router
+    readonly bscBank: string = ""//binance hot wallet
+    readonly usdtWhale: string = ""
+
+    readonly wormWeth: string = "0x66803FB87aBd4aaC3cbB3fAd7C3aa01f6F3FB207"
+    readonly wormUSDC: string = ""
+
+}
+
 export class OptimisimAddresses {
     //Tokens
     readonly wethAddress: string = "0x4200000000000000000000000000000000000006"
@@ -243,6 +266,8 @@ export const b = new BaseAddresses()
 export const bsc = new BscAddresses()
 
 export const e = new MainnetAddresses()
+
+export const c =  new CeloAddresses()
 
 export const o = new OptimisimAddresses()
 

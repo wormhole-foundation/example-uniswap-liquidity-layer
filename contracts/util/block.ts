@@ -73,6 +73,18 @@ export const resetCurrentOP = async () => {
         ],
     });
 }
+export const resetCurrentCelo = async () => {
+    await network.provider.request({
+        method: "hardhat_reset",
+        params: [
+            {
+                forking: {
+                    jsonRpcUrl: process.env.CELO_URL!
+                },
+            },
+        ],
+    });
+}
 export const resetCurrentPoly = async () => {
     await network.provider.request({
         method: "hardhat_reset",

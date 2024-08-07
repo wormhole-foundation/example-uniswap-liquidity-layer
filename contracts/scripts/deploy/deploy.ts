@@ -1,6 +1,6 @@
 import hre, { ethers, network } from "hardhat";
-import { currentBlock, resetCurrent, resetCurrentArb, resetCurrentBase } from "../../util/block";
-import { a, av, b, bsc, e, o, p } from "../../util/addresser";
+import { currentBlock, resetCurrent } from "../../util/block";
+import { a, av, b, bsc, c, e, o, p } from "../../util/addresser";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { Portico, Portico__factory } from "../../typechain-types";
 import { DeployContract } from "../../util/deploy";
@@ -89,6 +89,10 @@ async function main() {
       swapRouter = av.uniRouter
       tokenBridge = av.tokenBridge
       weth = bsc.wethAddress
+    }else if (networkName == "celo") {
+      swapRouter = c.uniRouter
+      tokenBridge = c.tokenBridge
+      weth = c.wethAddress
     }else {
       //mainnet
       swapRouter = e.pcsSwapRouter
@@ -112,13 +116,13 @@ main().catch((error) => {
 });
 
 /**
-DEPLOYING TO:  base
+DEPLOYING TO:  celo
 Deployer:  0x085909388fc0cE9E5761ac8608aF8f2F52cb8B89
-Portico Deployed:  0x9128bA6B88a3851d6aa856aadE7dA0Bb694560Db
-swapRouter :  0x1b81D678ffb9C0263b24A97847620C99d213eB14
-TokenBridge:  0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627
-Local weth :  0x4200000000000000000000000000000000000006
+Portico Deployed:  0x2dB08783F13c4225A1963b2437f0D459a5BCB4D8
+swapRouter :  0x5615CDAb10dc425a742d643d949a7F474C01abc4
+TokenBridge:  0x796Dff6D74F3E27060B71255Fe517BFb23C93eed
+Local weth :  0x66803FB87aBd4aaC3cbB3fAd7C3aa01f6F3FB207
 
-hh verify --network base 0x9128bA6B88a3851d6aa856aadE7dA0Bb694560Db "0x1b81D678ffb9C0263b24A97847620C99d213eB14" "0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627" "0x4200000000000000000000000000000000000006" "0x53207E216540125e322CdA8A693b0b89576DEb46"
+hh verify --network celo 0x2dB08783F13c4225A1963b2437f0D459a5BCB4D8 "0x5615CDAb10dc425a742d643d949a7F474C01abc4" "0x796Dff6D74F3E27060B71255Fe517BFb23C93eed" "0x66803FB87aBd4aaC3cbB3fAd7C3aa01f6F3FB207" "0x53207E216540125e322CdA8A693b0b89576DEb46"
 
  */

@@ -97,6 +97,14 @@ const config: HardhatUserConfig = {
           : zaddr
       ],
       chainId: 43114
+    },
+    celo: {
+      url: "https://forno.celo.org",
+      accounts: [
+        process.env.MAINNET_PRIVATE_KEY
+          ? process.env.MAINNET_PRIVATE_KEY
+          : zaddr
+      ],
     }
 
   },
@@ -128,7 +136,8 @@ const config: HardhatUserConfig = {
       arbitrumOne: process.env.ARB_API_KEY!,
       base: process.env.BASE_API_KEY!,
       bsc: process.env.BSC_API_KEY!,
-      routescan: "routescan"
+      routescan: "routescan",
+      celo: process.env.CELO_API_KEY!
     },
     customChains: [
       {
@@ -146,7 +155,15 @@ const config: HardhatUserConfig = {
           apiURL: "https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan",
           browserURL: "https://routescan.io"
         }
-      }
+      },
+      {
+        network: "celo",
+        chainId: 42220,
+        urls: {
+            apiURL: "https://api.celoscan.io/api",
+            browserURL: "https://celoscan.io/",
+        },
+    },
     ]
   },
   typechain: {
