@@ -221,16 +221,14 @@ export class RolodexService {
 
     const nativeUsdt = this.getNativeTokenForTokenName(chainId, "usdt")
     let ans: Address
-    if (tokenAddr.toLowerCase() == nativeUsdt.toLowerCase()) {
-      //no pcs for celo
-      if (chainId == celo.id) {
-        ans = this.getUniPortico(chainId)
-      } else {
-        ans = this.getPcsPortico(chainId)
-      }
-    } else {
+    //no pcs for celo
+    if(chainId == celo.id || tokenAddr.toLowerCase() != nativeUsdt.toLowerCase()){
       ans = this.getUniPortico(chainId)
+    }else{
+      //else means we have USDT on !celo network 
+      ans = this.getPcsPortico(chainId)
     }
+
     if (!ans) {
       throw new BadRequest("no portico found for chain")
     }
@@ -245,7 +243,8 @@ export class RolodexService {
       [base.id]: "0x610d4DFAC3EC32e0be98D18DDb280DACD76A1889",
       [optimism.id]: "0x9ae506cDDd27DEe1275fd1fe6627E5dc65257061",
       [bsc.id]: "0x05498574BD0Fa99eeCB01e1241661E7eE58F8a85",
-      [avalanche.id]: "0xE565E118e75304dD3cF83dff409c90034b7EA18a"
+      [avalanche.id]: "0xE565E118e75304dD3cF83dff409c90034b7EA18a",
+      [celo.id]: "0xE565E118e75304dD3cF83dff409c90034b7EA18a"
     }[chainId]
     if (!ans) {
       throw new BadRequest("no portico found for chain")
