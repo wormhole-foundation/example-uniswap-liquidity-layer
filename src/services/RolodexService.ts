@@ -1,16 +1,15 @@
 import { Service } from "@tsed/di";
 import { MultiRpcService } from "./RpcServices";
 import { RedisService } from "./RedisService";
-import { arbitrum, base, bsc, mainnet, optimism, polygon, avalanche } from "viem/chains";
+import { arbitrum, base, bsc, mainnet, optimism, polygon, avalanche, celo } from "viem/chains";
 import { Address, getAddress } from "viem";
 import { BadRequest } from "@tsed/exceptions";
-import { start } from "repl";
 
 interface lut { [key: string]: { [key: string]: string } }
 
-const withFlip = (x:lut):lut => {
-  for(const [k, v] of Object.entries(x)) {
-    for(const [sk,sv] of Object.entries(v)) {
+const withFlip = (x: lut): lut => {
+  for (const [k, v] of Object.entries(x)) {
+    for (const [sk, sv] of Object.entries(v)) {
       x[k.toLowerCase()][sv.toLowerCase()] = sk.toLowerCase()
       x[k.toLowerCase()][sk.toLowerCase()] = sv.toLowerCase()
     }
@@ -53,6 +52,10 @@ const canonAssetTable = withFlip({
     "0x8b82A291F83ca07Af22120ABa21632088fC92931": "eth",
     "0x9d228444FC4B7E15A2C481b48E10247A03351FD8": "usdt"
   },
+  [celo.id]: {
+    "0x66803FB87aBd4aaC3cbB3fAd7C3aa01f6F3FB207": "eth",
+    "0x617f3112bf5397D0467D315cC709EF968D9ba546": "usdt"
+  },
 })
 
 const nativeAssetTable = withFlip({
@@ -90,6 +93,10 @@ const nativeAssetTable = withFlip({
     "0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab": "eth",
     "0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7": "usdt"
   },
+  [celo.id]: {
+    "0x122013fd7dF1C6F636a5bb8f03108E876548b455": "eth",
+    "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e": "usdt"
+  },
 })
 
 //only use pcs for usdt, and always use pcs for usdt
@@ -121,6 +128,11 @@ export class RolodexService {
 
   getQuoterV2(startToken: string, endToken: string, chainId: number): Address {
 
+    //no pcs for celo
+    if (chainId == celo.id) {
+      return this.getQuoterUni(chainId)
+    }
+
     let pcs = false
 
     const nativeUsdt = this.getNativeTokenForTokenName(chainId, "usdt")
@@ -148,7 +160,8 @@ export class RolodexService {
       [optimism.id]: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
       [base.id]: "0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a",
       [bsc.id]: "0x78D78E420Da98ad378D7799bE8f4AF69033EB077",
-      [avalanche.id]: "0xbe0F5544EC67e9B3b2D979aaA43f18Fd87E6257F"
+      [avalanche.id]: "0xbe0F5544EC67e9B3b2D979aaA43f18Fd87E6257F",
+      [celo.id]: "0x82825d0554fA07f7FC52Ab63c961F330fdEFa8E8"
     }[chainId]
     if (!ans) {
       throw new BadRequest("no portico found for chain")
@@ -159,7 +172,12 @@ export class RolodexService {
   getSwapRouter(tokenName: string, chainId: number): Address {
     let ans: Address
     if (pcsTokens.includes(tokenName)) {
-      ans = this.getPcsRouter(chainId)
+      //no pcs for celo
+      if (chainId == celo.id) {
+        ans = this.getUniRouter(chainId)
+      }else{
+        ans = this.getPcsRouter(chainId)
+      }
     } else {
       ans = this.getUniRouter(chainId)
     }
@@ -177,7 +195,8 @@ export class RolodexService {
       [base.id]: "0x2626664c2603336E57B271c5C0b26F421741e481",
       [optimism.id]: "0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45",
       [bsc.id]: "0xB971eF87ede563556b2ED4b1C0b0019111Dd85d2",
-      [avalanche.id]: "0xbb00FF08d01D300023C629E8fFfFcb65A5a578cE"
+      [avalanche.id]: "0xbb00FF08d01D300023C629E8fFfFcb65A5a578cE",
+      [celo.id]: "0x5615CDAb10dc425a742d643d949a7F474C01abc4"
     }[chainId]
     if (!ans) {
       throw new BadRequest("no portico found for chain")
@@ -201,10 +220,14 @@ export class RolodexService {
   getPortico(tokenAddr: string, chainId: number): Address {
 
     const nativeUsdt = this.getNativeTokenForTokenName(chainId, "usdt")
-
     let ans: Address
     if (tokenAddr.toLowerCase() == nativeUsdt.toLowerCase()) {
-      ans = this.getPcsPortico(chainId)
+      //no pcs for celo
+      if (chainId == celo.id) {
+        ans = this.getUniPortico(chainId)
+      } else {
+        ans = this.getPcsPortico(chainId)
+      }
     } else {
       ans = this.getUniPortico(chainId)
     }
@@ -251,7 +274,8 @@ export class RolodexService {
       [base.id]: "0x8d2de8d2f73F1F4cAB472AC9A881C9b123C79627",
       [optimism.id]: "0x1D68124e65faFC907325e3EDbF8c4d84499DAa8b",
       [bsc.id]: "0xB6F6D86a8f9879A9c87f643768d9efc38c1Da6E7",
-      [avalanche.id]: "0x0e082F06FF657D94310cB8cE8B0D9a04541d8052"
+      [avalanche.id]: "0x0e082F06FF657D94310cB8cE8B0D9a04541d8052",
+      [celo.id]: "0x796Dff6D74F3E27060B71255Fe517BFb23C93eed"
     }[chainId]
     if (!ans) {
       throw new BadRequest(`chain ${chainId} not supported`)
@@ -267,7 +291,8 @@ export class RolodexService {
       [base.id]: 30,
       [optimism.id]: 24,
       [bsc.id]: 4,
-      [avalanche.id]: 6
+      [avalanche.id]: 6,
+      [celo.id]: 14
     }[chainId]
     if (!ans) {
       throw new BadRequest(`chain ${chainId} not supported`)
@@ -282,7 +307,8 @@ export class RolodexService {
       [30]: base.id,
       [24]: optimism.id,
       [4]: bsc.id,
-      [6]: avalanche.id
+      [6]: avalanche.id,
+      [42220]: celo.id
 
     }[wormholeChainId] as (number | undefined)
     if (!ans) {
@@ -290,7 +316,7 @@ export class RolodexService {
     }
     return ans
   }
-  getCanonTokenForTokenName(chainId: number, token:string) {
+  getCanonTokenForTokenName(chainId: number, token: string) {
     token = token.toLowerCase()
     const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]
     if (!(ct && nt)) {
@@ -302,7 +328,7 @@ export class RolodexService {
     }
     return ans
   }
-  getNativeTokenForTokenName(chainId: number, token:string) {
+  getNativeTokenForTokenName(chainId: number, token: string) {
     token = token.toLowerCase()
     const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]
     if (!(ct && nt)) {
@@ -314,7 +340,7 @@ export class RolodexService {
     }
     return ans
   }
-  getCanonTokenForToken(chainId: number, token:string) {
+  getCanonTokenForToken(chainId: number, token: string) {
     token = token.toLowerCase()
     const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]
     if (!(ct && nt)) {
