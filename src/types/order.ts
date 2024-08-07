@@ -66,6 +66,10 @@ export class CreateOrderRequest {
   @Default(false)
   shouldUnwrapNative? : boolean = false
 
+  @Property()
+  @Default(300)
+  slippageInBps?: number = 300
+
 
   @Any("string")
   @Example("")

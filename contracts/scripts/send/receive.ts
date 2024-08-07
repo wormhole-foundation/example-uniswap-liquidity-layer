@@ -18,9 +18,9 @@ const MAINNET_GUARDIAN_RPC: string[] = [
 ]
 
 //change these
-const emittingChainid = w.CID.ethereum
-const emitter = "0000000000000000000000003ee18b2214aff97000d974cf647e7c347e8fa585"
-const sequence = 244251
+const emittingChainid = 30
+const emitter = "0000000000000000000000008d2de8d2f73f1f4cab472ac9a881c9b123c79627"
+const sequence = 54576
 //which network on which to receive when testing
 const testNetwork = "avax"
 const testNetworks = [
@@ -141,7 +141,9 @@ async function main() {
             portico = Portico__factory.connect(b.pancakePortico, user)
         } else if (networkName == "bsc") {
             portico = Portico__factory.connect(bsc.pancakePortico, user)
-        } else {//mainnet
+        } else if (networkName == "avax") {
+            portico = Portico__factory.connect(av.portico03, user)
+        }else {//mainnet
             portico = Portico__factory.connect(e.pancakePortico, user)
         }
     }

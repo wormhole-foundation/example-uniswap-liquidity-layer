@@ -104,7 +104,7 @@ export class ArbAddresses{
     readonly portico: string = "0x7C1Caa71943Ef43e9b203B02678000755a4eCdE9"
     readonly portico02: string = "0xf8497FE5B0C5373778BFa0a001d476A21e01f09b"//updated 12/12
     readonly portico03: string = "0x48fa7528bFD6164DdF09dF0Ed22451cF59c84130"
-    readonly pancakePortico: string = "0xE70946692E2e56ae47BfAe2d93d31bd60952B090"//"0xd8284305b520FF5486ab718DBdfe46f18454aeDE"
+    readonly pancakePortico: string = "0xE70946692E2e56ae47BfAe2d93d31bd60952B090"//"0xd8284305b520FF5486ab718DBdfe46f18454aeDE"//"0xeeb6D5B60BfD3Ef8bc0513dD182eaCE0aAe7E3e5"
 
     readonly wethAddress: string = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1"
     readonly wormWeth: string = "0xD8369C2EDA18dD6518eABb1F85BD60606dEb39Ec"

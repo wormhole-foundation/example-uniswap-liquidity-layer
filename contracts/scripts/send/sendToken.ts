@@ -13,20 +13,20 @@ import { ceaseImpersonation, impersonateAccount } from "../../util/impersonator"
 
 
 //change these
-const tokenToSend = e.usdtAddress
+const tokenToSend = p.usdtAddress
 const mainnetTokenAddr = e.usdtAddress
-const finalTokenAddress = av.usdtAddress
-const whale = e.usdtWhale//token holder for testing only
-const destChainID = w.CID.avax
+const finalTokenAddress = o.usdtAddress
+const whale = p.usdtWhale//token holder for testing only
+const destChainID = w.CID.optimism
 const feeIn = 100
 const feeOut = 100
 const wrapIn = false//always false for non eth
 const wrapOut = false//always false for non eth
-const amount = BN("9005603")
+const amount = BN("5e4")
 const relayerFee = BN("0")
 
 //which network to send from when testing
-const testNetwork = "mainnet"
+const testNetwork = "polygon"
 const testNetworks = [
     "polygon",
     "op",
@@ -41,7 +41,6 @@ let portico: Portico//Portico
 let networkName: string
 let TOKEN: IERC20
 let localCannonAsset: string
-
 
 const send = async (user: SignerWithAddress) => {
 
@@ -174,27 +173,14 @@ async function main() {
             console.log("Reset to arb")
 
             //set chain specifics
-            //portico = Portico__factory.connect(a.pancakePortico, user)
-            portico = await DeployContract(
-                new Portico__factory(user),
-                user,
-                a.pcsSwapRouter,
-                a.tokenBridge,
-                a.wethAddress,
-                "0x53207E216540125e322CdA8A693b0b89576DEb46"
-            )
-            await portico.deployed()
-            console.log("Test portico deployed: ", portico.address)
+            portico = Portico__factory.connect(a.pancakePortico, user)
             TOKEN = IERC20__factory.connect(tokenToSend, user)
             const tb = ITokenBridge__factory.connect(a.tokenBridge, user)
             localCannonAsset = await tb.wrappedAsset(2, adddr2Bytes(mainnetTokenAddr))
 
-            console.log("Stealing")
-
             //fund 
-            //const whale = "0x916792f7734089470de27297903BED8a4630b26D"
+            const whale = "0xF977814e90dA44bFA03b6295A0616a897441aceC"
             await stealMoney(whale, user.address, TOKEN.address, amount)
-
             console.log("TEST TX ON ARB @ ", await (await currentBlock()).number)
 
 

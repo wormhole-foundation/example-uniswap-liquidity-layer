@@ -8,10 +8,11 @@ import { start } from "repl";
 
 interface lut { [key: string]: { [key: string]: string } }
 
-const withFlip = (x: lut): lut => {
-  for (const [k, v] of Object.entries(x)) {
-    for (const [sk, sv] of Object.entries(v)) {
-      x[k][sv] = sk
+const withFlip = (x:lut):lut => {
+  for(const [k, v] of Object.entries(x)) {
+    for(const [sk,sv] of Object.entries(v)) {
+      x[k.toLowerCase()][sv.toLowerCase()] = sk.toLowerCase()
+      x[k.toLowerCase()][sk.toLowerCase()] = sv.toLowerCase()
     }
   }
   return x
@@ -289,8 +290,8 @@ export class RolodexService {
     }
     return ans
   }
-
-  getCanonTokenForTokenName(chainId: number, token: string) {
+  getCanonTokenForTokenName(chainId: number, token:string) {
+    token = token.toLowerCase()
     const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]
     if (!(ct && nt)) {
       throw new BadRequest(`no support for chain ${chainId}`)
@@ -301,7 +302,8 @@ export class RolodexService {
     }
     return ans
   }
-  getNativeTokenForTokenName(chainId: number, token: string) {
+  getNativeTokenForTokenName(chainId: number, token:string) {
+    token = token.toLowerCase()
     const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]
     if (!(ct && nt)) {
       throw new BadRequest(`no support for chain ${chainId}`)
@@ -312,7 +314,8 @@ export class RolodexService {
     }
     return ans
   }
-  getCanonTokenForToken(chainId: number, token: string) {
+  getCanonTokenForToken(chainId: number, token:string) {
+    token = token.toLowerCase()
     const [ct, nt] = [canonAssetTable[chainId], nativeAssetTable[chainId]]
     if (!(ct && nt)) {
       throw new BadRequest(`no support for chain ${chainId}`)

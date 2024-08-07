@@ -1,4 +1,4 @@
-import { Controller } from "@tsed/di";
+import {Controller} from "@tsed/di";
 import { ServiceUnavailable } from "@tsed/exceptions";
 import { BodyParams, PathParams } from "@tsed/platform-params";
 import { Get, Pattern, Post, Returns } from "@tsed/schema";
