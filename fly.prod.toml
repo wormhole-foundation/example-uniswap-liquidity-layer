@@ -1,20 +1,20 @@
-# fly.toml app configuration file generated for thermae-dev on 2024-08-08T18:19:05-05:00
+# fly.toml app configuration file generated for thermae on 2023-10-19T16:45:03-05:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'thermae-dev'
-primary_region = 'ord'
+app = "thermae"
+primary_region = "ord"
 
 [build]
 
 [http_service]
   internal_port = 3333
   force_https = true
-  auto_stop_machines = 'off'
+  auto_stop_machines = false
   auto_start_machines = true
-  min_machines_running = 1
-  processes = ['app']
+  min_machines_running = 2
+  processes = ["app"]
 
 [[vm]]
   memory = '1gb'
